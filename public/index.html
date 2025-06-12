@@ -97,6 +97,8 @@
             flex-grow: 1;
             overflow-y: auto;
             padding: 15px;
+            display: flex;
+            flex-direction: column;
         }
         
         .message {
@@ -126,7 +128,7 @@
         .sent {
             background: #0062cc;
             color: white;
-            margin-left: auto;
+            align-self: flex-end; /* Alterado de margin-left: auto para melhor alinhamento */
         }
         
         .system {
@@ -138,7 +140,41 @@
             font-size: 0.9em;
             color: #aaa;
             max-width: 90%;
+            align-self: center;
         }
+
+        /* --- NOVO: ESTILOS PARA FILTRO DE PALAVRAS --- */
+        .message.offensive {
+            background-color: #4d2020; /* Fundo avermelhado escuro */
+            border: 2px solid #ff4d4d; /* Borda vermelha */
+            color: #f0f0f0;
+        }
+
+        .attention-icon {
+            position: absolute;
+            bottom: -8px;
+            left: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .reason {
+            display: none;
+            margin-top: 8px;
+            padding: 8px;
+            background-color: #ffdddd;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #d8000c;
+            user-select: text; /* Permite selecionar o texto do aviso */
+            text-align: left; /* Garante alinhamento à esquerda */
+        }
+        
+        .reason.visible {
+            display: block;
+        }
+        /* --- FIM DOS ESTILOS DO FILTRO --- */
         
         #input-area {
             display: flex;
@@ -146,6 +182,7 @@
             background: #2d2d2d;
             border-top: 1px solid #333;
             position: relative;
+            flex-wrap: wrap; /* Permite que a área de reply quebre a linha */
         }
         
         #message {
@@ -240,25 +277,13 @@
             animation: typingAnimation 1.4s infinite ease-in-out;
         }
         
-        .typing-dot:nth-child(1) {
-            animation-delay: 0s;
-        }
-        
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
         
         @keyframes typingAnimation {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-5px);
-            }
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
         }
         
         /* Área de resposta */
@@ -270,6 +295,8 @@
             border-radius: 5px;
             display: flex;
             justify-content: space-between;
+            width: 100%; /* Garante que ocupe a largura toda no input */
+            text-align: left; /* Garante alinhamento à esquerda */
         }
         
         .reply-text {
@@ -296,20 +323,16 @@
             font-size: 0.9em;
         }
         
-        .close-reply:hover {
-            color: #fff;
-        }
+        .close-reply:hover { color: #fff; }
     </style>
 </head>
 <body>
-    <!-- Tela inicial atualizada para AthesChat! -->
     <div id="start-screen">
         <h1 style="color: white; margin-bottom: 20px;">AthesChat!</h1>
         <p style="color: #aaa; margin-bottom: 20px; text-align: center;">O chat anônimo que conecta o Brasil!</p>
         <button id="start-btn">Comece a Conversar!</button>
     </div>
 
-    <!-- Tela do chat com novo nome -->
     <div id="chat-container">
         <div id="chat-header">
             <span>AthesChat!</span>
@@ -322,7 +345,7 @@
         <div id="input-area">
             <button id="action-btn" style="display: none;"></button>
             <input type="text" id="message" placeholder="Digite sua mensagem..." autocomplete="off">
-            <button id="send-btn" onclick="sendMessage()">Enviar</button>
+            <button id="send-btn">Enviar</button>
         </div>
     </div>
 
@@ -330,6 +353,7 @@
         const socket = io();
         const chatDiv = document.getElementById('chat');
         const messageInput = document.getElementById('message');
+        const sendBtn = document.getElementById('send-btn');
         const startScreen = document.getElementById('start-screen');
         const chatContainer = document.getElementById('chat-container');
         const startBtn = document.getElementById('start-btn');
@@ -346,12 +370,39 @@
         let swipeStartY = null;
         let swipeElement = null;
         let swipeThreshold = 50;
+
+        // NOVO: LÓGICA DO FILTRO DE PALAVRAS
+        let palavrasOfensivas = [];
+
+        async function carregarListaDePalavras() {
+            try {
+                const response = await fetch('palavras_proibidas.json');
+                if (!response.ok) throw new Error('Falha ao carregar lista de palavras.');
+                palavrasOfensivas = await response.json();
+                console.log('Filtro de palavras carregado com sucesso.');
+            } catch (error) {
+                console.error(error);
+                addSystemMessage("⚠️ Não foi possível carregar o filtro de palavras. A moderação pode não funcionar.");
+            }
+        }
         
-        // Obter localização aproximada baseada no IP
+        function contemPalavraOfensiva(texto) {
+            if (palavrasOfensivas.length === 0) return false;
+            // Usamos expressão regular com \b (fronteira) para pegar palavras inteiras e evitar falsos positivos
+            const encontrou = palavrasOfensivas.some(palavra => {
+                const regex = new RegExp(`\\b${palavra}\\b`, 'i'); // 'i' para ser case-insensitive
+                return regex.test(texto);
+            });
+            return encontrou;
+        }
+        // FIM DA LÓGICA DO FILTRO
+
         fetch('https://ipapi.co/json/')
             .then(response => response.json())
             .then(data => {
-                if(data.region) {
+                if(data.city && data.region_code) {
+                    partnerLocation = `${data.city}, ${data.region_code}`;
+                } else if (data.region) {
                     partnerLocation = data.region;
                 }
             })
@@ -359,53 +410,40 @@
                 partnerLocation = "Localização desconhecida";
             });
 
-        // Iniciar chat
         startBtn.addEventListener('click', () => {
             startScreen.style.display = 'none';
             chatContainer.style.display = 'flex';
             socket.emit('join');
+            messageInput.focus();
         });
 
-        // Atualizar contador de usuários online
         socket.on('users_online', (count) => {
             onlineCountElement.textContent = `${count} online`;
         });
-
-        // Permitir enviar mensagem com Enter
+        
+        sendBtn.addEventListener('click', sendMessage); // Adicionado listener no botão
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
         
-        // Detectar quando o usuário começa a digitar
         messageInput.addEventListener('input', () => {
             if (!isTyping && isConnected) {
                 isTyping = true;
-                socket.emit('typing', {
-                    partnerId: currentPartnerId,
-                    isTyping: true
-                });
+                socket.emit('typing', { isTyping: true });
             }
-            
-            // Resetar o timeout de parar de digitar
             clearTimeout(typingTimeout);
             typingTimeout = setTimeout(() => {
                 if (isTyping && isConnected) {
                     isTyping = false;
-                    socket.emit('typing', {
-                        partnerId: currentPartnerId,
-                        isTyping: false
-                    });
+                    socket.emit('typing', { isTyping: false });
                 }
             }, 1000);
         });
         
-        // Configurar eventos de swipe para responder mensagens
         function setupSwipeEvents() {
-            chatDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
+            chatDiv.addEventListener('touchstart', handleTouchStart, { passive: true });
             chatDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
-            chatDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
-            
-            // Para desktop com mouse
+            chatDiv.addEventListener('touchend', handleTouchEnd, { passive: true });
             chatDiv.addEventListener('mousedown', handleMouseDown);
             chatDiv.addEventListener('mousemove', handleMouseMove);
             chatDiv.addEventListener('mouseup', handleMouseUp);
@@ -413,11 +451,9 @@
         }
         
         function handleTouchStart(e) {
-            const touch = e.touches[0];
-            const messageElement = document.elementFromPoint(touch.clientX, touch.clientY).closest('.message:not(.system)');
-            
+            const messageElement = e.target.closest('.message:not(.system)');
             if (messageElement) {
-                e.preventDefault();
+                const touch = e.touches[0];
                 swipeStartX = touch.clientX;
                 swipeStartY = touch.clientY;
                 swipeElement = messageElement;
@@ -427,50 +463,35 @@
         
         function handleTouchMove(e) {
             if (swipeElement && swipeStartX !== null) {
-                e.preventDefault();
                 const touch = e.touches[0];
                 const deltaX = touch.clientX - swipeStartX;
-                const deltaY = touch.clientY - swipeStartY;
-                
-                if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                    swipeElement.style.transform = `translateX(${Math.max(0, deltaX)}px)`;
-                    
-                    if (deltaX > swipeThreshold) {
-                        swipeElement.classList.add('active');
-                    } else {
-                        swipeElement.classList.remove('active');
-                    }
+                const deltaY = Math.abs(touch.clientY - swipeStartY);
+                if (deltaX > 0 && deltaX > deltaY) { // Prioriza movimento horizontal para a direita
+                    e.preventDefault();
+                    swipeElement.style.transform = `translateX(${deltaX}px)`;
+                    if (deltaX > swipeThreshold) swipeElement.classList.add('active');
+                    else swipeElement.classList.remove('active');
                 }
             }
         }
         
         function handleTouchEnd(e) {
             if (swipeElement && swipeStartX !== null) {
-                const touch = e.changedTouches[0];
-                const deltaX = touch.clientX - swipeStartX;
-                
-                if (deltaX > swipeThreshold) {
-                    handleMessageReply(swipeElement);
-                }
-                
+                const deltaX = e.changedTouches[0].clientX - swipeStartX;
+                if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
                 swipeElement.style.transform = '';
                 swipeElement.classList.remove('swiping', 'active');
-                swipeStartX = null;
-                swipeElement = null;
+                swipeStartX = null; swipeElement = null;
             }
         }
         
         function handleMouseDown(e) {
-            if (e.button === 0) {
-                const messageElement = e.target.closest('.message:not(.system)');
-                
-                if (messageElement) {
-                    e.preventDefault();
-                    swipeStartX = e.clientX;
-                    swipeStartY = e.clientY;
-                    swipeElement = messageElement;
-                    swipeElement.classList.add('swiping');
-                }
+            const messageElement = e.target.closest('.message:not(.system)');
+            if (e.button === 0 && messageElement) {
+                e.preventDefault();
+                swipeStartX = e.clientX; swipeStartY = e.clientY;
+                swipeElement = messageElement;
+                swipeElement.classList.add('swiping');
             }
         }
         
@@ -478,16 +499,11 @@
             if (swipeElement && swipeStartX !== null) {
                 e.preventDefault();
                 const deltaX = e.clientX - swipeStartX;
-                const deltaY = e.clientY - swipeStartY;
-                
-                if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                    swipeElement.style.transform = `translateX(${Math.max(0, deltaX)}px)`;
-                    
-                    if (deltaX > swipeThreshold) {
-                        swipeElement.classList.add('active');
-                    } else {
-                        swipeElement.classList.remove('active');
-                    }
+                const deltaY = Math.abs(e.clientY - swipeStartY);
+                if (deltaX > 0 && deltaX > deltaY) {
+                    swipeElement.style.transform = `translateX(${deltaX}px)`;
+                    if (deltaX > swipeThreshold) swipeElement.classList.add('active');
+                    else swipeElement.classList.remove('active');
                 }
             }
         }
@@ -495,21 +511,17 @@
         function handleMouseUp(e) {
             if (swipeElement && swipeStartX !== null) {
                 const deltaX = e.clientX - swipeStartX;
-                
-                if (deltaX > swipeThreshold) {
-                    handleMessageReply(swipeElement);
-                }
-                
+                if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
                 swipeElement.style.transform = '';
                 swipeElement.classList.remove('swiping', 'active');
-                swipeStartX = null;
-                swipeElement = null;
+                swipeStartX = null; swipeElement = null;
             }
         }
-        
+
         socket.on('connect', () => {
             addSystemMessage('Conectando ao servidor...');
             setupSwipeEvents();
+            carregarListaDePalavras(); // NOVO: Carrega a lista ao conectar
         });
         
         socket.on('chat_start', (data) => {
@@ -521,19 +533,11 @@
         
         socket.on('message', (data) => {
             if(data.senderId !== socket.id) {
-                if (data.replyTo) {
-                    addMessage(data.text, 'Anônimo', false, {
-                        id: data.replyTo.id,
-                        text: data.replyTo.text,
-                        sender: 'Anônimo' // Corrigido para sempre mostrar "Anônimo"
-                    });
-                } else {
-                    addMessage(data.text, 'Anônimo', false);
-                }
+                addMessage(data.text, 'Anônimo', false, data.replyTo);
             }
         });
         
-        socket.on('partner_disconnected', (data) => {
+        socket.on('partner_disconnected', () => {
             isConnected = false;
             currentPartnerId = null;
             addSystemMessage('❌ Parceiro desconectado. Procurando novo parceiro...');
@@ -542,7 +546,7 @@
             if (replyingTo) cancelReply();
         });
         
-        socket.on('chat_ended', (data) => {
+        socket.on('chat_ended', () => {
             isConnected = false;
             currentPartnerId = null;
             addSystemMessage('❌ O parceiro encerrou a conversa.');
@@ -551,7 +555,7 @@
             if (replyingTo) cancelReply();
         });
         
-        socket.on('waiting', (data) => {
+        socket.on('waiting', () => {
             addSystemMessage('🔎 Procurando um parceiro...');
         });
         
@@ -560,54 +564,78 @@
         });
         
         socket.on('typing', (data) => {
-            if (data.isTyping) {
-                showTypingIndicator();
-            } else {
-                removeTypingIndicator();
-            }
+            if (data.isTyping) showTypingIndicator();
+            else removeTypingIndicator();
         });
 
+        // NOVO: FUNÇÃO DE ENVIO ATUALIZADA COM O FILTRO
         function sendMessage() {
             const message = messageInput.value.trim();
-            if (message && isConnected) {
-                const messageData = {
-                    text: message,
-                    senderId: socket.id,
-                    partnerId: currentPartnerId
-                };
-                
+            if (!message) return; // Não envia mensagens vazias
+
+            // VERIFICAÇÃO DE PALAVRA OFENSIVA
+            if (contemPalavraOfensiva(message)) {
+                addOffensiveMessage(message); // Mostra a mensagem bloqueada apenas para o remetente
+                messageInput.value = '';
+                if (replyingTo) cancelReply();
+                messageInput.focus();
+                return; // Impede o envio da mensagem para o servidor
+            }
+            
+            // Lógica de envio normal (se a mensagem for limpa)
+            if (isConnected) {
+                const messageData = { text: message };
                 if (replyingTo) {
                     messageData.replyTo = {
                         id: replyingTo.id,
                         text: replyingTo.text,
-                        sender: replyingTo.sender === 'Anônimo' ? 'Você' : 'Anônimo'
+                        sender: 'Você' // Para o parceiro, a resposta é para "Você"
                     };
                 }
-                
                 socket.emit('message', messageData);
                 addMessage(message, 'Você', true, replyingTo);
                 messageInput.value = '';
-                
-                if (replyingTo) {
-                    replyingTo = null;
-                    updateReplyUI();
-                }
-                
+                if (replyingTo) cancelReply();
                 if (isTyping) {
                     isTyping = false;
-                    socket.emit('typing', {
-                        partnerId: currentPartnerId,
-                        isTyping: false
-                    });
+                    socket.emit('typing', { isTyping: false });
                 }
             }
             messageInput.focus();
         }
 
+        // NOVO: FUNÇÃO PARA ADICIONAR MENSAGEM OFENSIVA (BLOQUEADA)
+        function addOffensiveMessage(msg) {
+            const msgElement = document.createElement('div');
+            msgElement.className = 'message sent offensive';
+            
+            const textNode = document.createElement('div');
+            textNode.textContent = msg;
+            
+            const attentionIcon = document.createElement('span');
+            attentionIcon.className = 'attention-icon';
+            attentionIcon.textContent = '⚠️';
+            
+            const reasonText = document.createElement('div');
+            reasonText.className = 'reason';
+            reasonText.textContent = 'Sua mensagem não foi enviada pois contém linguagem que viola as diretrizes da comunidade.';
+            
+            attentionIcon.addEventListener('click', (e) => {
+                e.stopPropagation(); // Impede que o clique se propague para outros elementos
+                reasonText.classList.toggle('visible');
+            });
+            
+            msgElement.appendChild(textNode);
+            msgElement.appendChild(attentionIcon);
+            msgElement.appendChild(reasonText);
+
+            chatDiv.appendChild(msgElement);
+            scrollToBottom();
+        }
+
         function addMessage(msg, sender, isMe, replyTo = null) {
             const msgElement = document.createElement('div');
             msgElement.className = `message ${isMe ? 'sent' : 'received'}`;
-            
             msgElement.dataset.messageId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
             
             if (!isMe) {
@@ -667,16 +695,11 @@
         
         function showActionButton(action) {
             actionBtn.style.display = 'block';
-            
             if (action === 'encerrar') {
                 actionBtn.textContent = 'Encerrar conversa';
                 actionBtn.onclick = function() {
-                    socket.emit('end_chat', {
-                        partnerId: currentPartnerId
-                    });
-                    
-                    isConnected = false;
-                    currentPartnerId = null;
+                    socket.emit('end_chat');
+                    isConnected = false; currentPartnerId = null;
                     addSystemMessage('Você encerrou a conversa.');
                     showActionButton('iniciar');
                 };
@@ -692,58 +715,34 @@
         
         function showTypingIndicator() {
             if (document.querySelector('.typing-indicator')) return;
-            
             const typingElement = document.createElement('div');
             typingElement.className = 'typing-indicator';
-            
             const dotsElement = document.createElement('div');
             dotsElement.className = 'typing-dots';
-            
             for (let i = 0; i < 3; i++) {
                 const dot = document.createElement('div');
                 dot.className = 'typing-dot';
                 dotsElement.appendChild(dot);
             }
-            
             typingElement.appendChild(document.createTextNode('Anônimo está digitando '));
             typingElement.appendChild(dotsElement);
-            
             chatDiv.appendChild(typingElement);
             scrollToBottom();
         }
         
         function removeTypingIndicator() {
             const typingElement = document.querySelector('.typing-indicator');
-            if (typingElement) {
-                typingElement.remove();
-            }
+            if (typingElement) typingElement.remove();
         }
         
         function handleMessageReply(messageElement) {
             const textElement = messageElement.querySelector('div:not(.sender-info):not(.reply-area)');
             const senderInfoElement = messageElement.querySelector('.sender-info .sender-name');
-            const replyArea = messageElement.querySelector('.reply-area');
-            
-            let messageText = textElement ? textElement.textContent : '';
-            let sender = 'Anônimo';
-            
-            if (senderInfoElement) {
-                sender = senderInfoElement.textContent;
-            } else if (messageElement.classList.contains('sent')) {
-                sender = 'Você';
-            }
-            
-            if (replyArea) {
-                const originalText = replyArea.querySelector('.reply-text');
-                if (originalText) {
-                    messageText = originalText.textContent.replace(/^(Você|Anônimo)/, '').trim();
-                    sender = originalText.querySelector('.reply-sender').textContent;
-                }
-            }
+            const sender = senderInfoElement ? senderInfoElement.textContent : (messageElement.classList.contains('sent') ? 'Você' : 'Anônimo');
             
             replyingTo = {
                 id: messageElement.dataset.messageId,
-                text: messageText,
+                text: textElement ? textElement.textContent : '',
                 sender: sender
             };
             
@@ -751,16 +750,12 @@
             messageInput.focus();
             
             messageElement.classList.add('active');
-            setTimeout(() => {
-                messageElement.classList.remove('active');
-            }, 300);
+            setTimeout(() => { messageElement.classList.remove('active'); }, 300);
         }
         
         function updateReplyUI() {
-            const existingReply = document.querySelector('#input-area .reply-area');
-            if (existingReply) {
-                existingReply.remove();
-            }
+            const existingReply = document.querySelector('#input-area > .reply-area');
+            if (existingReply) existingReply.remove();
             
             if (replyingTo) {
                 const replyArea = document.createElement('div');
@@ -771,19 +766,20 @@
                 
                 const replySender = document.createElement('span');
                 replySender.className = 'reply-sender';
-                replySender.textContent = replyingTo.sender;
+                replySender.textContent = `Respondendo a ${replyingTo.sender}`;
                 
                 replyText.appendChild(replySender);
-                replyText.appendChild(document.createTextNode(replyingTo.text));
+                replyText.appendChild(document.createTextNode(`: ${replyingTo.text}`));
                 replyArea.appendChild(replyText);
                 
                 const closeButton = document.createElement('button');
                 closeButton.className = 'close-reply';
-                closeButton.innerHTML = '&times;';
+                closeButton.innerHTML = '×';
                 closeButton.onclick = cancelReply;
                 replyArea.appendChild(closeButton);
                 
-                messageInput.parentNode.insertBefore(replyArea, messageInput);
+                // Insere a área de resposta dentro do #input-area, antes do input de mensagem
+                messageInput.parentElement.insertBefore(replyArea, messageInput);
             }
         }
         
