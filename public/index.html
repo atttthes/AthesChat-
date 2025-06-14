@@ -157,6 +157,7 @@
         }
         
         function getSwipeTarget(event) {
+            // ATUALIZAÇÃO: Impede o swipe em mensagens do sistema e ofensivas
             return event.target.closest('.message:not(.system):not(.offensive)');
         }
 
@@ -207,6 +208,7 @@
         });
         
         socket.on('message', (data) => {
+            // Os bots não têm o mesmo ID do socket, então essa checagem funciona para eles também
             if (data.senderId !== socket.id) {
                 addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
             }
