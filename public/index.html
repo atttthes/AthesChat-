@@ -202,10 +202,8 @@
         socket.on('chat_start', (data) => {
             isConnected = true;
             currentPartnerId = data.partnerId;
-            // A mensagem de "conectado" só aparece se não for precedida pela de "parceiro real encontrado"
-            if (!document.body.textContent.includes('Um parceiro real foi encontrado!')) {
-                addSystemMessage('✔️ Conectado a um parceiro anônimo');
-            }
+            // **ATUALIZAÇÃO:** Mensagem de conexão agora aparece em todos os casos para maior clareza.
+            addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
             showActionButton('encerrar');
         });
         
@@ -226,7 +224,6 @@
         socket.on('partner_disconnected', () => {
             addSystemMessage('❌ Parceiro desconectado.');
             onPartnerLeft();
-            // **ATUALIZAÇÃO:** Removida a busca automática.
         });
         
         socket.on('chat_ended', () => {
@@ -234,7 +231,6 @@
             onPartnerLeft();
         });
         
-        // **ATUALIZAÇÃO:** Novo listener para mensagens do sistema enviadas pelo servidor.
         socket.on('system_message', (data) => {
             addSystemMessage(data.message);
         });
