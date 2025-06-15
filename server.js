@@ -108,9 +108,11 @@ class Bot {
         }
         
         setTimeout(() => {
-            if (connectedUsers.has(this.partnerId)) {
+            // Apenas emite 'chat_ended' se o parceiro ainda existir e estiver pareado com ESTE bot
+            const partnerData = connectedUsers.get(this.partnerId);
+            if (partnerData && partnerData.partnerId === this.id) {
                 this.partnerSocket.emit('chat_ended');
-                connectedUsers.get(this.partnerId).partnerId = null;
+                partnerData.partnerId = null;
             }
             activeBots.delete(this.id);
             console.log(`Bot ${this.id} desconectado.`);
@@ -123,8 +125,7 @@ io.on('connection', (socket) => {
     console.log(`Novo usuário conectado: ${socket.id}`);
     
     connectedUsers.set(socket.id, { id: socket.id, partnerId: null, location: 'Desconhecido' });
-    updateOnlineCount();
-
+    
     socket.on('join', (data) => {
         const currentUserData = connectedUsers.get(socket.id);
         if (!currentUserData) return;
@@ -142,13 +143,20 @@ io.on('connection', (socket) => {
         }
 
         if (userWithBot) {
-            // Se encontrou, desconecta o bot e pareia os dois usuários reais
+            // **ATUALIZAÇÃO:** Lógica corrigida para transição de bot para usuário real.
             const botId = connectedUsers.get(userWithBot.id).partnerId;
-            const bot = activeBots.get(botId);
-            if(bot) {
-                bot.disconnect("Opa, parece que encontrei outra pessoa pra você, até mais!");
-            }
-            // Pareia o novo usuário com o que estava com o bot
+            
+            // 1. Remove o bot silenciosamente sem enviar 'chat_ended'.
+            activeBots.delete(botId);
+            console.log(`Bot ${botId} removido para dar lugar a um usuário real.`);
+
+            // 2. Informa ao usuário que estava com o bot que um parceiro real foi encontrado.
+            userWithBot.emit('system_message', { message: '✔️ Um parceiro real foi encontrado! Conectando...' });
+            
+            // 3. Libera o usuário que estava com o bot para pareamento.
+            connectedUsers.get(userWithBot.id).partnerId = null;
+            
+            // 4. Pareia os dois usuários reais.
             pairRealUsers(socket, userWithBot);
             return;
         }
@@ -189,19 +197,25 @@ io.on('connection', (socket) => {
             bot.handleMessage(data.text);
         } else {
             // Mensagem é para um usuário real
-            io.to(partnerId).emit('message', {
-                text: data.text,
-                senderId: socket.id,
-                replyTo: data.replyTo || null,
-                location: senderData.location
-            });
+            const partnerSocket = io.sockets.sockets.get(partnerId);
+            if (partnerSocket) {
+                partnerSocket.emit('message', {
+                    text: data.text,
+                    senderId: socket.id,
+                    replyTo: data.replyTo || null,
+                    location: senderData.location
+                });
+            }
         }
     });
 
     socket.on('typing', (data) => {
         const partnerId = connectedUsers.get(socket.id)?.partnerId;
-        if (partnerId && connectedUsers.has(partnerId)) { // Não envia typing para bots
-            io.to(partnerId).emit('typing', { isTyping: data.isTyping });
+        if (partnerId && !activeBots.has(partnerId)) { // Não envia typing para bots
+            const partnerSocket = io.sockets.sockets.get(partnerId);
+            if (partnerSocket) {
+               partnerSocket.emit('typing', { isTyping: data.isTyping });
+            }
         }
     });
 
@@ -214,10 +228,14 @@ io.on('connection', (socket) => {
 
         if (activeBots.has(partnerId)) {
             const bot = activeBots.get(partnerId);
-            bot.disconnect();
-        } else if (connectedUsers.has(partnerId)) {
-            io.to(partnerId).emit('chat_ended');
-            connectedUsers.get(partnerId).partnerId = null;
+            if (bot) bot.disconnect();
+        } else {
+            const partnerSocket = io.sockets.sockets.get(partnerId);
+            if (partnerSocket) {
+                partnerSocket.emit('chat_ended');
+                const partnerData = connectedUsers.get(partnerId);
+                if(partnerData) partnerData.partnerId = null;
+            }
         }
         
         socket.emit('chat_ended');
@@ -230,15 +248,19 @@ io.on('connection', (socket) => {
         const partnerId = userData.partnerId;
         if (partnerId) {
             if (activeBots.has(partnerId)) {
-                activeBots.get(partnerId).disconnect();
-            } else if (connectedUsers.has(partnerId)) {
-                io.to(partnerId).emit('partner_disconnected');
-                connectedUsers.get(partnerId).partnerId = null;
+                const bot = activeBots.get(partnerId);
+                if (bot) activeBots.delete(bot.id); // Apenas deleta o bot se o usuário desconectar
+            } else {
+                const partnerSocket = io.sockets.sockets.get(partnerId);
+                if (partnerSocket) {
+                    partnerSocket.emit('partner_disconnected');
+                    const partnerData = connectedUsers.get(partnerId);
+                    if(partnerData) partnerData.partnerId = null;
+                }
             }
         }
 
         connectedUsers.delete(socket.id);
-        updateOnlineCount();
         console.log(`Usuário desconectado: ${socket.id}`);
     });
 
@@ -253,12 +275,27 @@ io.on('connection', (socket) => {
         socket2.emit('chat_start', { partnerId: socket1.id });
         console.log(`Usuários ${socket1.id} e ${socket2.id} pareados.`);
     }
-
-    function updateOnlineCount() {
-        const totalOnline = fakeOnlineBase + connectedUsers.size;
-        io.emit('users_online', totalOnline);
-    }
 });
+
+// **ATUALIZAÇÃO:** Lógica de variação do contador de usuários online.
+function broadcastDynamicOnlineCount() {
+    const realUsers = connectedUsers.size;
+    const baseCount = fakeOnlineBase + realUsers;
+    // Gera uma flutuação aleatória, por exemplo, entre -4 e +7
+    const fluctuation = Math.floor(Math.random() * 12) - 4;
+    let totalOnline = baseCount + fluctuation;
+
+    // Garante que o número nunca seja menor que o número real de usuários
+    if (totalOnline < realUsers) {
+        totalOnline = realUsers;
+    }
+
+    io.emit('users_online', totalOnline);
+}
+
+// Emite o contador atualizado a cada 4.5 segundos
+setInterval(broadcastDynamicOnlineCount, 4500);
+
 
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

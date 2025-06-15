@@ -157,7 +157,6 @@
         }
         
         function getSwipeTarget(event) {
-            // ATUALIZAÇÃO: Impede o swipe em mensagens do sistema e ofensivas
             return event.target.closest('.message:not(.system):not(.offensive)');
         }
 
@@ -203,12 +202,14 @@
         socket.on('chat_start', (data) => {
             isConnected = true;
             currentPartnerId = data.partnerId;
-            addSystemMessage('✔️ Conectado a um parceiro anônimo');
+            // A mensagem de "conectado" só aparece se não for precedida pela de "parceiro real encontrado"
+            if (!document.body.textContent.includes('Um parceiro real foi encontrado!')) {
+                addSystemMessage('✔️ Conectado a um parceiro anônimo');
+            }
             showActionButton('encerrar');
         });
         
         socket.on('message', (data) => {
-            // Os bots não têm o mesmo ID do socket, então essa checagem funciona para eles também
             if (data.senderId !== socket.id) {
                 addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
             }
@@ -223,9 +224,9 @@
         }
 
         socket.on('partner_disconnected', () => {
-            addSystemMessage('❌ Parceiro desconectado. Procurando novo parceiro...');
+            addSystemMessage('❌ Parceiro desconectado.');
             onPartnerLeft();
-            socket.emit('join', { location: myLocation });
+            // **ATUALIZAÇÃO:** Removida a busca automática.
         });
         
         socket.on('chat_ended', () => {
@@ -233,6 +234,11 @@
             onPartnerLeft();
         });
         
+        // **ATUALIZAÇÃO:** Novo listener para mensagens do sistema enviadas pelo servidor.
+        socket.on('system_message', (data) => {
+            addSystemMessage(data.message);
+        });
+
         socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
         socket.on('error', (data) => { addSystemMessage(`⚠️ Erro: ${data.message}`); });
         socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
@@ -251,7 +257,7 @@
                 
                 const messageData = { text: message };
                 if (replyingTo) {
-                    messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Você' };
+                    messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' }; // Corrigido para enviar o sender correto
                 }
                 socket.emit('message', messageData);
                 addMessage(message, 'Você', true, replyingTo, myLocation);
@@ -262,7 +268,7 @@
                     socket.emit('typing', { isTyping: false });
                 }
             } else {
-                addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para enviar mensagens.");
+                addSystemMessage("⚠️ Você precisa de um parceiro para enviar mensagens. Clique em 'Iniciar novo chat'.");
             }
             messageInput.focus();
         }
@@ -353,6 +359,7 @@
                 actionBtn.textContent = 'Iniciar novo chat';
                 actionBtn.onclick = function() {
                     chatDiv.innerHTML = '';
+                    addSystemMessage('Buscando um novo parceiro...');
                     socket.emit('join', { location: myLocation });
                     actionBtn.style.display = 'none';
                 };
