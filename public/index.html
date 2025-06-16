@@ -176,7 +176,7 @@
         const pongRightBtn = document.getElementById('pong-right-btn');
         const pongLeaveBtn = document.getElementById('pong-leave-btn');
 
-        // Variáveis de Estado
+        // Variáveis de Estado do Chat
         let myLocation = "Desconhecido";
         let isConnected = false;
         let currentPartnerId = null;
@@ -195,34 +195,50 @@
         let gameTimerInterval = null;
         const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
 
-        // --- LÓGICA DO CHAT (maioria inalterada) ---
+        // --- LÓGICA DO CHAT (BASE) ---
         async function fetchMyLocation() {
             try {
                 const response = await fetch('https://ipapi.co/json/');
                 const data = await response.json();
-                if (data && data.region) myLocation = data.region;
-            } catch (error) { console.error("Falha ao buscar localização:", error); myLocation = "Desconhecido"; }
+                if (data && data.region) {
+                    myLocation = data.region;
+                }
+            } catch (error) {
+                console.error("Falha ao buscar localização:", error);
+                myLocation = "Desconhecido";
+            }
         }
+
         async function carregarListaDePalavras() {
             try {
                 const response = await fetch('palavras_proibidas.json');
                 if (!response.ok) throw new Error('Falha ao carregar lista de palavras.');
                 palavrasOfensivas = await response.json();
-            } catch (error) { console.error(error); addSystemMessage("⚠️ Não foi possível carregar o filtro de palavras."); }
+            } catch (error) {
+                console.error(error);
+                addSystemMessage("⚠️ Não foi possível carregar o filtro de palavras.");
+            }
         }
+        
         function contemPalavraOfensiva(texto) {
             if (palavrasOfensivas.length === 0) return false;
-            return palavrasOfensivas.some(palavra => new RegExp(`\\b${palavra.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i').test(texto));
+            return palavrasOfensivas.some(palavra => {
+                const regex = new RegExp(`\\b${palavra.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+                return regex.test(texto);
+            });
         }
+
         startBtn.addEventListener('click', () => {
             startScreen.style.display = 'none';
             chatContainer.style.display = 'flex';
             socket.emit('join', { location: myLocation });
             messageInput.focus();
         });
+
         socket.on('users_online', (count) => { onlineCountElement.textContent = `${count} online`; });
         sendBtn.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        
         messageInput.addEventListener('input', () => {
             if (!isTyping && isConnected) {
                 isTyping = true;
@@ -230,54 +246,278 @@
             }
             clearTimeout(typingTimeout);
             typingTimeout = setTimeout(() => {
-                if (isTyping && isConnected) { isTyping = false; socket.emit('typing', { isTyping: false }); }
+                if (isTyping && isConnected) {
+                    isTyping = false;
+                    socket.emit('typing', { isTyping: false });
+                }
             }, 1000);
         });
-        function setupSwipeEvents() { /* ... inalterado ... */ }
-        function getSwipeTarget(event) { /* ... inalterado ... */ }
-        function handleMouseDown(e) { /* ... inalterado ... */ }
-        function handleMouseMove(e) { /* ... inalterado ... */ }
-        function handleMouseUp(e) { /* ... inalterado ... */ }
-        socket.on('connect', async () => { addSystemMessage('Conectando ao servidor...'); await fetchMyLocation(); setupSwipeEvents(); carregarListaDePalavras(); });
+        
+        function setupSwipeEvents() {
+            chatDiv.addEventListener('mousedown', handleMouseDown);
+            chatDiv.addEventListener('mousemove', handleMouseMove);
+            chatDiv.addEventListener('mouseup', handleMouseUp);
+            chatDiv.addEventListener('mouseleave', handleMouseUp);
+        }
+        
+        function getSwipeTarget(event) {
+            return event.target.closest('.message:not(.system):not(.offensive)');
+        }
+
+        function handleMouseDown(e) {
+            const messageElement = getSwipeTarget(e);
+            if (e.button === 0 && messageElement) {
+                e.preventDefault();
+                swipeStartX = e.clientX;
+                swipeElement = messageElement;
+            }
+        }
+        
+        function handleMouseMove(e) {
+            if (swipeElement && swipeStartX !== null) {
+                e.preventDefault();
+                const deltaX = e.clientX - swipeStartX;
+                if (deltaX > 0) {
+                    swipeElement.classList.add('swiping');
+                    swipeElement.style.transform = `translateX(${deltaX}px)`;
+                    if (deltaX > swipeThreshold) swipeElement.classList.add('active');
+                    else swipeElement.classList.remove('active');
+                }
+            }
+        }
+        
+        function handleMouseUp(e) {
+            if (swipeElement && swipeStartX !== null) {
+                const deltaX = e.clientX - swipeStartX;
+                if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
+                swipeElement.style.transform = '';
+                swipeElement.classList.remove('swiping', 'active');
+                swipeStartX = null; swipeElement = null;
+            }
+        }
+
+        socket.on('connect', async () => {
+            addSystemMessage('Conectando ao servidor...');
+            await fetchMyLocation();
+            setupSwipeEvents();
+            carregarListaDePalavras();
+        });
+        
         socket.on('chat_start', (data) => {
             isConnected = true;
             currentPartnerId = data.partnerId;
             addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
             showActionButton('encerrar');
         });
-        socket.on('message', (data) => { if (data.senderId !== socket.id) addMessage(data.text, 'Anônimo', false, data.replyTo, data.location); });
-        function onPartnerLeft() { isConnected = false; currentPartnerId = null; removeTypingIndicator(); if (replyingTo) cancelReply(); showActionButton('iniciar'); }
-        socket.on('partner_disconnected', () => { addSystemMessage('❌ Parceiro desconectado.'); onPartnerLeft(); });
-        socket.on('chat_ended', () => { addSystemMessage('❌ O parceiro encerrou a conversa.'); onPartnerLeft(); });
-        socket.on('system_message', (data) => { addSystemMessage(data.message); });
+        
+        socket.on('message', (data) => {
+            if (data.senderId !== socket.id) {
+                addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
+            }
+        });
+        
+        function onPartnerLeft() {
+            isConnected = false;
+            currentPartnerId = null;
+            removeTypingIndicator();
+            if (replyingTo) cancelReply();
+            showActionButton('iniciar');
+            if (pongGameActive) socket.emit('pong_leave'); // Encerra o jogo se o parceiro desconectar
+        }
+
+        socket.on('partner_disconnected', () => {
+            addSystemMessage('❌ Parceiro desconectado.');
+            onPartnerLeft();
+        });
+        
+        socket.on('chat_ended', () => {
+            addSystemMessage('❌ O parceiro encerrou a conversa.');
+            onPartnerLeft();
+        });
+        
+        socket.on('system_message', (data) => {
+            addSystemMessage(data.message);
+        });
+
         socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
         socket.on('error', (data) => { addSystemMessage(`⚠️ Erro: ${data.message}`); });
         socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
+
         function sendMessage() {
             const message = messageInput.value.trim();
             if (!message) return;
+
             if (isConnected) {
-                if (contemPalavraOfensiva(message)) { addOffensiveMessage(message); messageInput.value = ''; if (replyingTo) cancelReply(); return; }
+                if (contemPalavraOfensiva(message)) {
+                    addOffensiveMessage(message);
+                    messageInput.value = '';
+                    if (replyingTo) cancelReply();
+                    return;
+                }
+                
                 const messageData = { text: message };
-                if (replyingTo) { messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' }; }
+                if (replyingTo) {
+                    messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' };
+                }
                 socket.emit('message', messageData);
                 addMessage(message, 'Você', true, replyingTo, myLocation);
                 messageInput.value = '';
                 if (replyingTo) cancelReply();
-                if (isTyping) { isTyping = false; socket.emit('typing', { isTyping: false }); }
-            } else { addSystemMessage("⚠️ Você precisa de um parceiro para enviar mensagens. Clique em 'Iniciar novo chat'."); }
+                if (isTyping) {
+                    isTyping = false;
+                    socket.emit('typing', { isTyping: false });
+                }
+            } else {
+                addSystemMessage("⚠️ Você precisa de um parceiro para enviar mensagens. Clique em 'Iniciar novo chat'.");
+            }
             messageInput.focus();
         }
-        function addOffensiveMessage(msg) { /* ... inalterado ... */ }
-        function addMessage(msg, sender, isMe, replyTo = null, location = null) { /* ... inalterado ... */ }
-        function addSystemMessage(msg) { /* ... inalterado ... */ }
+
+        function addOffensiveMessage(msg) {
+            const msgElement = document.createElement('div');
+            msgElement.className = 'message sent offensive';
+            const textNode = document.createElement('div');
+            textNode.textContent = msg;
+            const attentionIcon = document.createElement('span');
+            attentionIcon.className = 'attention-icon';
+            attentionIcon.textContent = '⚠️';
+            const reasonText = document.createElement('div');
+            reasonText.className = 'reason';
+            reasonText.textContent = 'Sua mensagem não foi enviada pois contém linguagem que viola as diretrizes da comunidade.';
+            attentionIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                reasonText.classList.toggle('visible');
+            });
+            msgElement.appendChild(textNode);
+            msgElement.appendChild(attentionIcon);
+            msgElement.appendChild(reasonText);
+            chatDiv.appendChild(msgElement);
+            scrollToBottom();
+        }
+
+        function addMessage(msg, sender, isMe, replyTo = null, location = null) {
+            const msgElement = document.createElement('div');
+            msgElement.className = `message ${isMe ? 'sent' : 'received'}`;
+            msgElement.dataset.messageId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            if (!isMe) {
+                const senderInfoElement = document.createElement('div');
+                senderInfoElement.className = 'sender-info';
+                const nameElement = document.createElement('span');
+                nameElement.className = 'sender-name';
+                nameElement.textContent = sender;
+                const locationElement = document.createElement('span');
+                locationElement.className = 'sender-location';
+                locationElement.textContent = location || 'Desconhecido';
+                senderInfoElement.appendChild(nameElement);
+                senderInfoElement.appendChild(locationElement);
+                msgElement.appendChild(senderInfoElement);
+            }
+            
+            if (replyTo) {
+                const replyArea = document.createElement('div');
+                replyArea.className = 'reply-area';
+                const replyText = document.createElement('div');
+                replyText.className = 'reply-text';
+                const replySender = document.createElement('span');
+                replySender.className = 'reply-sender';
+                replySender.textContent = isMe ? `Respondendo a ${replyTo.sender}` : `Respondendo a Você`;
+                replyText.appendChild(replySender);
+                replyText.appendChild(document.createTextNode(`: ${replyTo.text}`));
+                replyArea.appendChild(replyText);
+                msgElement.appendChild(replyArea);
+            }
+            
+            const textElement = document.createElement('div');
+            textElement.textContent = msg;
+            msgElement.appendChild(textElement);
+            
+            chatDiv.appendChild(msgElement);
+            scrollToBottom();
+        }
+
+        function addSystemMessage(msg) {
+            const sysElement = document.createElement('div');
+            sysElement.className = 'message system';
+            sysElement.textContent = msg;
+            chatDiv.appendChild(sysElement);
+            scrollToBottom();
+        }
+
         function scrollToBottom() { chatDiv.scrollTop = chatDiv.scrollHeight; }
-        function showActionButton(action) { /* ... inalterado ... */ }
-        function showTypingIndicator() { /* ... inalterado ... */ }
-        function removeTypingIndicator() { /* ... inalterado ... */ }
-        function handleMessageReply(messageElement) { /* ... inalterado ... */ }
-        function updateReplyUI() { /* ... inalterado ... */ }
-        function cancelReply() { /* ... inalterado ... */ }
+        
+        function showActionButton(action) {
+            actionBtn.style.display = 'block';
+            if (action === 'encerrar') {
+                actionBtn.textContent = 'Encerrar conversa';
+                actionBtn.onclick = function() {
+                    socket.emit('end_chat');
+                    addSystemMessage('Você encerrou a conversa.');
+                    onPartnerLeft();
+                };
+            } else if (action === 'iniciar') {
+                actionBtn.textContent = 'Iniciar novo chat';
+                actionBtn.onclick = function() {
+                    chatDiv.innerHTML = '';
+                    addSystemMessage('Buscando um novo parceiro...');
+                    socket.emit('join', { location: myLocation });
+                    actionBtn.style.display = 'none';
+                };
+            }
+        }
+        
+        function showTypingIndicator() {
+            if (document.querySelector('.typing-indicator')) return;
+            const typingElement = document.createElement('div');
+            typingElement.className = 'typing-indicator';
+            typingElement.innerHTML = `Anônimo está digitando <div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+            chatDiv.appendChild(typingElement);
+            scrollToBottom();
+        }
+        
+        function removeTypingIndicator() {
+            const typingElement = document.querySelector('.typing-indicator');
+            if (typingElement) typingElement.remove();
+        }
+        
+        function handleMessageReply(messageElement) {
+            const textElement = messageElement.querySelector('div:not(.sender-info):not(.reply-area)');
+            const sender = messageElement.classList.contains('sent') ? 'Você' : 'Anônimo';
+            
+            replyingTo = {
+                id: messageElement.dataset.messageId,
+                text: textElement ? textElement.textContent : '',
+                sender: sender
+            };
+            
+            updateReplyUI();
+            messageInput.focus();
+            
+            messageElement.classList.add('active');
+            setTimeout(() => { messageElement.classList.remove('active'); }, 300);
+        }
+        
+        function updateReplyUI() {
+            const existingReply = document.querySelector('#input-area > .reply-area');
+            if (existingReply) existingReply.remove();
+            
+            if (replyingTo) {
+                const replyArea = document.createElement('div');
+                replyArea.className = 'reply-area';
+                replyArea.innerHTML = `<div class="reply-text"><span class="reply-sender">Respondendo a ${replyingTo.sender}</span>: ${replyingTo.text.substring(0, 50)}...</div>`;
+                const closeButton = document.createElement('button');
+                closeButton.className = 'close-reply';
+                closeButton.innerHTML = '×';
+                closeButton.onclick = cancelReply;
+                replyArea.appendChild(closeButton);
+                messageInput.parentElement.insertBefore(replyArea, messageInput);
+            }
+        }
+        
+        function cancelReply() {
+            replyingTo = null;
+            updateReplyUI();
+        }
 
         // --- LÓGICA DO MENU ---
         menuBtn.addEventListener('click', () => {
@@ -286,12 +526,13 @@
         });
         
         playPongBtn.addEventListener('click', () => {
-            if (isConnected && currentPartnerId && !currentPartnerId.startsWith('bot_')) {
+            if (isConnected) {
                 socket.emit('pong_invite');
+                addSystemMessage("Você enviou um convite para jogar Pong.");
                 menuBtn.classList.remove('open');
                 sidebar.classList.remove('open');
             } else {
-                addSystemMessage("⚠️ Você precisa estar conectado a um parceiro real para jogar.");
+                addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
             }
         });
         
@@ -321,7 +562,6 @@
 
         socket.on('pong_update', (state) => {
             pongGameState = state;
-            // A ordem é invertida para o jogador 2
             if (isPlayerOne) {
                 pongScoreP1Elem.textContent = `Você: ${state.p1.score}`;
                 pongScoreP2Elem.textContent = `Anônimo: ${state.p2.score}`;
@@ -342,7 +582,7 @@
             const myScore = isPlayerOne ? result.scores.p1 : result.scores.p2;
             const partnerScore = isPlayerOne ? result.scores.p2 : result.scores.p1;
             
-            if(result.reason === 'player_left' || result.reason === 'partner_disconnected') {
+            if(result.reason === 'player_left') {
                 message = "O oponente saiu do jogo."
             } else if (result.reason === 'time_up') {
                 message = `O tempo acabou! Placar final: Você ${myScore} x ${partnerScore} Anônimo.`;
@@ -358,12 +598,8 @@
         
         function drawPong() {
             if (!pongGameActive || !pongGameState) return;
-
-            // Fundo
-            pongCtx.fillStyle = '#000';
-            pongCtx.fillRect(0, 0, pongCanvas.width, pongCanvas.height);
+            pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
             
-            // Linha do meio
             pongCtx.strokeStyle = '#333';
             pongCtx.beginPath();
             pongCtx.setLineDash([5, 15]);
@@ -372,40 +608,41 @@
             pongCtx.stroke();
             pongCtx.setLineDash([]);
 
-            // Bola
             pongCtx.fillStyle = '#fff';
             pongCtx.beginPath();
             pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
             pongCtx.fill();
 
-            // Raquetes
-            pongCtx.fillStyle = '#00aaff';
             const p1PaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT;
             const p2PaddleY = 0;
             
             if (isPlayerOne) {
-                pongCtx.fillRect(pongGameState.p1.paddleX, p1PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT); // Minha raquete
-                pongCtx.fillStyle = '#ff4444';
-                pongCtx.fillRect(pongGameState.p2.paddleX, p2PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT); // Oponente
+                pongCtx.fillStyle = '#00aaff'; // Minha Raquete
+                pongCtx.fillRect(pongGameState.p1.paddleX, p1PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
+                pongCtx.fillStyle = '#ff4444'; // Raquete do Oponente
+                pongCtx.fillRect(pongGameState.p2.paddleX, p2PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             } else {
-                pongCtx.fillRect(pongGameState.p2.paddleX, p1PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT); // Minha raquete
-                pongCtx.fillStyle = '#ff4444';
-                pongCtx.fillRect(pongGameState.p1.paddleX, p2PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT); // Oponente
+                pongCtx.fillStyle = '#00aaff'; // Minha Raquete
+                pongCtx.fillRect(pongGameState.p2.paddleX, p1PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
+                pongCtx.fillStyle = '#ff4444'; // Raquete do Oponente
+                pongCtx.fillRect(pongGameState.p1.paddleX, p2PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             }
 
             pongAnimationId = requestAnimationFrame(drawPong);
         }
         
         function handlePaddleMove(newX) {
+            if (!pongGameActive) return;
             const clampedX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, newX));
             socket.emit('pong_move', { paddleX: clampedX });
         }
         
-        // Controles Pong
         let moveLeftInterval, moveRightInterval;
+        const stopMoving = () => { clearInterval(moveLeftInterval); clearInterval(moveRightInterval); };
         pongLeftBtn.addEventListener('mousedown', () => moveLeftInterval = setInterval(() => handlePaddleMove(getCurrentPaddleX() - 10), 50));
         pongRightBtn.addEventListener('mousedown', () => moveRightInterval = setInterval(() => handlePaddleMove(getCurrentPaddleX() + 10), 50));
-        document.addEventListener('mouseup', () => { clearInterval(moveLeftInterval); clearInterval(moveRightInterval); });
+        document.addEventListener('mouseup', stopMoving);
+        document.addEventListener('mouseleave', stopMoving);
         
         window.addEventListener('keydown', (e) => {
             if (!pongGameActive) return;
@@ -424,6 +661,7 @@
 
         function startPongTimer() {
             let duration = 3 * 60;
+            if (gameTimerInterval) clearInterval(gameTimerInterval);
             gameTimerInterval = setInterval(() => {
                 duration--;
                 const minutes = Math.floor(duration / 60);
@@ -432,7 +670,6 @@
                 if (duration <= 0) clearInterval(gameTimerInterval);
             }, 1000);
         }
-
     </script>
 </body>
 </html>
