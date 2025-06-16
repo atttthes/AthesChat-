@@ -11,11 +11,25 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(__dirname)); // Modificado para servir todos os arquivos do diretório raiz
+// --- AJUSTE DE DIRETÓRIO ESTÁTICO (CORREÇÃO DO ERRO) ---
+// O erro 'ENOENT: .../src/index.html' na plataforma de deploy (Render.com)
+// indica que o servidor está procurando os arquivos estáticos (como index.html)
+// em um diretório 'src', mas eles estão na raiz do projeto.
+// O código abaixo resolve isso de forma adaptativa:
+// 1. Ele verifica se o script está rodando de dentro de um diretório chamado 'src'.
+// 2. Se estiver, ele define o caminho dos arquivos públicos como o diretório pai ('..').
+// 3. Caso contrário (ambiente local), ele usa o diretório atual (__dirname).
+// Isso garante que o app funcione tanto no seu computador quanto no servidor da Render.
+let publicPath = __dirname;
+if (path.basename(__dirname) === 'src') {
+    publicPath = path.join(__dirname, '..');
+}
+app.use(express.static(publicPath));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
+
 
 // --- CONSTANTES E VARIÁVEIS ---
 const connectedUsers = new Map();
