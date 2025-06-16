@@ -97,7 +97,7 @@ class Bot {
 }
 
 
-// --- LÓGICA DO JOGO PONG (NOVO) ---
+// --- LÓGICA DO JOGO PONG (ATUALIZADO) ---
 const PONG_CONFIG = {
     CANVAS_WIDTH: 300,
     CANVAS_HEIGHT: 400,
@@ -109,127 +109,161 @@ const PONG_CONFIG = {
     MAX_GOALS: 3,
     GAME_DURATION_MS: 3 * 60 * 1000, // 3 minutos
     UPDATE_INTERVAL: 1000 / 60, // ~60 FPS
+    COUNTDOWN_SECONDS: 3,
 };
 
 class PongGame {
     constructor(player1Id, player2Id) {
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
         this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
-        this.ball = { x: PONG_CONFIG.CANVAS_WIDTH / 2, y: PONG_CONFIG.CANVAS_HEIGHT / 2, vx: PONG_CONFIG.INITIAL_BALL_SPEED_X, vy: PONG_CONFIG.INITIAL_BALL_SPEED_Y, speedMultiplier: 1.0 };
-        this.rallyCount = 0;
-
+        this.ball = {};
+        this.ball2 = null; // Para o modo Morte Súbita
+        this.isSuddenDeath = false;
+        this.gamePaused = true;
+        this.lastLoser = null;
+        
         activePongGames.set(player1Id, this);
         activePongGames.set(player2Id, this);
         
         this.gameLoop = null;
-        this.gameTimer = null;
+        this.durationTimer = null;
+        this.timeRemaining = PONG_CONFIG.GAME_DURATION_MS;
+    }
+
+    broadcast(event, data) {
+        this.player1.socket.emit(event, data);
+        this.player2.socket.emit(event, data);
     }
 
     start() {
-        // Envia o evento para os clientes iniciarem o jogo, informando quem é o jogador 1 e 2
-        this.player1.socket.emit('pong_start', { opponentId: this.player2.id, isPlayerOne: true });
-        this.player2.socket.emit('pong_start', { opponentId: this.player1.id, isPlayerOne: false });
+        this.broadcast('pong_start', { opponentId: this.player2.id, isPlayerOne: true, isPlayerTwo: false });
+        this.player2.socket.emit('pong_start', { opponentId: this.player1.id, isPlayerOne: false, isPlayerTwo: true });
         
-        this.gameTimer = setTimeout(() => this.end('time_up'), PONG_CONFIG.GAME_DURATION_MS);
-        this.resetBall();
-        this.gameLoop = setInterval(() => this.update(), PONG_CONFIG.UPDATE_INTERVAL);
+        this.durationTimer = setInterval(() => this.tick(), 1000);
+        this.startRound();
     }
     
-    resetBall(loser) {
-        this.ball.x = PONG_CONFIG.CANVAS_WIDTH / 2;
-        this.ball.y = PONG_CONFIG.CANVAS_HEIGHT / 2;
-        this.ball.speedMultiplier = 1.0;
-        this.rallyCount = 0;
+    startRound() {
+        this.gamePaused = true;
+        clearInterval(this.gameLoop);
+        this.broadcastState(); // Garante que placar e posições estejam atualizados
+        this.broadcast('pong_countdown_start');
+
+        setTimeout(() => {
+            this.resetBall(this.ball, this.lastLoser);
+            if (this.isSuddenDeath) {
+                if (!this.ball2) this.ball2 = {};
+                this.resetBall(this.ball2, this.lastLoser, true); // Inicia a segunda bola
+            }
+            this.gamePaused = false;
+            this.lastLoser = null; // Limpa o perdedor anterior
+            this.gameLoop = setInterval(() => this.update(), PONG_CONFIG.UPDATE_INTERVAL);
+        }, PONG_CONFIG.COUNTDOWN_SECONDS * 1000);
+    }
+    
+    tick() {
+        if(this.gamePaused) return;
+        this.timeRemaining -= 1000;
+        this.broadcast('pong_time_update', { time: this.timeRemaining });
+        if (this.timeRemaining <= 0) {
+            this.end('time_up');
+        }
+    }
+    
+    resetBall(ball, loser, isSecondBall = false) {
+        ball.x = PONG_CONFIG.CANVAS_WIDTH / 2;
+        ball.y = PONG_CONFIG.CANVAS_HEIGHT / 2;
+        ball.speedMultiplier = 1.0;
+        ball.rallyCount = 0;
         
-        this.ball.vx = (Math.random() > 0.5 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_X;
-        // A bola vai em direção a quem perdeu o ponto
-        this.ball.vy = loser === this.player1 ? PONG_CONFIG.INITIAL_BALL_SPEED_Y : -PONG_CONFIG.INITIAL_BALL_SPEED_Y;
+        ball.vx = (isSecondBall ? -1 : 1) * (Math.random() > 0.5 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_X;
+        ball.vy = (loser === this.player1 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
 
     update() {
-        // Move a bola
-        this.ball.x += this.ball.vx * this.ball.speedMultiplier;
-        this.ball.y += this.ball.vy * this.ball.speedMultiplier;
+        if (this.gamePaused) return;
 
-        // Colisão com paredes laterais
-        if (this.ball.x - PONG_CONFIG.BALL_RADIUS < 0 || this.ball.x + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_WIDTH) {
-            this.ball.vx *= -1;
+        this.updateBall(this.ball);
+        if (this.isSuddenDeath) {
+            this.updateBall(this.ball2);
         }
-
-        // Colisão com raquetes
-        // Raquete do Jogador 1 (embaixo)
-        if (this.ball.y + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT &&
-            this.ball.x > this.player1.paddleX && this.ball.x < this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH &&
-            this.ball.vy > 0) {
-            this.ball.vy *= -1;
-            this.increaseRally();
-        }
-        // Raquete do Jogador 2 (em cima)
-        if (this.ball.y - PONG_CONFIG.BALL_RADIUS < PONG_CONFIG.PADDLE_HEIGHT &&
-            this.ball.x > this.player2.paddleX && this.ball.x < this.player2.paddleX + PONG_CONFIG.PADDLE_WIDTH &&
-            this.ball.vy < 0) {
-            this.ball.vy *= -1;
-            this.increaseRally();
-        }
-
-        // Pontuação
-        if (this.ball.y > PONG_CONFIG.CANVAS_HEIGHT) { // Ponto para Jogador 2
-            this.player2.score++;
-            this.checkWinOrReset(this.player1);
-        } else if (this.ball.y < 0) { // Ponto para Jogador 1
-            this.player1.score++;
-            this.checkWinOrReset(this.player2);
-        } else {
-             this.broadcastState();
-        }
+        
+        this.broadcastState();
     }
     
-    increaseRally() {
-        this.rallyCount++;
-        // Aumenta a velocidade a cada 5 rebatidas
-        if (this.rallyCount > 0 && this.rallyCount % 5 === 0) {
-            this.ball.speedMultiplier = Math.min(2.5, this.ball.speedMultiplier + 0.1);
+    updateBall(ball) {
+        if (!ball) return;
+        
+        ball.x += ball.vx * ball.speedMultiplier;
+        ball.y += ball.vy * ball.speedMultiplier;
+
+        if (ball.x - PONG_CONFIG.BALL_RADIUS < 0 || ball.x + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_WIDTH) {
+            ball.vx *= -1;
+        }
+
+        const hitPlayer1 = ball.y + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT && ball.x > this.player1.paddleX && ball.x < this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH && ball.vy > 0;
+        const hitPlayer2 = ball.y - PONG_CONFIG.BALL_RADIUS < PONG_CONFIG.PADDLE_HEIGHT && ball.x > this.player2.paddleX && ball.x < this.player2.paddleX + PONG_CONFIG.PADDLE_WIDTH && ball.vy < 0;
+
+        if (hitPlayer1 || hitPlayer2) {
+            ball.vy *= -1;
+            ball.rallyCount++;
+            if (ball.rallyCount > 0 && ball.rallyCount % 5 === 0) {
+                ball.speedMultiplier = Math.min(2.5, ball.speedMultiplier + 0.1);
+            }
+        }
+        
+        if (ball.y > PONG_CONFIG.CANVAS_HEIGHT) {
+            this.handleGoal(this.player2, this.player1);
+        } else if (ball.y < 0) {
+            this.handleGoal(this.player1, this.player2);
         }
     }
 
-    checkWinOrReset(loser) {
-         if (this.player1.score >= PONG_CONFIG.MAX_GOALS || this.player2.score >= PONG_CONFIG.MAX_GOALS) {
+    handleGoal(winner, loser) {
+        this.lastLoser = loser; // Armazena quem perdeu o ponto
+        winner.score++;
+
+        if (this.isSuddenDeath || winner.score >= PONG_CONFIG.MAX_GOALS) {
             this.end('score_limit');
         } else {
-            this.broadcastState(); // Envia o estado com o placar atualizado
-            this.resetBall(loser);
+            this.startRound(); // Inicia uma nova rodada com countdown
         }
     }
 
     movePaddle(playerId, paddleX) {
-        if (playerId === this.player1.id) {
-            this.player1.paddleX = paddleX;
-        } else if (playerId === this.player2.id) {
-            this.player2.paddleX = paddleX;
-        }
+        if (this.gamePaused) return;
+        if (playerId === this.player1.id) this.player1.paddleX = paddleX;
+        else if (playerId === this.player2.id) this.player2.paddleX = paddleX;
     }
 
     broadcastState() {
         const gameState = {
             ball: this.ball,
+            ball2: this.isSuddenDeath ? this.ball2 : null,
             p1: { score: this.player1.score, paddleX: this.player1.paddleX },
             p2: { score: this.player2.score, paddleX: this.player2.paddleX },
         };
-        this.player1.socket.emit('pong_update', gameState);
-        this.player2.socket.emit('pong_update', gameState);
+        this.broadcast('pong_update', gameState);
     }
 
     end(reason) {
         clearInterval(this.gameLoop);
-        clearTimeout(this.gameTimer);
+        clearInterval(this.durationTimer);
+        this.gamePaused = true;
+
+        if (reason === 'time_up' && this.player1.score === this.player2.score && !this.isSuddenDeath) {
+            this.isSuddenDeath = true;
+            this.broadcast('system_message', { message: '🏆 EMPATE! Morte súbita ativada com 2 bolas. O próximo a marcar vence!' });
+            this.startRound();
+            return;
+        }
 
         const result = {
             reason: reason,
             scores: { p1: this.player1.score, p2: this.player2.score }
         };
         
-        this.player1.socket.emit('pong_end', result);
-        this.player2.socket.emit('pong_end', result);
+        this.broadcast('pong_end', result);
 
         activePongGames.delete(this.player1.id);
         activePongGames.delete(this.player2.id);
@@ -315,10 +349,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        // Encerra qualquer jogo de pong ativo
         if (activePongGames.has(socket.id)) {
             const game = activePongGames.get(socket.id);
-            game.end('partner_disconnected');
+            if(game) game.end('partner_disconnected');
         }
 
         const userData = connectedUsers.get(socket.id);
@@ -367,7 +400,6 @@ io.on('connection', (socket) => {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         
-        // Previne que um jogo comece se um já estiver ativo com esses jogadores
         if (activePongGames.has(socket.id) || activePongGames.has(userData.partnerId)) return;
         
         const newGame = new PongGame(userData.partnerId, socket.id);
@@ -375,15 +407,15 @@ io.on('connection', (socket) => {
     });
     
     socket.on('pong_move', (data) => {
-        if (activePongGames.has(socket.id)) {
-            const game = activePongGames.get(socket.id);
+        const game = activePongGames.get(socket.id);
+        if (game) {
             game.movePaddle(socket.id, data.paddleX);
         }
     });
     
     socket.on('pong_leave', () => {
-         if (activePongGames.has(socket.id)) {
-            const game = activePongGames.get(socket.id);
+        const game = activePongGames.get(socket.id);
+        if (game) {
             game.end('player_left');
         }
     });
@@ -406,8 +438,8 @@ io.on('connection', (socket) => {
         const partnerId = userData.partnerId;
         userData.partnerId = null;
 
-        if (activePongGames.has(socketId)) {
-            const game = activePongGames.get(socketId);
+        const game = activePongGames.get(socketId);
+        if (game) {
             game.end('chat_ended');
         }
 
