@@ -200,14 +200,20 @@
         const swipeThreshold = 50;
         let palavrasOfensivas = [];
         
-        // Variáveis de Estado do Pong
+        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
         let pongGameActive = false;
         let pongGameState = null;
         let isPlayerOne = true;
         let pongAnimationId = null;
         const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
 
-        // --- LÓGICA DO CHAT (BASE - Inalterada) ---
+        // Variáveis de controle de movimento
+        let pongInputState = { left: false, right: false };
+        let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
+        let clientAnimationLoopId = null;
+        // --- [FIM] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
+
+        // --- LÓGICA DO CHAT (BASE) ---
         async function fetchMyLocation() {
             try {
                 const response = await fetch('https://ipapi.co/json/');
@@ -548,7 +554,7 @@
             }
         });
         
-        // --- LÓGICA DO JOGO PONG (CLIENTE - ATUALIZADO) ---
+        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
         socket.on('pong_invite_received', () => {
             pongInviteModal.style.display = 'flex';
         });
@@ -568,8 +574,16 @@
             isPlayerOne = data.isPlayerOne;
             pongGameContainer.style.display = 'flex';
             pongTimerElem.textContent = '3:00'; // Reseta o timer visual
+            
+            // Inicia o loop de desenho
             if (pongAnimationId) cancelAnimationFrame(pongAnimationId);
             pongAnimationId = requestAnimationFrame(drawPong);
+            
+            // Inicia o loop de controle do jogador
+            localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
+            pongInputState = { left: false, right: false };
+            if (clientAnimationLoopId) cancelAnimationFrame(clientAnimationLoopId);
+            clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
         });
 
         socket.on('pong_update', (state) => {
@@ -611,7 +625,9 @@
             if (!pongGameActive) return;
             pongGameActive = false;
             cancelAnimationFrame(pongAnimationId);
+            cancelAnimationFrame(clientAnimationLoopId);
             pongAnimationId = null;
+            clientAnimationLoopId = null;
             
             let message = "Fim de jogo!";
             const myScore = isPlayerOne ? result.scores.p1 : result.scores.p2;
@@ -630,9 +646,11 @@
         });
         
         function drawPong() {
-            if (!pongGameActive || !pongGameState) return;
+            if (!pongGameActive) return; // Parar o loop se o jogo acabou
+            
             pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
             
+            // Desenha a linha do meio
             pongCtx.strokeStyle = '#333';
             pongCtx.beginPath();
             pongCtx.setLineDash([5, 15]);
@@ -641,81 +659,90 @@
             pongCtx.stroke();
             pongCtx.setLineDash([]);
 
-            // Bola 1
-            if (pongGameState.ball && pongGameState.ball.x) {
-                pongCtx.fillStyle = '#fff';
-                pongCtx.beginPath();
-                pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                pongCtx.fill();
+            if (pongGameState) {
+                // Bola 1
+                if (pongGameState.ball && pongGameState.ball.x) {
+                    pongCtx.fillStyle = '#fff';
+                    pongCtx.beginPath();
+                    pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+                    pongCtx.fill();
+                }
+
+                // Bola 2 (Morte Súbita)
+                if (pongGameState.ball2 && pongGameState.ball2.x) {
+                    pongCtx.fillStyle = '#ffae00';
+                    pongCtx.beginPath();
+                    pongCtx.arc(pongGameState.ball2.x, pongGameState.ball2.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+                    pongCtx.fill();
+                }
+
+                // Raquete do Oponente (sempre em cima)
+                pongCtx.fillStyle = '#ff4444';
+                const opponentPaddleX = isPlayerOne ? pongGameState.p2.paddleX : pongGameState.p1.paddleX;
+                pongCtx.fillRect(opponentPaddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             }
 
-            // Bola 2 (Morte Súbita)
-            if (pongGameState.ball2 && pongGameState.ball2.x) {
-                pongCtx.fillStyle = '#ffae00'; // Cor diferente para a segunda bola
-                pongCtx.beginPath();
-                pongCtx.arc(pongGameState.ball2.x, pongGameState.ball2.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                pongCtx.fill();
-            }
-
+            // Minha raquete (sempre em baixo, com base na posição local para feedback instantâneo)
+            pongCtx.fillStyle = '#00aaff';
             const p1PaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT;
-            const p2PaddleY = 0;
-            
-            // Minha raquete é sempre a de baixo (p1 no server)
-            pongCtx.fillStyle = '#00aaff'; // Minha Raquete
-            const myPaddleX = isPlayerOne ? pongGameState.p1.paddleX : pongGameState.p2.paddleX;
-            pongCtx.fillRect(myPaddleX, p1PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-            
-            // Raquete do Oponente é sempre a de cima (p2 no server)
-            pongCtx.fillStyle = '#ff4444'; // Raquete do Oponente
-            const opponentPaddleX = isPlayerOne ? pongGameState.p2.paddleX : pongGameState.p1.paddleX;
-            pongCtx.fillRect(opponentPaddleX, p2PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
+            pongCtx.fillRect(localPlayerPaddleX, p1PaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
 
             pongAnimationId = requestAnimationFrame(drawPong);
         }
         
         function handlePaddleMove(newX) {
-            if (!pongGameActive) return;
-            const clampedX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, newX));
-            socket.emit('pong_move', { paddleX: clampedX });
+            if (pongGameActive) {
+                socket.emit('pong_move', { paddleX: newX });
+            }
         }
-        
-        let moveInterval;
-        const stopMoving = () => { clearInterval(moveInterval); };
 
-        const startMoving = (direction) => {
-            stopMoving(); // Limpa qualquer intervalo anterior
-            moveInterval = setInterval(() => {
-                handlePaddleMove(getCurrentPaddleX() + direction * 10);
-            }, 30); // Intervalo menor para movimento mais fluido
-        };
+        function clientPongLoop() {
+            if (!pongGameActive) return;
 
-        // Eventos para Desktop e Mobile
-        pongLeftBtn.addEventListener('mousedown', () => startMoving(-1));
-        pongLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(-1); });
+            const moveSpeed = 5; // Velocidade de movimento da barra
+            if (pongInputState.left) {
+                localPlayerPaddleX -= moveSpeed;
+            }
+            if (pongInputState.right) {
+                localPlayerPaddleX += moveSpeed;
+            }
 
-        pongRightBtn.addEventListener('mousedown', () => startMoving(1));
-        pongRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(1); });
+            // Limita a posição da barra dentro do canvas
+            localPlayerPaddleX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX));
 
-        // Eventos para parar o movimento
-        document.addEventListener('mouseup', stopMoving);
-        document.addEventListener('touchend', stopMoving);
-        document.addEventListener('mouseleave', stopMoving); // Garante que para se o mouse sair da tela
-        
+            handlePaddleMove(localPlayerPaddleX);
+            
+            clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
+        }
+
+        // --- Eventos de Controle do Pong ---
         window.addEventListener('keydown', (e) => {
             if (!pongGameActive) return;
-            if (e.key === 'ArrowLeft') handlePaddleMove(getCurrentPaddleX() - 25);
-            if (e.key === 'ArrowRight') handlePaddleMove(getCurrentPaddleX() + 25);
+            if (e.key === 'ArrowLeft') pongInputState.left = true;
+            if (e.key === 'ArrowRight') pongInputState.right = true;
         });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') pongInputState.left = false;
+            if (e.key === 'ArrowRight') pongInputState.right = false;
+        });
+        
+        pongLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); pongInputState.left = true; });
+        pongLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); pongInputState.left = false; });
+        pongRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); pongInputState.right = true; });
+        pongRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); pongInputState.right = false; });
+        // Para navegadores de desktop que podem não disparar touchend se o mouse sair da area
+        pongLeftBtn.addEventListener('mousedown', () => { pongInputState.left = true; });
+        pongLeftBtn.addEventListener('mouseup', () => { pongInputState.left = false; });
+        pongLeftBtn.addEventListener('mouseleave', () => { pongInputState.left = false; });
+        pongRightBtn.addEventListener('mousedown', () => { pongInputState.right = true; });
+        pongRightBtn.addEventListener('mouseup', () => { pongInputState.right = false; });
+        pongRightBtn.addEventListener('mouseleave', () => { pongInputState.right = false; });
 
-        function getCurrentPaddleX() {
-            if (!pongGameState) return (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
-            return isPlayerOne ? pongGameState.p1.paddleX : pongGameState.p2.paddleX;
-        }
 
         pongLeaveBtn.addEventListener('click', () => {
             if(pongGameActive) socket.emit('pong_leave');
         });
-
+        // --- [FIM] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
     </script>
 </body>
 </html>

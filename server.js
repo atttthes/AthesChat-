@@ -11,10 +11,10 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname)); // Modificado para servir todos os arquivos do diretório raiz
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // --- CONSTANTES E VARIÁVEIS ---
@@ -131,13 +131,13 @@ class PongGame {
     }
 
     broadcast(event, data) {
-        this.player1.socket.emit(event, data);
-        this.player2.socket.emit(event, data);
+        if(this.player1.socket) this.player1.socket.emit(event, data);
+        if(this.player2.socket) this.player2.socket.emit(event, data);
     }
 
     start() {
-        this.broadcast('pong_start', { opponentId: this.player2.id, isPlayerOne: true, isPlayerTwo: false });
-        this.player2.socket.emit('pong_start', { opponentId: this.player1.id, isPlayerOne: false, isPlayerTwo: true });
+        this.player1.socket.emit('pong_start', { opponentId: this.player2.id, isPlayerOne: true });
+        this.player2.socket.emit('pong_start', { opponentId: this.player1.id, isPlayerOne: false });
         
         this.durationTimer = setInterval(() => this.tick(), 1000);
         this.startRound();
@@ -177,14 +177,15 @@ class PongGame {
         ball.rallyCount = 0;
         
         ball.vx = (isSecondBall ? -1 : 1) * (Math.random() > 0.5 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_X;
-        ball.vy = (loser === this.player1 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
+        // Direciona a bola para o jogador que perdeu o último ponto
+        ball.vy = (loser === this.player1.id ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
 
     update() {
         if (this.gamePaused) return;
 
         this.updateBall(this.ball);
-        if (this.isSuddenDeath) {
+        if (this.isSuddenDeath && this.ball2) {
             this.updateBall(this.ball2);
         }
         
@@ -197,30 +198,56 @@ class PongGame {
         ball.x += ball.vx * ball.speedMultiplier;
         ball.y += ball.vy * ball.speedMultiplier;
 
+        // Colisão com paredes laterais
         if (ball.x - PONG_CONFIG.BALL_RADIUS < 0 || ball.x + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_WIDTH) {
             ball.vx *= -1;
         }
-
-        const hitPlayer1 = ball.y + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT && ball.x > this.player1.paddleX && ball.x < this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH && ball.vy > 0;
-        const hitPlayer2 = ball.y - PONG_CONFIG.BALL_RADIUS < PONG_CONFIG.PADDLE_HEIGHT && ball.x > this.player2.paddleX && ball.x < this.player2.paddleX + PONG_CONFIG.PADDLE_WIDTH && ball.vy < 0;
+        
+        // Detecção de colisão com as barras
+        const hitPlayer1 = ball.y + PONG_CONFIG.BALL_RADIUS >= PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT && ball.vy > 0 && ball.x > this.player1.paddleX && ball.x < this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH;
+        const hitPlayer2 = ball.y - PONG_CONFIG.BALL_RADIUS <= PONG_CONFIG.PADDLE_HEIGHT && ball.vy < 0 && ball.x > this.player2.paddleX && ball.x < this.player2.paddleX + PONG_CONFIG.PADDLE_WIDTH;
 
         if (hitPlayer1 || hitPlayer2) {
-            ball.vy *= -1;
+            const playerPaddleX = hitPlayer1 ? this.player1.paddleX : this.player2.paddleX;
+            
+            // 1. Calcula o ponto de intersecção relativo ao centro da barra
+            const intersectX = (playerPaddleX + (PONG_CONFIG.PADDLE_WIDTH / 2)) - ball.x;
+            
+            // 2. Normaliza o valor (-1 a 1)
+            const normalizedIntersectX = intersectX / (PONG_CONFIG.PADDLE_WIDTH / 2);
+            
+            // 3. Calcula o ângulo de rebote (máximo 75 graus)
+            const maxBounceAngle = (5 * Math.PI) / 12; 
+            const bounceAngle = normalizedIntersectX * maxBounceAngle;
+            
+            // 4. Atualiza os componentes de velocidade da bola
+            const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+            ball.vx = currentSpeed * Math.sin(bounceAngle) * -1;
+            
+            // Garante que a bola vá na direção Y correta após a colisão
+            if (hitPlayer2) { // Acertou a barra de cima (player 2), deve ir para baixo
+                ball.vy = currentSpeed * Math.cos(bounceAngle);
+            } else { // Acertou a barra de baixo (player 1), deve ir para cima
+                ball.vy = currentSpeed * -Math.cos(bounceAngle);
+            }
+
+            // Aumenta a velocidade a cada 5 rebatidas
             ball.rallyCount++;
             if (ball.rallyCount > 0 && ball.rallyCount % 5 === 0) {
-                ball.speedMultiplier = Math.min(2.5, ball.speedMultiplier + 0.1);
+                ball.speedMultiplier = Math.min(2.5, ball.speedMultiplier + 0.15);
             }
         }
         
-        if (ball.y > PONG_CONFIG.CANVAS_HEIGHT) {
-            this.handleGoal(this.player2, this.player1);
-        } else if (ball.y < 0) {
-            this.handleGoal(this.player1, this.player2);
+        // Detecção de gol
+        if (ball.y > PONG_CONFIG.CANVAS_HEIGHT + PONG_CONFIG.BALL_RADIUS) {
+            this.handleGoal(this.player2, this.player1.id); // Player 2 marca
+        } else if (ball.y < -PONG_CONFIG.BALL_RADIUS) {
+            this.handleGoal(this.player1, this.player2.id); // Player 1 marca
         }
     }
 
-    handleGoal(winner, loser) {
-        this.lastLoser = loser; // Armazena quem perdeu o ponto
+    handleGoal(winner, loserId) {
+        this.lastLoser = loserId; // Armazena quem perdeu o ponto
         winner.score++;
 
         if (this.isSuddenDeath || winner.score >= PONG_CONFIG.MAX_GOALS) {
@@ -284,7 +311,7 @@ io.on('connection', (socket) => {
         if (data && data.location) currentUserData.location = data.location;
         if (currentUserData.partnerId) return;
 
-        // Lógica de pareamento... (inalterada)
+        // Lógica de pareamento
         let userWithBot = null;
         for (const [userId, userData] of connectedUsers) {
             if (userData.partnerId && activeBots.has(userData.partnerId)) {
@@ -294,7 +321,10 @@ io.on('connection', (socket) => {
         }
         if (userWithBot) {
             const botId = connectedUsers.get(userWithBot.id).partnerId;
+            const bot = activeBots.get(botId);
+            if (bot) bot.disconnect();
             activeBots.delete(botId);
+
             console.log(`Bot ${botId} removido para dar lugar a um usuário real.`);
             userWithBot.emit('system_message', { message: '✔️ Um parceiro real foi encontrado! Conectando...' });
             connectedUsers.get(userWithBot.id).partnerId = null;
@@ -373,7 +403,7 @@ io.on('connection', (socket) => {
         console.log(`Usuário desconectado: ${socket.id}`);
     });
     
-    // --- NOVOS EVENTOS DE PONG ---
+    // --- EVENTOS DE PONG ---
     socket.on('pong_invite', () => {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId || activeBots.has(userData.partnerId)) {
@@ -402,6 +432,7 @@ io.on('connection', (socket) => {
         
         if (activePongGames.has(socket.id) || activePongGames.has(userData.partnerId)) return;
         
+        // Player 2 (o que aceitou) e Player 1 (o que convidou)
         const newGame = new PongGame(userData.partnerId, socket.id);
         newGame.start();
     });
@@ -454,7 +485,8 @@ io.on('connection', (socket) => {
                 if(partnerData) partnerData.partnerId = null;
             }
         }
-        io.sockets.sockets.get(socketId)?.emit('chat_ended');
+        const userSocket = io.sockets.sockets.get(socketId);
+        if(userSocket) userSocket.emit('chat_ended');
     }
 });
 
