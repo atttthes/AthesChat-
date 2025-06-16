@@ -11,18 +11,18 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// --- AJUSTE DE DIRETÓRIO ESTÁTICO (CORREÇÃO DO ERRO) ---
-// O erro 'ENOENT: .../src/index.html' na plataforma de deploy (Render.com)
-// indica que o servidor está procurando os arquivos estáticos (como index.html)
-// em um diretório 'src', mas eles estão na raiz do projeto.
-// O código abaixo resolve isso de forma adaptativa:
-// 1. Ele verifica se o script está rodando de dentro de um diretório chamado 'src'.
-// 2. Se estiver, ele define o caminho dos arquivos públicos como o diretório pai ('..').
-// 3. Caso contrário (ambiente local), ele usa o diretório atual (__dirname).
-// Isso garante que o app funcione tanto no seu computador quanto no servidor da Render.
+// --- AJUSTE DE DIRETÓRIO ESTÁTICO (MELHORADO PARA DEPLOY) ---
+// Esta lógica adaptativa garante que o servidor encontre seus arquivos
+// tanto localmente quanto em plataformas de deploy como a Render.com.
 let publicPath = __dirname;
-if (path.basename(__dirname) === 'src') {
-    publicPath = path.join(__dirname, '..');
+if (path.basename(__dirname) === 'src' || !require('fs').existsSync(path.join(__dirname, 'index.html'))) {
+    // Se estiver em 'src' ou se index.html não estiver na raiz, presume que os arquivos públicos estão no diretório pai.
+    // Ou, se a estrutura for /public, usa o diretório public.
+    if(require('fs').existsSync(path.join(__dirname, 'public'))) {
+        publicPath = path.join(__dirname, 'public');
+    } else {
+        publicPath = path.join(__dirname, '..');
+    }
 }
 app.use(express.static(publicPath));
 
@@ -111,7 +111,7 @@ class Bot {
 }
 
 
-// --- LÓGICA DO JOGO PONG (ATUALIZADO) ---
+// --- LÓGICA DO JOGO PONG (TOTALMENTE ATUALIZADA) ---
 const PONG_CONFIG = {
     CANVAS_WIDTH: 300,
     CANVAS_HEIGHT: 400,
@@ -184,7 +184,7 @@ class PongGame {
         }
     }
     
-    resetBall(ball, loser, isSecondBall = false) {
+    resetBall(ball, loserId, isSecondBall = false) {
         ball.x = PONG_CONFIG.CANVAS_WIDTH / 2;
         ball.y = PONG_CONFIG.CANVAS_HEIGHT / 2;
         ball.speedMultiplier = 1.0;
@@ -192,7 +192,8 @@ class PongGame {
         
         ball.vx = (isSecondBall ? -1 : 1) * (Math.random() > 0.5 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_X;
         // Direciona a bola para o jogador que perdeu o último ponto
-        ball.vy = (loser === this.player1.id ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
+        // P1 é baixo, P2 é cima. Se P1 perdeu (loserId === p1.id), a bola vai para baixo (vy positivo)
+        ball.vy = (loserId === this.player1.id ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
 
     update() {
@@ -207,7 +208,7 @@ class PongGame {
     }
     
     updateBall(ball) {
-        if (!ball) return;
+        if (!ball || !ball.x) return;
         
         ball.x += ball.vx * ball.speedMultiplier;
         ball.y += ball.vy * ball.speedMultiplier;
@@ -217,9 +218,9 @@ class PongGame {
             ball.vx *= -1;
         }
         
-        // Detecção de colisão com as barras
-        const hitPlayer1 = ball.y + PONG_CONFIG.BALL_RADIUS >= PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT && ball.vy > 0 && ball.x > this.player1.paddleX && ball.x < this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH;
-        const hitPlayer2 = ball.y - PONG_CONFIG.BALL_RADIUS <= PONG_CONFIG.PADDLE_HEIGHT && ball.vy < 0 && ball.x > this.player2.paddleX && ball.x < this.player2.paddleX + PONG_CONFIG.PADDLE_WIDTH;
+        // Detecção de colisão com as barras (p1=baixo, p2=cima)
+        const hitPlayer1 = ball.y + PONG_CONFIG.BALL_RADIUS >= PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT && ball.vy > 0 && ball.x >= this.player1.paddleX && ball.x <= this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH;
+        const hitPlayer2 = ball.y - PONG_CONFIG.BALL_RADIUS <= PONG_CONFIG.PADDLE_HEIGHT && ball.vy < 0 && ball.x >= this.player2.paddleX && ball.x <= this.player2.paddleX + PONG_CONFIG.PADDLE_WIDTH;
 
         if (hitPlayer1 || hitPlayer2) {
             const playerPaddleX = hitPlayer1 ? this.player1.paddleX : this.player2.paddleX;
@@ -239,11 +240,7 @@ class PongGame {
             ball.vx = currentSpeed * Math.sin(bounceAngle) * -1;
             
             // Garante que a bola vá na direção Y correta após a colisão
-            if (hitPlayer2) { // Acertou a barra de cima (player 2), deve ir para baixo
-                ball.vy = currentSpeed * Math.cos(bounceAngle);
-            } else { // Acertou a barra de baixo (player 1), deve ir para cima
-                ball.vy = currentSpeed * -Math.cos(bounceAngle);
-            }
+            ball.vy = currentSpeed * Math.cos(bounceAngle) * (hitPlayer1 ? -1 : 1);
 
             // Aumenta a velocidade a cada 5 rebatidas
             ball.rallyCount++;
@@ -254,14 +251,14 @@ class PongGame {
         
         // Detecção de gol
         if (ball.y > PONG_CONFIG.CANVAS_HEIGHT + PONG_CONFIG.BALL_RADIUS) {
-            this.handleGoal(this.player2, this.player1.id); // Player 2 marca
+            this.handleGoal(this.player2, this.player1.id); // Player 2 marca (P1 errou)
         } else if (ball.y < -PONG_CONFIG.BALL_RADIUS) {
-            this.handleGoal(this.player1, this.player2.id); // Player 1 marca
+            this.handleGoal(this.player1, this.player2.id); // Player 1 marca (P2 errou)
         }
     }
 
     handleGoal(winner, loserId) {
-        this.lastLoser = loserId; // Armazena quem perdeu o ponto
+        this.lastLoser = loserId; // Armazena o ID de quem perdeu o ponto
         winner.score++;
 
         if (this.isSuddenDeath || winner.score >= PONG_CONFIG.MAX_GOALS) {
@@ -481,12 +478,13 @@ io.on('connection', (socket) => {
         if (!userData || !userData.partnerId) return;
 
         const partnerId = userData.partnerId;
-        userData.partnerId = null;
-
+        
         const game = activePongGames.get(socketId);
         if (game) {
             game.end('chat_ended');
         }
+        
+        userData.partnerId = null;
 
         if (activeBots.has(partnerId)) {
             const bot = activeBots.get(partnerId);
