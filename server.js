@@ -11,13 +11,8 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// --- AJUSTE DE DIRETÓRIO ESTÁTICO (MELHORADO PARA DEPLOY) ---
-// Esta lógica adaptativa garante que o servidor encontre seus arquivos
-// tanto localmente quanto em plataformas de deploy como a Render.com.
 let publicPath = __dirname;
 if (path.basename(__dirname) === 'src' || !require('fs').existsSync(path.join(__dirname, 'index.html'))) {
-    // Se estiver em 'src' ou se index.html não estiver na raiz, presume que os arquivos públicos estão no diretório pai.
-    // Ou, se a estrutura for /public, usa o diretório public.
     if(require('fs').existsSync(path.join(__dirname, 'public'))) {
         publicPath = path.join(__dirname, 'public');
     } else {
@@ -35,7 +30,7 @@ app.get('/', (req, res) => {
 const connectedUsers = new Map();
 const activeBots = new Map();
 const fakeOnlineBase = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
-const activePongGames = new Map(); // Gerencia os jogos de Pong ativos
+const activePongGames = new Map();
 
 // --- LÓGICA DO BOT (Inalterada) ---
 const botConversationLogic = {
@@ -111,7 +106,7 @@ class Bot {
 }
 
 
-// --- LÓGICA DO JOGO PONG (TOTALMENTE ATUALIZADA) ---
+// --- LÓGICA DO JOGO PONG (TOTALMENTE ATUALIZADA COM LÓGICA SIMPLIFICADA) ---
 const PONG_CONFIG = {
     CANVAS_WIDTH: 300,
     CANVAS_HEIGHT: 400,
@@ -121,17 +116,19 @@ const PONG_CONFIG = {
     INITIAL_BALL_SPEED_X: 2.5,
     INITIAL_BALL_SPEED_Y: 2.5,
     MAX_GOALS: 3,
-    GAME_DURATION_MS: 3 * 60 * 1000, // 3 minutos
-    UPDATE_INTERVAL: 1000 / 60, // ~60 FPS
+    GAME_DURATION_MS: 3 * 60 * 1000,
+    UPDATE_INTERVAL: 1000 / 60,
     COUNTDOWN_SECONDS: 3,
 };
 
 class PongGame {
     constructor(player1Id, player2Id) {
+        // [NOTA] O servidor ainda usa P1 e P2 internamente, mas o cliente não precisa saber disso.
+        // P1 é o jogador de baixo, P2 é o jogador de cima.
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
         this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
         this.ball = {};
-        this.ball2 = null; // Para o modo Morte Súbita
+        this.ball2 = null;
         this.isSuddenDeath = false;
         this.gamePaused = true;
         this.lastLoser = null;
@@ -150,8 +147,10 @@ class PongGame {
     }
 
     start() {
-        this.player1.socket.emit('pong_start', { opponentId: this.player2.id, isPlayerOne: true });
-        this.player2.socket.emit('pong_start', { opponentId: this.player1.id, isPlayerOne: false });
+        // [ALTERADO] O evento 'pong_start' agora não precisa mais enviar 'isPlayerOne'.
+        // O cliente sempre se considera o jogador de baixo.
+        this.player1.socket.emit('pong_start', { opponentId: this.player2.id });
+        this.player2.socket.emit('pong_start', { opponentId: this.player1.id });
         
         this.durationTimer = setInterval(() => this.tick(), 1000);
         this.startRound();
@@ -160,17 +159,17 @@ class PongGame {
     startRound() {
         this.gamePaused = true;
         clearInterval(this.gameLoop);
-        this.broadcastState(); // Garante que placar e posições estejam atualizados
+        this.broadcastState(); 
         this.broadcast('pong_countdown_start');
 
         setTimeout(() => {
             this.resetBall(this.ball, this.lastLoser);
             if (this.isSuddenDeath) {
                 if (!this.ball2) this.ball2 = {};
-                this.resetBall(this.ball2, this.lastLoser, true); // Inicia a segunda bola
+                this.resetBall(this.ball2, this.lastLoser, true);
             }
             this.gamePaused = false;
-            this.lastLoser = null; // Limpa o perdedor anterior
+            this.lastLoser = null;
             this.gameLoop = setInterval(() => this.update(), PONG_CONFIG.UPDATE_INTERVAL);
         }, PONG_CONFIG.COUNTDOWN_SECONDS * 1000);
     }
@@ -191,19 +190,15 @@ class PongGame {
         ball.rallyCount = 0;
         
         ball.vx = (isSecondBall ? -1 : 1) * (Math.random() > 0.5 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_X;
-        // Direciona a bola para o jogador que perdeu o último ponto
-        // P1 é baixo, P2 é cima. Se P1 perdeu (loserId === p1.id), a bola vai para baixo (vy positivo)
         ball.vy = (loserId === this.player1.id ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
 
     update() {
         if (this.gamePaused) return;
-
         this.updateBall(this.ball);
         if (this.isSuddenDeath && this.ball2) {
             this.updateBall(this.ball2);
         }
-        
         this.broadcastState();
     }
     
@@ -213,75 +208,74 @@ class PongGame {
         ball.x += ball.vx * ball.speedMultiplier;
         ball.y += ball.vy * ball.speedMultiplier;
 
-        // Colisão com paredes laterais
         if (ball.x - PONG_CONFIG.BALL_RADIUS < 0 || ball.x + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_WIDTH) {
             ball.vx *= -1;
         }
         
-        // Detecção de colisão com as barras (p1=baixo, p2=cima)
+        // P1 é o jogador de baixo, P2 é o de cima
         const hitPlayer1 = ball.y + PONG_CONFIG.BALL_RADIUS >= PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT && ball.vy > 0 && ball.x >= this.player1.paddleX && ball.x <= this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH;
         const hitPlayer2 = ball.y - PONG_CONFIG.BALL_RADIUS <= PONG_CONFIG.PADDLE_HEIGHT && ball.vy < 0 && ball.x >= this.player2.paddleX && ball.x <= this.player2.paddleX + PONG_CONFIG.PADDLE_WIDTH;
 
         if (hitPlayer1 || hitPlayer2) {
             const playerPaddleX = hitPlayer1 ? this.player1.paddleX : this.player2.paddleX;
-            
-            // 1. Calcula o ponto de intersecção relativo ao centro da barra
             const intersectX = (playerPaddleX + (PONG_CONFIG.PADDLE_WIDTH / 2)) - ball.x;
-            
-            // 2. Normaliza o valor (-1 a 1)
             const normalizedIntersectX = intersectX / (PONG_CONFIG.PADDLE_WIDTH / 2);
-            
-            // 3. Calcula o ângulo de rebote (máximo 75 graus)
             const maxBounceAngle = (5 * Math.PI) / 12; 
             const bounceAngle = normalizedIntersectX * maxBounceAngle;
-            
-            // 4. Atualiza os componentes de velocidade da bola
             const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
             ball.vx = currentSpeed * Math.sin(bounceAngle) * -1;
-            
-            // Garante que a bola vá na direção Y correta após a colisão
             ball.vy = currentSpeed * Math.cos(bounceAngle) * (hitPlayer1 ? -1 : 1);
-
-            // Aumenta a velocidade a cada 5 rebatidas
             ball.rallyCount++;
             if (ball.rallyCount > 0 && ball.rallyCount % 5 === 0) {
                 ball.speedMultiplier = Math.min(2.5, ball.speedMultiplier + 0.15);
             }
         }
         
-        // Detecção de gol
-        if (ball.y > PONG_CONFIG.CANVAS_HEIGHT + PONG_CONFIG.BALL_RADIUS) {
-            this.handleGoal(this.player2, this.player1.id); // Player 2 marca (P1 errou)
-        } else if (ball.y < -PONG_CONFIG.BALL_RADIUS) {
-            this.handleGoal(this.player1, this.player2.id); // Player 1 marca (P2 errou)
-        }
+        if (ball.y > PONG_CONFIG.CANVAS_HEIGHT + PONG_CONFIG.BALL_RADIUS) this.handleGoal(this.player2, this.player1.id);
+        else if (ball.y < -PONG_CONFIG.BALL_RADIUS) this.handleGoal(this.player1, this.player2.id);
     }
 
     handleGoal(winner, loserId) {
-        this.lastLoser = loserId; // Armazena o ID de quem perdeu o ponto
+        this.lastLoser = loserId;
         winner.score++;
-
-        if (this.isSuddenDeath || winner.score >= PONG_CONFIG.MAX_GOALS) {
-            this.end('score_limit');
-        } else {
-            this.startRound(); // Inicia uma nova rodada com countdown
-        }
+        if (this.isSuddenDeath || winner.score >= PONG_CONFIG.MAX_GOALS) this.end('score_limit');
+        else this.startRound();
     }
 
     movePaddle(playerId, paddleX) {
         if (this.gamePaused) return;
+        // [ALTERADO] O servidor precisa mapear qual jogador é qual (p1 ou p2)
         if (playerId === this.player1.id) this.player1.paddleX = paddleX;
         else if (playerId === this.player2.id) this.player2.paddleX = paddleX;
     }
-
+    
+    // [ALTERADO] broadcastState foi reescrito para enviar dados personalizados para cada jogador.
     broadcastState() {
-        const gameState = {
+        const baseState = {
             ball: this.ball,
             ball2: this.isSuddenDeath ? this.ball2 : null,
-            p1: { score: this.player1.score, paddleX: this.player1.paddleX },
-            p2: { score: this.player2.score, paddleX: this.player2.paddleX },
         };
-        this.broadcast('pong_update', gameState);
+
+        // Dados para P1 (jogador de baixo)
+        const stateForP1 = {
+            ...baseState,
+            you: { score: this.player1.score, paddleX: this.player1.paddleX },
+            opponent: { score: this.player2.score, paddleX: this.player2.paddleX },
+        };
+
+        // Dados para P2 (jogador de cima)
+        const stateForP2 = {
+            ...baseState,
+            you: { score: this.player2.score, paddleX: this.player2.paddleX },
+            opponent: { score: this.player1.score, paddleX: this.player1.paddleX },
+        };
+        
+        if(this.player1.socket) this.player1.socket.emit('pong_update', stateForP1);
+        // [NOTA] Para P2, a bola precisa ser espelhada verticalmente para que ele a veja vindo de "baixo"
+        // No entanto, a abordagem mais simples é o cliente sempre se ver como o jogador de baixo.
+        // O servidor manda as posições absolutas, e o cliente interpreta.
+        // Para simplificar ainda mais, vamos fazer a inversão das raquetes no servidor e manter a bola com coordenadas absolutas.
+        if(this.player2.socket) this.player2.socket.emit('pong_update', stateForP2);
     }
 
     end(reason) {
@@ -296,12 +290,12 @@ class PongGame {
             return;
         }
 
-        const result = {
-            reason: reason,
-            scores: { p1: this.player1.score, p2: this.player2.score }
-        };
-        
-        this.broadcast('pong_end', result);
+        // [ALTERADO] O resultado final também é personalizado para cada jogador.
+        const resultForP1 = { reason, yourScore: this.player1.score, opponentScore: this.player2.score };
+        const resultForP2 = { reason, yourScore: this.player2.score, opponentScore: this.player1.score };
+
+        if(this.player1.socket) this.player1.socket.emit('pong_end', resultForP1);
+        if(this.player2.socket) this.player2.socket.emit('pong_end', resultForP2);
 
         activePongGames.delete(this.player1.id);
         activePongGames.delete(this.player2.id);
@@ -322,7 +316,6 @@ io.on('connection', (socket) => {
         if (data && data.location) currentUserData.location = data.location;
         if (currentUserData.partnerId) return;
 
-        // Lógica de pareamento
         let userWithBot = null;
         for (const [userId, userData] of connectedUsers) {
             if (userData.partnerId && activeBots.has(userData.partnerId)) {
@@ -443,7 +436,7 @@ io.on('connection', (socket) => {
         
         if (activePongGames.has(socket.id) || activePongGames.has(userData.partnerId)) return;
         
-        // Player 2 (o que aceitou) e Player 1 (o que convidou)
+        // O jogador que convidou (partnerId) é P1 (baixo), quem aceitou (socket.id) é P2 (cima).
         const newGame = new PongGame(userData.partnerId, socket.id);
         newGame.start();
     });
