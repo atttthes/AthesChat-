@@ -1,4 +1,4 @@
-// server.js ATUALIZADO
+//server.js COMPLETO E FUNCIONAL
 
 const express = require('express');
 const path = require('path');
@@ -7,39 +7,42 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    pingTimeout: 5000, 
+    pingInterval: 10000
+});
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- NOVAS CONSTANTES E VARIÁVEIS ---
 const connectedUsers = new Map();
-const activeBots = new Map(); // Gerencia os bots ativos
-// Base para o contador de usuários online, adicionando um número aleatório inicial
+const activeBots = new Map();
+let waitingUser = null; // Armazena o socket do usuário esperando por um par
+const BOT_PAIRING_TIMEOUT = 10000; // 10 segundos para encontrar um par real
+
 const fakeOnlineBase = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
 
-// --- LÓGICA DO BOT ---
-
+// --- LÓGICA DO BOT (COMPLETA) ---
 const botConversationLogic = {
-    greetings: ["Olá!", "E aí, tudo bem?", "Oi, como vai?", "Opa, tudo certo?"],
-    farewells: ["Preciso ir agora, até mais!", "Foi bom conversar, tchau!", "Falou, até a próxima!"],
-    questions: ["O que você gosta de fazer?", "Qual seu filme favorito?", "Ouve que tipo de música?", "De onde você fala?", "Trabalha com o quê?"],
+    greetings: ["Olá!", "Oi, tudo bem?", "E aí, como vai?", "Prazer em te conhecer!"],
     keywords: {
-        'tudo bem': ["Tudo ótimo por aqui, e com você?", "Tudo certo, e por aí?", "Vou bem, obrigado por perguntar!"],
-        'qual seu nome': ["Sou anônimo, assim como você haha", "Prefiro não dizer, vamos manter o mistério.", "Me chame de... Anônimo."],
-        'você é um bot': ["Haha, será? 🤔", "O que te faz pensar isso?", "Sou apenas mais um anônimo na rede.", "Talvez... ou talvez não."],
-        'tédio': ["Tédio é complicado. Que tal um jogo? Pedra, papel ou tesoura?", "Vamos falar de algo legal pra passar o tempo.", "Conta uma piada!"],
-        'filme': ["Adoro filmes! Viu algum bom recentemente?", "Gosto de ficção científica. E você?", "Prefiro séries, na verdade. Recomenda alguma?"],
-        'música': ["Música é vida! Curto um pouco de tudo, principalmente rock.", "No momento estou ouvindo muito pop.", "Qual sua banda preferida?"],
+        "oi": ["Oie!", "Olá!"],
+        "tudo bem": ["Tudo ótimo, e com você?", "Estou bem, obrigado por perguntar!", "Melhor agora falando com você."],
+        "qual seu nome": ["Pode me chamar de 'Interlocutor'. É um nome chique, né?", "Eu sou um bot, não tenho nome de verdade.", "Meu nome é Byte, e o seu?"],
+        "idade": ["Eu nasci hoje de manhã!", "Sou atemporal, haha.", "Idade é só um número, não acha?"],
+        "onde você é": ["Eu vivo na nuvem, em algum servidor por aí.", "Sou de um lugar chamado 'localhost'."],
+        "tchau": ["Até mais!", "Tchauzinho!", "Foi bom conversar com você!"],
+        "sexo": ["Sou um programa de computador, não tenho gênero.", "Sou feito de código, e você?"],
+        "programa": ["Sim, sou um programa de computador, um bot.", "Isso mesmo, fui criado para conversar."],
+        "bot": ["Fui descoberto! Sim, sou um bot.", "Sim, sou um bot. Mas podemos conversar mesmo assim, certo?"]
     },
-    fallbacks: [
-        "Interessante...", "Hmm, me conte mais.", "Não sei muito sobre isso.", "Entendi.", "Mudar de assunto... que tal o clima, hein?", "Sério?", "Legal."
-    ]
+    questions: ["O que você gosta de fazer no seu tempo livre?", "Qual seu filme favorito?", "Você tem algum pet?", "Qual o último lugar que você viajou?", "O que te traz aqui hoje?"],
+    fallbacks: ["Interessante...", "Me fale mais sobre isso.", "Entendi.", "Hmm...", "Que legal.", "Não sei o que dizer, mas estou ouvindo."]
 };
 
 class Bot {
@@ -49,17 +52,13 @@ class Bot {
         this.partnerSocket = partnerSocket;
         this.location = ["São Paulo", "Rio de Janeiro", "Minas Gerais", "Bahia", "Paraná"][Math.floor(Math.random() * 5)];
         this.messageTimeout = null;
-
         activeBots.set(this.id, this);
         console.log(`Bot ${this.id} criado para o usuário ${this.partnerId}`);
     }
 
     startConversation() {
-        // Simula o início da conversa
         connectedUsers.get(this.partnerId).partnerId = this.id;
-        this.partnerSocket.emit('chat_start', { partnerId: this.id });
-
-        // Envia uma saudação inicial após um pequeno atraso
+        this.partnerSocket.emit('chat_start', { partnerId: this.id, location: this.location });
         setTimeout(() => {
             const greeting = botConversationLogic.greetings[Math.floor(Math.random() * botConversationLogic.greetings.length)];
             this.sendMessage(greeting);
@@ -68,14 +67,11 @@ class Bot {
 
     handleMessage(text) {
         clearTimeout(this.messageTimeout);
-        
-        // Simula o "digitando..."
         this.partnerSocket.emit('typing', { isTyping: true });
-
         this.messageTimeout = setTimeout(() => {
             let response = this.findResponse(text);
             this.sendMessage(response);
-        }, 1000 + Math.random() * 1500); // Responde em um tempo variado
+        }, 1000 + Math.random() * 1500);
     }
 
     findResponse(text) {
@@ -86,29 +82,22 @@ class Bot {
                 return possibleResponses[Math.floor(Math.random() * possibleResponses.length)];
             }
         }
-        // Se não encontrar keyword, pode fazer uma pergunta ou usar um fallback
         if (Math.random() > 0.6) {
-             return botConversationLogic.questions[Math.floor(Math.random() * botConversationLogic.questions.length)];
+            return botConversationLogic.questions[Math.floor(Math.random() * botConversationLogic.questions.length)];
         }
         return botConversationLogic.fallbacks[Math.floor(Math.random() * botConversationLogic.fallbacks.length)];
     }
-    
+
     sendMessage(text) {
         this.partnerSocket.emit('typing', { isTyping: false });
-        this.partnerSocket.emit('message', {
-            text: text,
-            senderId: this.id,
-            location: this.location
-        });
+        this.partnerSocket.emit('message', { text: text, senderId: this.id });
     }
 
-    disconnect(farewellMessage) {
+    disconnect(farewellMessage = "Tchau, preciso ir agora!") {
         if (farewellMessage) {
             this.sendMessage(farewellMessage);
         }
-        
         setTimeout(() => {
-            // Apenas emite 'chat_ended' se o parceiro ainda existir e estiver pareado com ESTE bot
             const partnerData = connectedUsers.get(this.partnerId);
             if (partnerData && partnerData.partnerId === this.id) {
                 this.partnerSocket.emit('chat_ended');
@@ -116,105 +105,101 @@ class Bot {
             }
             activeBots.delete(this.id);
             console.log(`Bot ${this.id} desconectado.`);
-        }, 1000); // Dá um tempo para a mensagem de despedida ser lida
+        }, 1000);
     }
 }
 
-// --- LÓGICA DE CONEXÃO PRINCIPAL ---
+
+// --- LÓGICA DE CONEXÃO E CHAT (COMPLETA) ---
 io.on('connection', (socket) => {
     console.log(`Novo usuário conectado: ${socket.id}`);
     
-    connectedUsers.set(socket.id, { id: socket.id, partnerId: null, location: 'Desconhecido' });
+    connectedUsers.set(socket.id, { id: socket.id, partnerId: null, location: 'Desconhecido', inGame: false, waitingTimeout: null });
     
+    function handleUserDisconnection() {
+        const userData = connectedUsers.get(socket.id);
+        if (!userData) return;
+        
+        // Se o usuário estava na fila de espera, remove-o
+        if (waitingUser && waitingUser.id === socket.id) {
+            waitingUser = null;
+        }
+
+        // Se o usuário estava em um jogo, avise o parceiro
+        if (userData.inGame && userData.partnerId) {
+            const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+            if (partnerSocket) {
+                partnerSocket.emit('pong:game_over', { reason: "O parceiro desconectou."});
+                const partnerData = connectedUsers.get(userData.partnerId);
+                if (partnerData) partnerData.inGame = false;
+            }
+        }
+
+        const partnerId = userData.partnerId;
+        if (partnerId) {
+            if (activeBots.has(partnerId)) {
+                if (activeBots.get(partnerId)) activeBots.delete(partnerId);
+            } else {
+                const partnerSocket = io.sockets.sockets.get(partnerId);
+                if (partnerSocket) {
+                    partnerSocket.emit('partner_disconnected');
+                    const partnerData = connectedUsers.get(partnerId);
+                    if(partnerData) partnerData.partnerId = null;
+                }
+            }
+        }
+        connectedUsers.delete(socket.id);
+        console.log(`Usuário desconectado: ${socket.id}`);
+    }
+
+    // --- LÓGICA DE PAREAMENTO (COMPLETA) ---
     socket.on('join', (data) => {
         const currentUserData = connectedUsers.get(socket.id);
-        if (!currentUserData) return;
-        if (data && data.location) currentUserData.location = data.location;
-        if (currentUserData.partnerId) return;
+        if (!currentUserData || currentUserData.partnerId) return;
 
-        // Lógica de pareamento atualizada
-        // 1. Verificar se há algum usuário conversando com um bot.
-        let userWithBot = null;
-        for (const [userId, userData] of connectedUsers) {
-            if (userData.partnerId && activeBots.has(userData.partnerId)) {
-                userWithBot = io.sockets.sockets.get(userId);
-                break;
-            }
-        }
+        currentUserData.location = data.location || 'Desconhecido';
 
-        if (userWithBot) {
-            // **ATUALIZAÇÃO:** Lógica corrigida para transição de bot para usuário real.
-            const botId = connectedUsers.get(userWithBot.id).partnerId;
-            
-            // 1. Remove o bot silenciosamente sem enviar 'chat_ended'.
-            activeBots.delete(botId);
-            console.log(`Bot ${botId} removido para dar lugar a um usuário real.`);
-
-            // 2. Informa ao usuário que estava com o bot que um parceiro real foi encontrado.
-            userWithBot.emit('system_message', { message: '✔️ Um parceiro real foi encontrado! Conectando...' });
-            
-            // 3. Libera o usuário que estava com o bot para pareamento.
-            connectedUsers.get(userWithBot.id).partnerId = null;
-            
-            // 4. Pareia os dois usuários reais.
-            pairRealUsers(socket, userWithBot);
-            return;
-        }
-
-        // 2. Procurar por um parceiro real que não esteja em um chat
-        let realPartner = null;
-        for (const [userId, userData] of connectedUsers) {
-            if (userId !== socket.id && !userData.partnerId) {
-                realPartner = io.sockets.sockets.get(userId);
-                break;
-            }
-        }
-        
-        if (realPartner) {
-            pairRealUsers(socket, realPartner);
+        if (waitingUser && waitingUser.id !== socket.id) {
+            const partnerSocket = waitingUser;
+            waitingUser = null; // Limpa a fila de espera
+            pairRealUsers(socket, partnerSocket);
         } else {
-            // 3. Se não houver ninguém, cria um bot
-            socket.emit('waiting'); // Mostra a mensagem de "procurando" rapidamente
-            setTimeout(() => {
-                 // Verifica novamente se o usuário ainda está sozinho antes de criar o bot
-                if (connectedUsers.has(socket.id) && !connectedUsers.get(socket.id).partnerId) {
+            waitingUser = socket;
+            socket.emit('waiting_for_partner');
+            
+            // Timeout para parear com um bot se ninguém aparecer
+            const timeoutId = setTimeout(() => {
+                if (waitingUser && waitingUser.id === socket.id) {
+                    waitingUser = null;
                     const bot = new Bot(socket);
                     bot.startConversation();
                 }
-            }, 3000); // Atraso para simular busca
+            }, BOT_PAIRING_TIMEOUT);
+            currentUserData.waitingTimeout = timeoutId;
         }
     });
 
     socket.on('message', (data) => {
-        const senderData = connectedUsers.get(socket.id);
-        if (!senderData || !senderData.partnerId) return;
+        const userData = connectedUsers.get(socket.id);
+        if (!userData || !userData.partnerId) return;
 
-        const partnerId = senderData.partnerId;
-
-        if (activeBots.has(partnerId)) {
-            // Mensagem é para um bot
-            const bot = activeBots.get(partnerId);
-            bot.handleMessage(data.text);
+        if (activeBots.has(userData.partnerId)) {
+            const bot = activeBots.get(userData.partnerId);
+            if (bot) bot.handleMessage(data.text);
         } else {
-            // Mensagem é para um usuário real
-            const partnerSocket = io.sockets.sockets.get(partnerId);
+            const partnerSocket = io.sockets.sockets.get(userData.partnerId);
             if (partnerSocket) {
-                partnerSocket.emit('message', {
-                    text: data.text,
-                    senderId: socket.id,
-                    replyTo: data.replyTo || null,
-                    location: senderData.location
-                });
+                partnerSocket.emit('message', { text: data.text, senderId: socket.id });
             }
         }
     });
 
     socket.on('typing', (data) => {
-        const partnerId = connectedUsers.get(socket.id)?.partnerId;
-        if (partnerId && !activeBots.has(partnerId)) { // Não envia typing para bots
-            const partnerSocket = io.sockets.sockets.get(partnerId);
+        const userData = connectedUsers.get(socket.id);
+        if (userData && userData.partnerId && !activeBots.has(userData.partnerId)) {
+            const partnerSocket = io.sockets.sockets.get(userData.partnerId);
             if (partnerSocket) {
-               partnerSocket.emit('typing', { isTyping: data.isTyping });
+                partnerSocket.emit('typing', { isTyping: data.isTyping });
             }
         }
     });
@@ -222,6 +207,14 @@ io.on('connection', (socket) => {
     socket.on('end_chat', () => {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
+
+        if (userData.inGame) {
+            const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+            if(partnerSocket) partnerSocket.emit('pong:game_over', { reason: "O parceiro encerrou a conversa." });
+            userData.inGame = false;
+            const partnerData = connectedUsers.get(userData.partnerId);
+            if (partnerData) partnerData.inGame = false;
+        }
 
         const partnerId = userData.partnerId;
         userData.partnerId = null;
@@ -237,66 +230,108 @@ io.on('connection', (socket) => {
                 if(partnerData) partnerData.partnerId = null;
             }
         }
-        
         socket.emit('chat_ended');
     });
 
-    socket.on('disconnect', () => {
-        const userData = connectedUsers.get(socket.id);
-        if (!userData) return;
-
-        const partnerId = userData.partnerId;
-        if (partnerId) {
-            if (activeBots.has(partnerId)) {
-                const bot = activeBots.get(partnerId);
-                if (bot) activeBots.delete(bot.id); // Apenas deleta o bot se o usuário desconectar
-            } else {
-                const partnerSocket = io.sockets.sockets.get(partnerId);
-                if (partnerSocket) {
-                    partnerSocket.emit('partner_disconnected');
-                    const partnerData = connectedUsers.get(partnerId);
-                    if(partnerData) partnerData.partnerId = null;
-                }
-            }
+    socket.on('disconnect', handleUserDisconnection);
+    
+    // --- LÓGICA DO JOGO PONG (já estava completa) ---
+    function getPartnerSocket(currentSocket) {
+        const userData = connectedUsers.get(currentSocket.id);
+        if (userData && userData.partnerId && !activeBots.has(userData.partnerId)) {
+            return io.sockets.sockets.get(userData.partnerId);
         }
+        return null;
+    }
 
-        connectedUsers.delete(socket.id);
-        console.log(`Usuário desconectado: ${socket.id}`);
+    socket.on('pong:invite', () => {
+        const partnerSocket = getPartnerSocket(socket);
+        if (partnerSocket) partnerSocket.emit('pong:receive_invite');
+    });
+
+    socket.on('pong:decline_invite', () => {
+        const partnerSocket = getPartnerSocket(socket);
+        if (partnerSocket) partnerSocket.emit('pong:invite_declined');
+    });
+
+    socket.on('pong:accept_invite', () => {
+        const partnerSocket = getPartnerSocket(socket);
+        if (partnerSocket) {
+            connectedUsers.get(socket.id).inGame = true;
+            connectedUsers.get(partnerSocket.id).inGame = true;
+            partnerSocket.emit('pong:start_game', { isHost: true });
+            socket.emit('pong:start_game', { isHost: false });
+        }
+    });
+
+    socket.on('pong:move', (data) => {
+        const partnerSocket = getPartnerSocket(socket);
+        if (partnerSocket) partnerSocket.emit('pong:opponent_move', data);
+    });
+    
+    socket.on('pong:state_sync', (data) => {
+        const partnerSocket = getPartnerSocket(socket);
+        if (partnerSocket) partnerSocket.emit('pong:update_state', data);
+    });
+
+    socket.on('pong:goal', () => { /* Apenas para gatilho de som, etc. */ });
+    
+    socket.on('pong:end_game', () => {
+        const partnerSocket = getPartnerSocket(socket);
+        const userData = connectedUsers.get(socket.id);
+        if (userData) userData.inGame = false;
+        socket.emit('pong:game_over', { reason: "Você encerrou o jogo." });
+        if (partnerSocket) {
+            partnerSocket.emit('pong:game_over', { reason: "O parceiro encerrou o jogo." });
+            const partnerData = connectedUsers.get(partnerSocket.id);
+            if (partnerData) partnerData.inGame = false;
+        }
+    });
+
+    socket.on('pong:game_over_win', (winnerId) => {
+        const partnerSocket = getPartnerSocket(socket);
+        const userData = connectedUsers.get(socket.id);
+        if (userData) userData.inGame = false;
+        socket.emit('pong:game_over', { winnerId });
+        if(partnerSocket) {
+            partnerSocket.emit('pong:game_over', { winnerId });
+            const partnerData = connectedUsers.get(partnerSocket.id);
+            if (partnerData) partnerData.inGame = false;
+        }
     });
 
     function pairRealUsers(socket1, socket2) {
         const user1Data = connectedUsers.get(socket1.id);
         const user2Data = connectedUsers.get(socket2.id);
 
-        if (user1Data) user1Data.partnerId = socket2.id;
-        if (user2Data) user2Data.partnerId = socket1.id;
+        if (!user1Data || !user2Data) return; // Segurança
 
-        socket1.emit('chat_start', { partnerId: socket2.id });
-        socket2.emit('chat_start', { partnerId: socket1.id });
-        console.log(`Usuários ${socket1.id} e ${socket2.id} pareados.`);
+        // Limpa o timeout do usuário que estava esperando
+        if (user2Data.waitingTimeout) {
+            clearTimeout(user2Data.waitingTimeout);
+            user2Data.waitingTimeout = null;
+        }
+
+        user1Data.partnerId = socket2.id;
+        user2Data.partnerId = socket1.id;
+
+        console.log(`Pareando usuários: ${socket1.id} e ${socket2.id}`);
+
+        // Envia o evento de início de chat para ambos
+        socket1.emit('chat_start', { partnerId: socket2.id, location: user2Data.location });
+        socket2.emit('chat_start', { partnerId: socket1.id, location: user1Data.location });
     }
 });
 
-// **ATUALIZAÇÃO:** Lógica de variação do contador de usuários online.
+// --- CONTADOR DE USUÁRIOS E INICIALIZAÇÃO DO SERVIDOR (COMPLETO) ---
 function broadcastDynamicOnlineCount() {
     const realUsers = connectedUsers.size;
-    const baseCount = fakeOnlineBase + realUsers;
-    // Gera uma flutuação aleatória, por exemplo, entre -4 e +7
-    const fluctuation = Math.floor(Math.random() * 12) - 4;
-    let totalOnline = baseCount + fluctuation;
-
-    // Garante que o número nunca seja menor que o número real de usuários
-    if (totalOnline < realUsers) {
-        totalOnline = realUsers;
-    }
-
-    io.emit('users_online', totalOnline);
+    const dynamicCount = fakeOnlineBase + realUsers;
+    io.emit('online_count_update', dynamicCount);
 }
 
-// Emite o contador atualizado a cada 4.5 segundos
 setInterval(broadcastDynamicOnlineCount, 4500);
 
-
 server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
