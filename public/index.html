@@ -57,7 +57,7 @@
         .close-reply { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 10px; font-size: 1.2em; line-height: 1; padding: 0; }
         .close-reply:hover { color: #fff; }
 
-        /* --- ESTILOS MENU E JOGO PONG (ATUALIZADO) --- */
+        /* --- ESTILOS MENU E JOGO PONG --- */
         #menu-btn { background: none; border: none; color: white; font-size: 24px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 30px; height: 30px; display: flex; flex-direction: column; justify-content: space-around; z-index: 1101; }
         #menu-btn .bar { display: block; width: 100%; height: 3px; background: white; border-radius: 2px; transition: all 0.3s ease-in-out; }
         #menu-btn.open .bar1 { transform: rotate(45deg) translate(7px, 7px); }
@@ -145,7 +145,6 @@
     <div id="pong-game-container">
         <div id="pong-countdown"></div>
         <div id="pong-info">
-            <!-- Elementos renomeados para 'opponent' e 'you' para maior clareza -->
             <span id="pong-score-opponent">Anônimo: 0</span>
             <span id="pong-timer">3:00</span>
             <span id="pong-score-you">Você: 0</span>
@@ -201,17 +200,19 @@
         const swipeThreshold = 50;
         let palavrasOfensivas = [];
         
-        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
+        // --- [INÍCIO] LÓGICA DO JOGO PONG ---
         let pongGameActive = false;
-        let pongGameState = null; // Recebe o estado do servidor (com 'you' e 'opponent')
+        let pongGameState = null;
         let pongAnimationId = null;
         const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
-
-        // Variáveis de controle de movimento para feedback instantâneo (client-side prediction)
         let pongInputState = { left: false, right: false };
         let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
         let clientAnimationLoopId = null;
-        // --- [FIM] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
+        // [NOVO] Variáveis para o rastro da bola
+        let ball1Trail = [];
+        let ball2Trail = [];
+        const TRAIL_LENGTH = 15;
+        // --- [FIM] LÓGICA DO JOGO PONG ---
 
         // --- LÓGICA DO CHAT (BASE) ---
         async function fetchMyLocation() {
@@ -348,13 +349,7 @@
             if (replyingTo) cancelReply();
             showActionButton('iniciar');
             if (pongGameActive) {
-                pongGameActive = false;
-                cancelAnimationFrame(pongAnimationId);
-                cancelAnimationFrame(clientAnimationLoopId);
-                pongAnimationId = null;
-                clientAnimationLoopId = null;
-                pongGameContainer.style.display = 'none';
-                addSystemMessage('🏆 Jogo encerrado devido à desconexão.');
+                endPongGame('partner_disconnected');
             }
         }
 
@@ -566,7 +561,7 @@
             }
         });
         
-        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE TOTALMENTE ATUALIZADO E SIMPLIFICADO) ---
+        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
         socket.on('pong_invite_received', () => {
             pongInviteModal.style.display = 'flex';
         });
@@ -583,6 +578,11 @@
 
         socket.on('pong_start', (data) => {
             pongGameActive = true;
+            pongGameState = null; // Limpa estado anterior
+            // [NOVO] Limpa os rastros do jogo anterior
+            ball1Trail = [];
+            ball2Trail = [];
+
             pongGameContainer.style.display = 'flex';
             pongTimerElem.textContent = '3:00';
             
@@ -597,10 +597,18 @@
 
         socket.on('pong_update', (state) => {
             pongGameState = state;
-            // A lógica de atualização do placar é agora direta e simples.
-            // O servidor envia os dados já na perspectiva do cliente ('you' e 'opponent').
             pongScoreYouElem.textContent = `Você: ${state.you.score}`;
             pongScoreOpponentElem.textContent = `Anônimo: ${state.opponent.score}`;
+
+            // [NOVO] Adiciona a posição atual da bola ao rastro
+            if (state.ball && state.ball.x) {
+                ball1Trail.unshift({ x: state.ball.x, y: state.ball.y });
+                if (ball1Trail.length > TRAIL_LENGTH) ball1Trail.pop();
+            }
+            if (state.ball2 && state.ball2.x) {
+                ball2Trail.unshift({ x: state.ball2.x, y: state.ball2.y });
+                if (ball2Trail.length > TRAIL_LENGTH) ball2Trail.pop();
+            }
         });
         
         socket.on('pong_countdown_start', () => {
@@ -628,6 +636,10 @@
         });
 
         socket.on('pong_end', (result) => {
+            endPongGame(result.reason, result);
+        });
+        
+        function endPongGame(reason, result = null) {
             if (!pongGameActive) return;
             pongGameActive = false;
             cancelAnimationFrame(pongAnimationId);
@@ -636,11 +648,9 @@
             clientAnimationLoopId = null;
             
             let message = "Fim de jogo!";
-            // A lógica de placar final é agora direta.
-            // O servidor envia 'yourScore' e 'opponentScore'.
-            if(result.reason === 'player_left' || result.reason === 'partner_disconnected' || result.reason === 'chat_ended') {
+            if(reason === 'player_left' || reason === 'partner_disconnected' || reason === 'chat_ended') {
                 message = "O oponente saiu do jogo."
-            } else {
+            } else if (result) {
                  message = `Placar final: Você ${result.yourScore} x ${result.opponentScore} Anônimo.`;
             }
 
@@ -648,17 +658,13 @@
             setTimeout(() => {
                 pongGameContainer.style.display = 'none';
             }, 3000);
-        });
+        }
         
-        // [PONTO-CHAVE DA SOLUÇÃO]
-        // Função de desenho simplificada. Não há 'if (isPlayerOne)'.
-        // Sempre desenha 'você' embaixo e 'oponente' em cima.
         function drawPong() {
             if (!pongGameActive) return;
             
             pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
             
-            // Linha do meio
             pongCtx.strokeStyle = '#333';
             pongCtx.beginPath();
             pongCtx.setLineDash([5, 15]);
@@ -666,9 +672,27 @@
             pongCtx.lineTo(pongCanvas.width, pongCanvas.height / 2);
             pongCtx.stroke();
             pongCtx.setLineDash([]);
+            
+            // [NOVO] Desenha os rastros das bolas
+            pongCtx.save();
+            ball1Trail.forEach((p, i) => {
+                pongCtx.globalAlpha = (1 - (i / ball1Trail.length)) * 0.4; // Opacidade decrescente
+                pongCtx.fillStyle = '#fff';
+                pongCtx.beginPath();
+                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+                pongCtx.fill();
+            });
+            ball2Trail.forEach((p, i) => {
+                pongCtx.globalAlpha = (1 - (i / ball2Trail.length)) * 0.4;
+                pongCtx.fillStyle = '#ffae00'; // Cor da segunda bola
+                pongCtx.beginPath();
+                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+                pongCtx.fill();
+            });
+            pongCtx.restore();
 
             if (pongGameState) {
-                // Desenha a(s) bola(s) com coordenadas absolutas do servidor
+                // Desenha a(s) bola(s) principal(is)
                 if (pongGameState.ball && pongGameState.ball.x) {
                     pongCtx.fillStyle = '#fff';
                     pongCtx.beginPath();
@@ -683,26 +707,22 @@
                     pongCtx.fill();
                 }
                 
-                // Desenha a raquete do oponente (sempre em cima)
+                // Raquete do oponente (sempre em cima)
                 pongCtx.fillStyle = '#ff4444'; 
                 const opponentPaddleX = pongGameState.opponent.paddleX;
-                const opponentPaddleY = 0; // Topo da tela
-                pongCtx.fillRect(opponentPaddleX, opponentPaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
+                pongCtx.fillRect(opponentPaddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             }
 
-            // Desenha a sua raquete (sempre embaixo)
-            // Usa 'localPlayerPaddleX' para feedback instantâneo ao invés de esperar o servidor.
+            // Sua raquete (sempre embaixo)
             pongCtx.fillStyle = '#00aaff';
-            const playerPaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT; // Base da tela
+            const playerPaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT;
             pongCtx.fillRect(localPlayerPaddleX, playerPaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
 
             pongAnimationId = requestAnimationFrame(drawPong);
         }
         
-        // Loop de controle local para movimento suave
         function clientPongLoop() {
             if (!pongGameActive) return;
-
             const moveSpeed = 5;
             let moved = false;
             if (pongInputState.left) {
@@ -713,19 +733,13 @@
                 localPlayerPaddleX += moveSpeed;
                 moved = true;
             }
-
-            // Garante que a raquete não saia da tela
             localPlayerPaddleX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX));
-
             if(moved) {
-                // Envia a nova posição para o servidor
                 socket.emit('pong_move', { paddleX: localPlayerPaddleX });
             }
-            
             clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
         }
 
-        // Controles de Teclado
         window.addEventListener('keydown', (e) => {
             if (!pongGameActive) return;
             if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') { e.preventDefault(); pongInputState.left = true; }
@@ -736,7 +750,6 @@
             if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pongInputState.right = false;
         });
         
-        // Controles de Toque (Touch) e Mouse para os botões
         const addTouchEvent = (element, startFunc, endFunc) => {
             element.addEventListener('touchstart', (e) => { e.preventDefault(); startFunc(); }, { passive: false });
             element.addEventListener('touchend', (e) => { e.preventDefault(); endFunc(); });
@@ -744,7 +757,6 @@
             element.addEventListener('mouseup', endFunc);
             element.addEventListener('mouseleave', endFunc);
         };
-
         addTouchEvent(pongLeftBtn, () => pongInputState.left = true, () => pongInputState.left = false);
         addTouchEvent(pongRightBtn, () => pongInputState.right = true, () => pongInputState.right = false);
 
