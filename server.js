@@ -190,13 +190,9 @@ class PongGame {
         
         let verticalDirection;
         if (loserId) {
-            // Se um ponto foi marcado, a bola vai na direção do jogador que perdeu.
             verticalDirection = (loserId === this.player1.id ? 1 : -1);
         } else {
-            // [LÓGICA DO SAQUE INICIAL]
-            // Se for o início do jogo (sem perdedor), a bola sempre vai para cima (-1),
-            // em direção ao P2 (o jogador que foi desafiado e aceitou o convite).
-            verticalDirection = -1;
+            verticalDirection = -1; // Saque inicial sempre para P2 (em cima).
         }
         ball.vy = verticalDirection * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
@@ -231,12 +227,7 @@ class PongGame {
             const bounceAngle = normalizedIntersectX * maxBounceAngle;
             const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
             
-            // [CORREÇÃO CRÍTICA DA FÍSICA]
-            // O sinal de `vx` agora é calculado corretamente.
-            // Se a bola bate à esquerda da raquete (intersectX > 0), o ângulo de retorno é para a direita (vx > 0).
-            // Removido o `* -1` que estava causando o bug de colisão.
-            ball.vx = currentSpeed * Math.sin(bounceAngle) * -1; // O -1 AINDA É NECESSÁRIO AQUI DEVIDO À NORMALIZAÇÃO
-            
+            ball.vx = currentSpeed * Math.sin(bounceAngle) * -1;
             ball.vy = currentSpeed * Math.cos(bounceAngle) * (hitPlayer1 ? -1 : 1);
             ball.rallyCount++;
             if (ball.rallyCount > 0 && ball.rallyCount % 5 === 0) {
@@ -261,23 +252,39 @@ class PongGame {
         else if (playerId === this.player2.id) this.player2.paddleX = paddleX;
     }
     
+    // [PONTO-CHAVE DA SOLUÇÃO DEFINITIVA]
+    // A lógica agora inverte a posição Y da bola para o jogador 2.
     broadcastState() {
-        const baseState = {
+        // Envia para P1 (embaixo) com coordenadas normais.
+        const stateForP1 = {
             ball: this.ball,
             ball2: this.isSuddenDeath ? this.ball2 : null,
-        };
-        const stateForP1 = {
-            ...baseState,
             you: { score: this.player1.score, paddleX: this.player1.paddleX },
             opponent: { score: this.player2.score, paddleX: this.player2.paddleX },
         };
+        const socketP1 = io.sockets.sockets.get(this.player1.id);
+        if(socketP1) socketP1.emit('pong_update', stateForP1);
+
+
+        // [A MÁGICA ACONTECE AQUI]
+        // Cria um novo estado para P2 (emcima) com as coordenadas Y da bola invertidas.
+        const flipY = (y) => PONG_CONFIG.CANVAS_HEIGHT - y;
+
+        // Inverte a bola 1 se ela existir
+        const flippedBall = this.ball.x ? { ...this.ball, y: flipY(this.ball.y) } : this.ball;
+        
+        // Inverte a bola 2 se ela existir
+        let flippedBall2 = null;
+        if (this.isSuddenDeath && this.ball2 && this.ball2.x) {
+            flippedBall2 = { ...this.ball2, y: flipY(this.ball2.y) };
+        }
+
         const stateForP2 = {
-            ...baseState,
+            ball: flippedBall,
+            ball2: flippedBall2,
             you: { score: this.player2.score, paddleX: this.player2.paddleX },
             opponent: { score: this.player1.score, paddleX: this.player1.paddleX },
         };
-        const socketP1 = io.sockets.sockets.get(this.player1.id);
-        if(socketP1) socketP1.emit('pong_update', stateForP1);
         const socketP2 = io.sockets.sockets.get(this.player2.id);
         if(socketP2) socketP2.emit('pong_update', stateForP2);
     }
