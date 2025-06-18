@@ -156,6 +156,11 @@ class PongGame {
     startRound() {
         this.gamePaused = true;
         clearInterval(this.gameLoop);
+        
+        // [ATUALIZAÇÃO] Reseta a posição dos paddles a cada nova rodada.
+        this.player1.paddleX = (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2;
+        this.player2.paddleX = (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2;
+        
         this.broadcastState(); 
         this.broadcast('pong_countdown_start');
 
@@ -242,6 +247,10 @@ class PongGame {
     handleGoal(winner, loserId) {
         this.lastLoser = loserId;
         winner.score++;
+        
+        // [ATUALIZAÇÃO] Emite evento de gol para animação no cliente.
+        this.broadcast('pong_goal_scored', { winnerId: winner.id });
+
         if (this.isSuddenDeath || winner.score >= PONG_CONFIG.MAX_GOALS) this.end('score_limit');
         else this.startRound();
     }
@@ -252,10 +261,7 @@ class PongGame {
         else if (playerId === this.player2.id) this.player2.paddleX = paddleX;
     }
     
-    // [PONTO-CHAVE DA SOLUÇÃO DEFINITIVA]
-    // A lógica agora inverte a posição Y da bola para o jogador 2.
     broadcastState() {
-        // Envia para P1 (embaixo) com coordenadas normais.
         const stateForP1 = {
             ball: this.ball,
             ball2: this.isSuddenDeath ? this.ball2 : null,
@@ -265,15 +271,8 @@ class PongGame {
         const socketP1 = io.sockets.sockets.get(this.player1.id);
         if(socketP1) socketP1.emit('pong_update', stateForP1);
 
-
-        // [A MÁGICA ACONTECE AQUI]
-        // Cria um novo estado para P2 (emcima) com as coordenadas Y da bola invertidas.
         const flipY = (y) => PONG_CONFIG.CANVAS_HEIGHT - y;
-
-        // Inverte a bola 1 se ela existir
         const flippedBall = this.ball.x ? { ...this.ball, y: flipY(this.ball.y) } : this.ball;
-        
-        // Inverte a bola 2 se ela existir
         let flippedBall2 = null;
         if (this.isSuddenDeath && this.ball2 && this.ball2.x) {
             flippedBall2 = { ...this.ball2, y: flipY(this.ball2.y) };
