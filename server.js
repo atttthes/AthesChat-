@@ -123,7 +123,7 @@ const PONG_CONFIG = {
 
 class PongGame {
     constructor(player1Id, player2Id) {
-        // [NOTA] O servidor ainda usa P1 e P2 internamente, mas o cliente não precisa saber disso.
+        // [NOTA] O servidor mantém P1 e P2 como referência interna.
         // P1 é o jogador de baixo, P2 é o jogador de cima.
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
         this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
@@ -147,8 +147,8 @@ class PongGame {
     }
 
     start() {
-        // [ALTERADO] O evento 'pong_start' agora não precisa mais enviar 'isPlayerOne'.
-        // O cliente sempre se considera o jogador de baixo.
+        // O evento 'pong_start' não precisa mais enviar 'isPlayerOne'.
+        // O cliente sempre se considera o jogador de baixo, o servidor personaliza os dados.
         this.player1.socket.emit('pong_start', { opponentId: this.player2.id });
         this.player2.socket.emit('pong_start', { opponentId: this.player1.id });
         
@@ -190,7 +190,10 @@ class PongGame {
         ball.rallyCount = 0;
         
         ball.vx = (isSecondBall ? -1 : 1) * (Math.random() > 0.5 ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_X;
-        ball.vy = (loserId === this.player1.id ? 1 : -1) * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
+        // Se houver um perdedor anterior (loserId), a bola vai na direção dele.
+        // Se não (início do jogo), a direção vertical é aleatória.
+        const verticalDirection = loserId ? (loserId === this.player1.id ? 1 : -1) : (Math.random() > 0.5 ? 1 : -1);
+        ball.vy = verticalDirection * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
 
     update() {
@@ -208,6 +211,7 @@ class PongGame {
         ball.x += ball.vx * ball.speedMultiplier;
         ball.y += ball.vy * ball.speedMultiplier;
 
+        // Colisão com paredes laterais
         if (ball.x - PONG_CONFIG.BALL_RADIUS < 0 || ball.x + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_WIDTH) {
             ball.vx *= -1;
         }
@@ -231,7 +235,9 @@ class PongGame {
             }
         }
         
+        // Gol! Se a bola passar da raquete de P1 (embaixo), P2 (emcima) marca.
         if (ball.y > PONG_CONFIG.CANVAS_HEIGHT + PONG_CONFIG.BALL_RADIUS) this.handleGoal(this.player2, this.player1.id);
+        // Se a bola passar da raquete de P2 (emcima), P1 (embaixo) marca.
         else if (ball.y < -PONG_CONFIG.BALL_RADIUS) this.handleGoal(this.player1, this.player2.id);
     }
 
@@ -244,12 +250,14 @@ class PongGame {
 
     movePaddle(playerId, paddleX) {
         if (this.gamePaused) return;
-        // [ALTERADO] O servidor precisa mapear qual jogador é qual (p1 ou p2)
+        // O servidor mapeia o ID do socket para o jogador correto (p1 ou p2)
         if (playerId === this.player1.id) this.player1.paddleX = paddleX;
         else if (playerId === this.player2.id) this.player2.paddleX = paddleX;
     }
     
-    // [ALTERADO] broadcastState foi reescrito para enviar dados personalizados para cada jogador.
+    // [PONTO-CHAVE DA SOLUÇÃO]
+    // Esta função personaliza os dados para cada jogador, para que o cliente não precise de lógica de espelhamento.
+    // O cliente sempre receberá um objeto com 'you' (seus dados) e 'opponent' (dados do oponente).
     broadcastState() {
         const baseState = {
             ball: this.ball,
@@ -270,12 +278,11 @@ class PongGame {
             opponent: { score: this.player1.score, paddleX: this.player1.paddleX },
         };
         
-        if(this.player1.socket) this.player1.socket.emit('pong_update', stateForP1);
-        // [NOTA] Para P2, a bola precisa ser espelhada verticalmente para que ele a veja vindo de "baixo"
-        // No entanto, a abordagem mais simples é o cliente sempre se ver como o jogador de baixo.
-        // O servidor manda as posições absolutas, e o cliente interpreta.
-        // Para simplificar ainda mais, vamos fazer a inversão das raquetes no servidor e manter a bola com coordenadas absolutas.
-        if(this.player2.socket) this.player2.socket.emit('pong_update', stateForP2);
+        const socketP1 = io.sockets.sockets.get(this.player1.id);
+        if(socketP1) socketP1.emit('pong_update', stateForP1);
+        
+        const socketP2 = io.sockets.sockets.get(this.player2.id);
+        if(socketP2) socketP2.emit('pong_update', stateForP2);
     }
 
     end(reason) {
@@ -290,12 +297,15 @@ class PongGame {
             return;
         }
 
-        // [ALTERADO] O resultado final também é personalizado para cada jogador.
+        // O resultado final também é personalizado para cada jogador.
         const resultForP1 = { reason, yourScore: this.player1.score, opponentScore: this.player2.score };
         const resultForP2 = { reason, yourScore: this.player2.score, opponentScore: this.player1.score };
-
-        if(this.player1.socket) this.player1.socket.emit('pong_end', resultForP1);
-        if(this.player2.socket) this.player2.socket.emit('pong_end', resultForP2);
+        
+        const socketP1 = io.sockets.sockets.get(this.player1.id);
+        if(socketP1) socketP1.emit('pong_end', resultForP1);
+        
+        const socketP2 = io.sockets.sockets.get(this.player2.id);
+        if(socketP2) socketP2.emit('pong_end', resultForP2);
 
         activePongGames.delete(this.player1.id);
         activePongGames.delete(this.player2.id);

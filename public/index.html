@@ -145,7 +145,7 @@
     <div id="pong-game-container">
         <div id="pong-countdown"></div>
         <div id="pong-info">
-            <!-- [ALTERADO] Elementos renomeados para 'opponent' e 'you' para maior clareza -->
+            <!-- Elementos renomeados para 'opponent' e 'you' para maior clareza -->
             <span id="pong-score-opponent">Anônimo: 0</span>
             <span id="pong-timer">3:00</span>
             <span id="pong-score-you">Você: 0</span>
@@ -182,7 +182,6 @@
         const pongGameContainer = document.getElementById('pong-game-container');
         const pongCanvas = document.getElementById('pong-canvas');
         const pongCtx = pongCanvas.getContext('2d');
-        // [ALTERADO] Variáveis dos elementos do placar renomeadas
         const pongScoreYouElem = document.getElementById('pong-score-you');
         const pongScoreOpponentElem = document.getElementById('pong-score-opponent');
         const pongTimerElem = document.getElementById('pong-timer');
@@ -202,18 +201,17 @@
         const swipeThreshold = 50;
         let palavrasOfensivas = [];
         
-        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE SIMPLIFICADO) ---
+        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
         let pongGameActive = false;
-        let pongGameState = null;
-        // [REMOVIDO] A variável isPlayerOne não é mais necessária para renderização.
+        let pongGameState = null; // Recebe o estado do servidor (com 'you' e 'opponent')
         let pongAnimationId = null;
         const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
 
-        // Variáveis de controle de movimento para feedback instantâneo
+        // Variáveis de controle de movimento para feedback instantâneo (client-side prediction)
         let pongInputState = { left: false, right: false };
         let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
         let clientAnimationLoopId = null;
-        // --- [FIM] LÓGICA DO JOGO PONG (CLIENT-SIDE SIMPLIFICADO) ---
+        // --- [FIM] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
 
         // --- LÓGICA DO CHAT (BASE) ---
         async function fetchMyLocation() {
@@ -585,7 +583,6 @@
 
         socket.on('pong_start', (data) => {
             pongGameActive = true;
-            // [REMOVIDO] Não precisamos mais saber se somos P1 ou P2 aqui.
             pongGameContainer.style.display = 'flex';
             pongTimerElem.textContent = '3:00';
             
@@ -600,7 +597,7 @@
 
         socket.on('pong_update', (state) => {
             pongGameState = state;
-            // [ALTERADO] A lógica de atualização do placar é agora direta e simples.
+            // A lógica de atualização do placar é agora direta e simples.
             // O servidor envia os dados já na perspectiva do cliente ('you' e 'opponent').
             pongScoreYouElem.textContent = `Você: ${state.you.score}`;
             pongScoreOpponentElem.textContent = `Anônimo: ${state.opponent.score}`;
@@ -639,7 +636,7 @@
             clientAnimationLoopId = null;
             
             let message = "Fim de jogo!";
-            // [ALTERADO] A lógica de placar final é agora direta.
+            // A lógica de placar final é agora direta.
             // O servidor envia 'yourScore' e 'opponentScore'.
             if(result.reason === 'player_left' || result.reason === 'partner_disconnected' || result.reason === 'chat_ended') {
                 message = "O oponente saiu do jogo."
@@ -653,11 +650,15 @@
             }, 3000);
         });
         
+        // [PONTO-CHAVE DA SOLUÇÃO]
+        // Função de desenho simplificada. Não há 'if (isPlayerOne)'.
+        // Sempre desenha 'você' embaixo e 'oponente' em cima.
         function drawPong() {
             if (!pongGameActive) return;
             
             pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
             
+            // Linha do meio
             pongCtx.strokeStyle = '#333';
             pongCtx.beginPath();
             pongCtx.setLineDash([5, 15]);
@@ -667,6 +668,7 @@
             pongCtx.setLineDash([]);
 
             if (pongGameState) {
+                // Desenha a(s) bola(s) com coordenadas absolutas do servidor
                 if (pongGameState.ball && pongGameState.ball.x) {
                     pongCtx.fillStyle = '#fff';
                     pongCtx.beginPath();
@@ -681,20 +683,23 @@
                     pongCtx.fill();
                 }
                 
-                // [ALTERADO] Desenha a raquete do oponente diretamente, sem lógica condicional.
-                pongCtx.fillStyle = '#ff4444'; // Raquete do oponente (sempre em cima)
+                // Desenha a raquete do oponente (sempre em cima)
+                pongCtx.fillStyle = '#ff4444'; 
                 const opponentPaddleX = pongGameState.opponent.paddleX;
-                pongCtx.fillRect(opponentPaddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
+                const opponentPaddleY = 0; // Topo da tela
+                pongCtx.fillRect(opponentPaddleX, opponentPaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             }
 
-            // Sua raquete (sempre em baixo), com base na posição local para feedback instantâneo.
+            // Desenha a sua raquete (sempre embaixo)
+            // Usa 'localPlayerPaddleX' para feedback instantâneo ao invés de esperar o servidor.
             pongCtx.fillStyle = '#00aaff';
-            const playerPaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT;
+            const playerPaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT; // Base da tela
             pongCtx.fillRect(localPlayerPaddleX, playerPaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
 
             pongAnimationId = requestAnimationFrame(drawPong);
         }
         
+        // Loop de controle local para movimento suave
         function clientPongLoop() {
             if (!pongGameActive) return;
 
@@ -709,27 +714,31 @@
                 moved = true;
             }
 
+            // Garante que a raquete não saia da tela
             localPlayerPaddleX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX));
 
             if(moved) {
+                // Envia a nova posição para o servidor
                 socket.emit('pong_move', { paddleX: localPlayerPaddleX });
             }
             
             clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
         }
 
+        // Controles de Teclado
         window.addEventListener('keydown', (e) => {
             if (!pongGameActive) return;
-            if (e.key === 'ArrowLeft' || e.key === 'a') { e.preventDefault(); pongInputState.left = true; }
-            if (e.key === 'ArrowRight' || e.key === 'd') { e.preventDefault(); pongInputState.right = true; }
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') { e.preventDefault(); pongInputState.left = true; }
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') { e.preventDefault(); pongInputState.right = true; }
         });
         window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') pongInputState.left = false;
-            if (e.key === 'ArrowRight' || e.key === 'd') pongInputState.right = false;
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pongInputState.left = false;
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pongInputState.right = false;
         });
         
+        // Controles de Toque (Touch) e Mouse para os botões
         const addTouchEvent = (element, startFunc, endFunc) => {
-            element.addEventListener('touchstart', (e) => { e.preventDefault(); startFunc(); });
+            element.addEventListener('touchstart', (e) => { e.preventDefault(); startFunc(); }, { passive: false });
             element.addEventListener('touchend', (e) => { e.preventDefault(); endFunc(); });
             element.addEventListener('mousedown', startFunc);
             element.addEventListener('mouseup', endFunc);
