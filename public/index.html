@@ -1,246 +1,298 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Olá Talker - Chat</title>
-  <style>
-    /* ======= Reset e estrutura geral ======= */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background-color: #0a0a0a;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100dvh;
-      min-height: 100vh; /* Fallback */
-      overflow: hidden;
-    }
-
-    #chat-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      width: 100%;
-      max-width: 600px;
-      height: 100dvh;
-      min-height: 100vh; /* Fallback */
-      background: #1a1a1a;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    /* ======= Cabeçalho ======= */
-    header {
-      background-color: #111;
-      color: #0ff;
-      padding: 12px;
-      text-align: center;
-      font-weight: bold;
-      border-bottom: 1px solid #333;
-    }
-
-    /* ======= Área de mensagens ======= */
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      scroll-behavior: smooth;
-    }
-
-    .message {
-      padding: 10px 15px;
-      border-radius: 20px;
-      max-width: 80%;
-      line-height: 1.4;
-      font-size: 15px;
-      word-wrap: break-word;
-    }
-
-    .user {
-      background-color: #0084ff;
-      color: #fff;
-      align-self: flex-end;
-      border-bottom-right-radius: 0;
-    }
-
-    .bot {
-      background-color: #333;
-      color: #fff;
-      align-self: flex-start;
-      border-bottom-left-radius: 0;
-    }
-
-    /* ======= Campo de envio ======= */
-    #input-container {
-      display: flex;
-      background-color: #111;
-      padding: 10px;
-      border-top: 1px solid #333;
-    }
-
-    #message-input {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 20px;
-      outline: none;
-      background-color: #222;
-      color: #fff;
-      font-size: 14px;
-    }
-
-    #send-button {
-      background-color: #0084ff;
-      border: none;
-      color: #fff;
-      padding: 10px 15px;
-      margin-left: 10px;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    #send-button:hover {
-      background-color: #0af;
-    }
-
-    /* ======= Mini-jogo de Pong ======= */
-    #pong {
-      display: none;
-      background: #000;
-      border: 2px solid #0ff;
-      margin-top: 15px;
-      width: 100%;
-      max-width: 600px;
-      height: 300px;
-      border-radius: 8px;
-    }
-
-    /* ======= Scrollbar personalizada ======= */
-    #messages::-webkit-scrollbar {
-      width: 5px;
-    }
-
-    #messages::-webkit-scrollbar-thumb {
-      background: #555;
-      border-radius: 10px;
-    }
-
-    /* ======= Responsividade ======= */
-    @media (max-width: 600px) {
-      #chat-container {
-        border-radius: 0;
-      }
-
-      header {
-        font-size: 16px;
-      }
-
-      .message {
-        font-size: 14px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div id="chat-container">
-    <header>Olá Talker 💬</header>
-    <div id="messages"></div>
-    <canvas id="pong"></canvas>
-    <div id="input-container">
-      <input type="text" id="message-input" placeholder="Digite uma mensagem..." />
-      <button id="send-button">➤</button>
-    </div>
-  </div>
-
-  <script>
-    const messagesContainer = document.getElementById("messages");
-    const input = document.getElementById("message-input");
-    const sendButton = document.getElementById("send-button");
-    const pongCanvas = document.getElementById("pong");
-    const ctx = pongCanvas.getContext("2d");
-
-    function addMessage(text, sender) {
-      const msg = document.createElement("div");
-      msg.classList.add("message", sender);
-      msg.textContent = text;
-      messagesContainer.appendChild(msg);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function botReply(text) {
-      addMessage(text, "bot");
-    }
-
-    sendButton.addEventListener("click", () => {
-      const text = input.value.trim();
-      if (!text) return;
-      addMessage(text, "user");
-      input.value = "";
-
-      if (text.toLowerCase() === "pong") startPong();
-      else setTimeout(() => botReply("Você disse: " + text), 500);
-    });
-
-    input.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendButton.click();
-    });
-
-    // ======= Mini-jogo Pong =======
-    function startPong() {
-      pongCanvas.style.display = "block";
-      let x = pongCanvas.width / 2,
-          y = pongCanvas.height / 2,
-          dx = 3, dy = 3,
-          paddleY = pongCanvas.height / 2 - 30,
-          paddleHeight = 60, paddleWidth = 10,
-          aiY = paddleY;
-
-      function draw() {
-        ctx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
-        ctx.fillStyle = "#0ff";
-        ctx.fillRect(0, paddleY, paddleWidth, paddleHeight);
-        ctx.fillRect(pongCanvas.width - paddleWidth, aiY, paddleWidth, paddleHeight);
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        x += dx;
-        y += dy;
-        if (y + 8 > pongCanvas.height || y - 8 < 0) dy = -dy;
-
-        if (x - 8 < paddleWidth && y > paddleY && y < paddleY + paddleHeight) dx = -dx;
-        if (x + 8 > pongCanvas.width - paddleWidth && y > aiY && y < aiY + paddleHeight) dx = -dx;
-
-        if (x < 0 || x > pongCanvas.width) {
-          x = pongCanvas.width / 2;
-          y = pongCanvas.height / 2;
+    <title>AthesChat! - Chat Brasileiro Anônimo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #121212;
+            --secondary-bg: #1e1e1e;
+            --tertiary-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --text-muted: #aaa;
+            --accent-color: #0062cc;
+            --accent-hover: #0052b3;
+            --special-accent: #8a2be2;
+            --success-color: #4CAF50;
+            --error-color: #ff4d4d;
         }
 
-        aiY += (y - (aiY + paddleHeight / 2)) * 0.1;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
-        requestAnimationFrame(draw);
-      }
+        /* ===== ALTURA DINÂMICA CORRIGIDA ===== */
+        body {
+            height: 100dvh;
+            min-height: 100vh; /* Fallback */
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            touch-action: pan-y;
+            overflow: hidden;
+        }
 
-      pongCanvas.addEventListener("mousemove", (e) => {
-        const rect = pongCanvas.getBoundingClientRect();
-        paddleY = e.clientY - rect.top - paddleHeight / 2;
-      });
+        #chat-container {
+            display: none;
+            height: 100dvh;
+            min-height: 100vh; /* Fallback */
+            flex-direction: column;
+            background-color: var(--secondary-bg);
+            position: relative;
+        }
 
-      draw();
-    }
-  </script>
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #start-btn {
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        #start-btn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        #chat-header {
+            background: var(--tertiary-bg);
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .online-counter {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-muted);
+        }
+
+        .online-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--success-color);
+            border-radius: 50%;
+        }
+
+        #chat {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            line-height: 1.4;
+            position: relative;
+            transition: transform 0.2s, background-color 0.2s;
+            will-change: transform;
+            word-wrap: break-word;
+        }
+
+        .message.active { background-color: rgba(255, 255, 255, 0.1); }
+        .message.swiping { transition: none; }
+        .received { background: #333; align-self: flex-start; }
+        .sent { background: var(--accent-color); color: white; align-self: flex-end; }
+        .system {
+            background: var(--tertiary-bg);
+            text-align: center;
+            margin: 15px auto;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            max-width: 90%;
+            align-self: center;
+        }
+
+        .message.offensive {
+            background-color: #4d2020;
+            border: 2px solid var(--error-color);
+            color: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        .attention-icon {
+            position: absolute;
+            bottom: -8px;
+            left: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .reason {
+            display: none;
+            margin-top: 8px;
+            padding: 8px;
+            background-color: #ffdddd;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #d8000c;
+            user-select: text;
+            text-align: left;
+        }
+
+        .reason.visible { display: block; }
+
+        #input-area {
+            display: flex;
+            padding: 15px;
+            background: var(--tertiary-bg);
+            border-top: 1px solid #333;
+            position: relative;
+            flex-wrap: wrap;
+        }
+
+        #message {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #444;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+            background-color: #333;
+            color: var(--text-color);
+        }
+
+        #send-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 0 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #send-btn:hover { background: var(--accent-hover); }
+
+        @media (max-width: 600px) {
+            #message { font-size: 14px; }
+            #send-btn { padding: 8px 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h2>Bem-vindo ao <span style="color: #8a2be2;">AthesChat!</span></h2>
+        <p style="color: #ccc; margin-top: 10px;">Conecte-se com pessoas aleatórias do Brasil 💬</p>
+        <button id="start-btn">Iniciar Chat</button>
+    </div>
+
+    <div id="chat-container">
+        <div id="chat-header">
+            AthesChat
+            <div class="online-counter">
+                <span class="online-dot"></span>
+                <span id="online-count">0</span>
+            </div>
+        </div>
+
+        <div id="chat"></div>
+
+        <div id="input-area">
+            <input type="text" id="message" placeholder="Digite uma mensagem..." autocomplete="off">
+            <button id="send-btn">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const chat = document.getElementById("chat");
+        const messageInput = document.getElementById("message");
+        const sendBtn = document.getElementById("send-btn");
+        const startBtn = document.getElementById("start-btn");
+        const startScreen = document.getElementById("start-screen");
+        const chatContainer = document.getElementById("chat-container");
+        const onlineCount = document.getElementById("online-count");
+
+        let connected = false;
+
+        startBtn.addEventListener("click", () => {
+            socket.emit("find_partner");
+            startScreen.style.display = "none";
+            chatContainer.style.display = "flex";
+            addSystemMessage("Buscando parceiro para conversa...");
+        });
+
+        socket.on("waiting", () => addSystemMessage("Aguardando outro usuário entrar..."));
+        socket.on("connected", () => { connected = true; addSystemMessage("Você foi conectado a um estranho! 😊"); });
+        socket.on("partner_disconnected", () => { connected = false; addSystemMessage("O parceiro saiu 😢. Buscando outro..."); socket.emit("find_partner"); });
+        socket.on("online_count", count => onlineCount.textContent = count);
+
+        sendBtn.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+
+        function sendMessage() {
+            const msg = messageInput.value.trim();
+            if (!msg || !connected) return;
+            addMessage(msg, "sent");
+            socket.emit("message", msg);
+            messageInput.value = "";
+        }
+
+        socket.on("message", msg => addMessage(msg, "received"));
+
+        function addMessage(text, type) {
+            const div = document.createElement("div");
+            div.classList.add("message", type);
+            div.textContent = text;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const div = document.createElement("div");
+            div.classList.add("system");
+            div.textContent = text;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+    </script>
 </body>
 </html>
