@@ -1,832 +1,246 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>AthesChat! - Chat Brasileiro Anônimo</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <style>
-        :root {
-            --primary-bg: #121212;
-            --secondary-bg: #1e1e1e;
-            --tertiary-bg: #2d2d2d;
-            --text-color: #e0e0e0;
-            --text-muted: #aaa;
-            --accent-color: #0062cc;
-            --accent-hover: #0052b3;
-            --special-accent: #8a2be2;
-            --success-color: #4CAF50;
-            --error-color: #ff4d4d;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        body { height: 100vh; background-color: var(--primary-bg); color: var(--text-color); touch-action: pan-y; overflow: hidden; }
-        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
-        #start-btn { background-color: var(--success-color); color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: all 0.3s; }
-        #start-btn:hover { background-color: #45a049; transform: scale(1.05); }
-        #chat-container { display: none; height: 100vh; flex-direction: column; background-color: var(--secondary-bg); position: relative; }
-        #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; }
-        .online-counter { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
-        .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
-        #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
-        .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; }
-        .message.active { background-color: rgba(255, 255, 255, 0.1); }
-        .message.swiping { transition: none; }
-        .received { background: #333; align-self: flex-start; }
-        .sent { background: var(--accent-color); color: white; align-self: flex-end; }
-        .system { background: var(--tertiary-bg); text-align: center; margin: 15px auto; padding: 8px; border-radius: 5px; font-size: 0.9em; color: var(--text-muted); max-width: 90%; align-self: center; }
-        .message.offensive { background-color: #4d2020; border: 2px solid var(--error-color); color: #f0f0f0; cursor: not-allowed; }
-        .attention-icon { position: absolute; bottom: -8px; left: 8px; font-size: 18px; cursor: pointer; user-select: none; }
-        .reason { display: none; margin-top: 8px; padding: 8px; background-color: #ffdddd; border-radius: 6px; font-size: 12px; color: #d8000c; user-select: text; text-align: left; }
-        .reason.visible { display: block; }
-        #input-area { display: flex; padding: 15px; background: var(--tertiary-bg); border-top: 1px solid #333; position: relative; flex-wrap: wrap; }
-        #message { flex-grow: 1; padding: 12px 15px; border: 1px solid #444; border-radius: 25px; outline: none; font-size: 16px; background-color: #333; color: var(--text-color); }
-        #send-btn { background: var(--accent-color); color: white; border: none; border-radius: 25px; padding: 0 20px; margin-left: 10px; cursor: pointer; font-weight: bold; }
-        #send-btn:hover { background: var(--accent-hover); }
-        .sender-info { font-size: 0.7em; margin-bottom: 3px; display: flex; justify-content: space-between; }
-        .sender-name { font-weight: bold; }
-        .sender-location { opacity: 0.7; font-style: italic; }
-        #action-btn { background: var(--special-accent); color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; margin: 10px auto; display: block; transition: all 0.3s; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); }
-        #action-btn:hover { background: #7b1fa2; transform: translateX(-50%) scale(1.05); }
-        .typing-indicator { display: inline-block; padding: 10px 15px; background: #333; border-radius: 18px; margin-bottom: 15px; max-width: 80%; align-self: flex-start; color: var(--text-muted); font-size: 0.9em; }
-        .typing-dots { display: inline-flex; align-items: center; }
-        .typing-dot { width: 6px; height: 6px; background-color: var(--text-muted); border-radius: 50%; margin: 0 2px; animation: typingAnimation 1.4s infinite ease-in-out; }
-        .typing-dot:nth-child(1) { animation-delay: 0s; } .typing-dot:nth-child(2) { animation-delay: 0.2s; } .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typingAnimation { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
-        .reply-area { background: rgba(0, 0, 0, 0.2); border-left: 3px solid var(--special-accent); padding: 8px 12px; margin-bottom: 8px; border-radius: 5px; display: flex; justify-content: space-between; width: 100%; text-align: left; }
-        .reply-text { font-size: 0.8em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
-        .reply-sender { font-weight: bold; color: var(--special-accent); margin-right: 5px; }
-        .close-reply { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 10px; font-size: 1.2em; line-height: 1; padding: 0; }
-        .close-reply:hover { color: #fff; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Olá Talker - Chat</title>
+  <style>
+    /* ======= Reset e estrutura geral ======= */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        /* --- ESTILOS MENU E JOGO PONG --- */
-        #menu-btn { background: none; border: none; color: white; font-size: 24px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 30px; height: 30px; display: flex; flex-direction: column; justify-content: space-around; z-index: 1101; }
-        #menu-btn .bar { display: block; width: 100%; height: 3px; background: white; border-radius: 2px; transition: all 0.3s ease-in-out; }
-        #menu-btn.open .bar1 { transform: rotate(45deg) translate(7px, 7px); }
-        #menu-btn.open .bar2 { opacity: 0; }
-        #menu-btn.open .bar3 { transform: rotate(-45deg) translate(7px, -7px); }
+    body {
+      background-color: #0a0a0a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      min-height: 100vh; /* Fallback */
+      overflow: hidden;
+    }
 
-        #sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100%; background: var(--tertiary-bg); z-index: 1100; transition: left 0.3s ease-in-out; padding-top: 80px; }
-        #sidebar.open { left: 0; }
-        #sidebar ul { list-style: none; padding: 0; }
-        #sidebar ul li { padding: 15px 20px; color: var(--text-color); cursor: pointer; border-bottom: 1px solid #444; }
-        #sidebar ul li:hover { background: #444; }
-        
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1200; }
-        .modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); }
-        .modal-content h3 { margin-bottom: 20px; }
-        .modal-actions button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 0 10px; }
-        #pong-invite-accept { background: var(--success-color); color: white; }
-        #pong-invite-decline { background: var(--error-color); color: white; }
+    #chat-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 600px;
+      height: 100dvh;
+      min-height: 100vh; /* Fallback */
+      background: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
 
-        #pong-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; }
-        #pong-canvas { background: #000; border: 2px solid var(--text-muted); }
-        #pong-info { display: flex; justify-content: space-around; width: 300px; color: var(--text-color); margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
-        #pong-controls { display: flex; justify-content: space-between; width: 200px; margin-top: 20px; }
-        .pong-btn { padding: 15px 30px; font-size: 1.5em; background: var(--tertiary-bg); color: var(--text-color); border: 2px solid #555; border-radius: 10px; user-select: none; }
-        #pong-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    /* ======= Cabeçalho ======= */
+    header {
+      background-color: #111;
+      color: #0ff;
+      padding: 12px;
+      text-align: center;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+    }
 
-        #pong-countdown {
-            position: absolute;
-            font-size: 8em;
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.8);
-            z-index: 10;
-            display: none;
-            user-select: none;
-            text-shadow: 2px 2px 10px #000;
-        }
+    /* ======= Área de mensagens ======= */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
 
-        /* [NOVO] Estilos para animação de Gol e Vitória/Derrota */
-        #pong-animation-text {
-            position: absolute;
-            font-size: 5em;
-            font-weight: bold;
-            color: white;
-            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.8);
-            z-index: 20;
-            display: none;
-            user-select: none;
-            text-align: center;
-            animation-duration: 2.5s;
-            animation-fill-mode: forwards;
-            animation-timing-function: ease-in-out;
-        }
-        #pong-animation-text.show {
-            display: block;
-            animation-name: fadeInOut;
-        }
-        #pong-animation-text.goal { color: var(--success-color); }
-        #pong-animation-text.victory { color: #FFD700; }
-        #pong-animation-text.defeat { color: var(--error-color); }
+    .message {
+      padding: 10px 15px;
+      border-radius: 20px;
+      max-width: 80%;
+      line-height: 1.4;
+      font-size: 15px;
+      word-wrap: break-word;
+    }
 
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: scale(0.5); }
-            20% { opacity: 1; transform: scale(1.1); }
-            80% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.8); }
-        }
-    </style>
+    .user {
+      background-color: #0084ff;
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 0;
+    }
+
+    .bot {
+      background-color: #333;
+      color: #fff;
+      align-self: flex-start;
+      border-bottom-left-radius: 0;
+    }
+
+    /* ======= Campo de envio ======= */
+    #input-container {
+      display: flex;
+      background-color: #111;
+      padding: 10px;
+      border-top: 1px solid #333;
+    }
+
+    #message-input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 20px;
+      outline: none;
+      background-color: #222;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    #send-button {
+      background-color: #0084ff;
+      border: none;
+      color: #fff;
+      padding: 10px 15px;
+      margin-left: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #send-button:hover {
+      background-color: #0af;
+    }
+
+    /* ======= Mini-jogo de Pong ======= */
+    #pong {
+      display: none;
+      background: #000;
+      border: 2px solid #0ff;
+      margin-top: 15px;
+      width: 100%;
+      max-width: 600px;
+      height: 300px;
+      border-radius: 8px;
+    }
+
+    /* ======= Scrollbar personalizada ======= */
+    #messages::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    #messages::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 10px;
+    }
+
+    /* ======= Responsividade ======= */
+    @media (max-width: 600px) {
+      #chat-container {
+        border-radius: 0;
+      }
+
+      header {
+        font-size: 16px;
+      }
+
+      .message {
+        font-size: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="start-screen">
-        <h1 style="color: white; margin-bottom: 20px;">AthesChat!</h1>
-        <p style="color: #aaa; margin-bottom: 20px; text-align: center;">O chat anônimo que conecta o Brasil!</p>
-        <button id="start-btn">Comece a Conversar!</button>
+  <div id="chat-container">
+    <header>Olá Talker 💬</header>
+    <div id="messages"></div>
+    <canvas id="pong"></canvas>
+    <div id="input-container">
+      <input type="text" id="message-input" placeholder="Digite uma mensagem..." />
+      <button id="send-button">➤</button>
     </div>
+  </div>
 
-    <div id="chat-container">
-        <div id="sidebar">
-             <ul>
-                <li id="play-pong-btn">🎮 Jogar Pong</li>
-            </ul>
-        </div>
-        <div id="chat-header">
-            <button id="menu-btn">
-                <span class="bar bar1"></span>
-                <span class="bar bar2"></span>
-                <span class="bar bar3"></span>
-            </button>
-            <span>AthesChat!</span>
-            <div class="online-counter">
-                <span class="online-dot"></span>
-                <span id="online-count">0 online</span>
-            </div>
-        </div>
-        <div id="chat"></div>
-        <div id="input-area">
-            <button id="action-btn" style="display: none;"></button>
-            <input type="text" id="message" placeholder="Digite sua mensagem..." autocomplete="off">
-            <button id="send-btn">Enviar</button>
-        </div>
-    </div>
-    
-    <!-- MODAL DE CONVITE PARA O PONG -->
-    <div id="pong-invite-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Seu parceiro(a) te desafiou para uma partida de Pong!</h3>
-            <p>Quem fizer 3 gols ou tiver mais pontos em 3 minutos vence.</p>
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button id="pong-invite-accept">Sim</button>
-                <button id="pong-invite-decline">Não</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- TELA DO JOGO PONG -->
-    <div id="pong-game-container">
-        <!-- [NOVO] Elemento para animações de texto -->
-        <div id="pong-animation-text"></div>
-        <div id="pong-countdown"></div>
-        <div id="pong-info">
-            <span id="pong-score-opponent">Anônimo: 0</span>
-            <span id="pong-timer">3:00</span>
-            <span id="pong-score-you">Você: 0</span>
-        </div>
-        <canvas id="pong-canvas" width="300" height="400"></canvas>
-        <div id="pong-controls">
-            <button class="pong-btn" id="pong-left-btn">◀</button>
-            <button class="pong-btn" id="pong-right-btn">▶</button>
-        </div>
-        <button id="pong-leave-btn">Encerrar Jogo</button>
-    </div>
+  <script>
+    const messagesContainer = document.getElementById("messages");
+    const input = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-button");
+    const pongCanvas = document.getElementById("pong");
+    const ctx = pongCanvas.getContext("2d");
 
-    <script>
-        const socket = io();
-        // Elementos do Chat
-        const chatDiv = document.getElementById('chat');
-        const messageInput = document.getElementById('message');
-        const sendBtn = document.getElementById('send-btn');
-        const startScreen = document.getElementById('start-screen');
-        const chatContainer = document.getElementById('chat-container');
-        const startBtn = document.getElementById('start-btn');
-        const actionBtn = document.getElementById('action-btn');
-        const onlineCountElement = document.getElementById('online-count');
-        
-        // Elementos do Menu
-        const menuBtn = document.getElementById('menu-btn');
-        const sidebar = document.getElementById('sidebar');
-        const playPongBtn = document.getElementById('play-pong-btn');
-        
-        // Elementos do Pong
-        const pongInviteModal = document.getElementById('pong-invite-modal');
-        const pongInviteAcceptBtn = document.getElementById('pong-invite-accept');
-        const pongInviteDeclineBtn = document.getElementById('pong-invite-decline');
-        const pongGameContainer = document.getElementById('pong-game-container');
-        const pongCanvas = document.getElementById('pong-canvas');
-        const pongCtx = pongCanvas.getContext('2d');
-        const pongScoreYouElem = document.getElementById('pong-score-you');
-        const pongScoreOpponentElem = document.getElementById('pong-score-opponent');
-        const pongTimerElem = document.getElementById('pong-timer');
-        const pongLeftBtn = document.getElementById('pong-left-btn');
-        const pongRightBtn = document.getElementById('pong-right-btn');
-        const pongLeaveBtn = document.getElementById('pong-leave-btn');
-        const pongCountdownElem = document.getElementById('pong-countdown');
-        const pongAnimationText = document.getElementById('pong-animation-text'); // [NOVO]
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.classList.add("message", sender);
+      msg.textContent = text;
+      messagesContainer.appendChild(msg);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 
-        // Variáveis de Estado do Chat
-        let myLocation = "Desconhecido";
-        let isConnected = false;
-        let currentPartnerId = null;
-        let typingTimeout = null;
-        let isTyping = false;
-        let replyingTo = null;
-        let swipeStartX = null, swipeElement = null;
-        const swipeThreshold = 50;
-        let palavrasOfensivas = [];
-        
-        // --- [INÍCIO] LÓGICA DO JOGO PONG ---
-        let pongGameActive = false;
-        let pongGameState = null;
-        let pongAnimationId = null;
-        const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
-        let pongInputState = { left: false, right: false };
-        let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
-        let clientAnimationLoopId = null;
-        let ball1Trail = [];
-        let ball2Trail = [];
-        const TRAIL_LENGTH = 15;
-        // --- [FIM] LÓGICA DO JOGO PONG ---
+    function botReply(text) {
+      addMessage(text, "bot");
+    }
 
-        // --- LÓGICA DO CHAT (BASE) ---
-        async function fetchMyLocation() {
-            try {
-                const response = await fetch('https://ipapi.co/json/');
-                const data = await response.json();
-                if (data && data.region) {
-                    myLocation = data.region;
-                }
-            } catch (error) {
-                console.error("Falha ao buscar localização:", error);
-                myLocation = "Desconhecido";
-            }
+    sendButton.addEventListener("click", () => {
+      const text = input.value.trim();
+      if (!text) return;
+      addMessage(text, "user");
+      input.value = "";
+
+      if (text.toLowerCase() === "pong") startPong();
+      else setTimeout(() => botReply("Você disse: " + text), 500);
+    });
+
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendButton.click();
+    });
+
+    // ======= Mini-jogo Pong =======
+    function startPong() {
+      pongCanvas.style.display = "block";
+      let x = pongCanvas.width / 2,
+          y = pongCanvas.height / 2,
+          dx = 3, dy = 3,
+          paddleY = pongCanvas.height / 2 - 30,
+          paddleHeight = 60, paddleWidth = 10,
+          aiY = paddleY;
+
+      function draw() {
+        ctx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
+        ctx.fillStyle = "#0ff";
+        ctx.fillRect(0, paddleY, paddleWidth, paddleHeight);
+        ctx.fillRect(pongCanvas.width - paddleWidth, aiY, paddleWidth, paddleHeight);
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        x += dx;
+        y += dy;
+        if (y + 8 > pongCanvas.height || y - 8 < 0) dy = -dy;
+
+        if (x - 8 < paddleWidth && y > paddleY && y < paddleY + paddleHeight) dx = -dx;
+        if (x + 8 > pongCanvas.width - paddleWidth && y > aiY && y < aiY + paddleHeight) dx = -dx;
+
+        if (x < 0 || x > pongCanvas.width) {
+          x = pongCanvas.width / 2;
+          y = pongCanvas.height / 2;
         }
 
-        async function carregarListaDePalavras() {
-            try {
-                let response = await fetch('/palavras_proibidas.json');
-                 if (!response.ok) {
-                    response = await fetch('../palavras_proibidas.json');
-                 }
-                if (!response.ok) throw new Error('Falha ao carregar lista de palavras.');
-                palavrasOfensivas = await response.json();
-            } catch (error) {
-                console.error(error);
-                addSystemMessage("⚠️ Não foi possível carregar o filtro de palavras.");
-            }
-        }
-        
-        function contemPalavraOfensiva(texto) {
-            if (palavrasOfensivas.length === 0) return false;
-            return palavrasOfensivas.some(palavra => {
-                const regex = new RegExp(`\\b${palavra.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-                return regex.test(texto);
-            });
-        }
+        aiY += (y - (aiY + paddleHeight / 2)) * 0.1;
 
-        startBtn.addEventListener('click', () => {
-            startScreen.style.display = 'none';
-            chatContainer.style.display = 'flex';
-            socket.emit('join', { location: myLocation });
-            messageInput.focus();
-        });
+        requestAnimationFrame(draw);
+      }
 
-        socket.on('users_online', (count) => { onlineCountElement.textContent = `${count} online`; });
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-        
-        messageInput.addEventListener('input', () => {
-            if (!isTyping && isConnected) {
-                isTyping = true;
-                socket.emit('typing', { isTyping: true });
-            }
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                if (isTyping && isConnected) {
-                    isTyping = false;
-                    socket.emit('typing', { isTyping: false });
-                }
-            }, 1000);
-        });
-        
-        function setupSwipeEvents() {
-            chatDiv.addEventListener('mousedown', handleMouseDown);
-            chatDiv.addEventListener('mousemove', handleMouseMove);
-            chatDiv.addEventListener('mouseup', handleMouseUp);
-            chatDiv.addEventListener('mouseleave', handleMouseUp);
+      pongCanvas.addEventListener("mousemove", (e) => {
+        const rect = pongCanvas.getBoundingClientRect();
+        paddleY = e.clientY - rect.top - paddleHeight / 2;
+      });
 
-            chatDiv.addEventListener('touchstart', (e) => handleMouseDown({ target: e.target, clientX: e.touches[0].clientX, button: 0, preventDefault: () => {} }));
-            chatDiv.addEventListener('touchmove', (e) => handleMouseMove({ target: e.target, clientX: e.touches[0].clientX, preventDefault: () => {} }));
-            chatDiv.addEventListener('touchend', (e) => handleMouseUp({ clientX: e.changedTouches[0].clientX }));
-        }
-        
-        function getSwipeTarget(event) {
-            return event.target.closest('.message:not(.system):not(.offensive)');
-        }
-
-        function handleMouseDown(e) {
-            const messageElement = getSwipeTarget(e);
-            if (e.button === 0 && messageElement) {
-                e.preventDefault();
-                swipeStartX = e.clientX;
-                swipeElement = messageElement;
-            }
-        }
-        
-        function handleMouseMove(e) {
-            if (swipeElement && swipeStartX !== null) {
-                e.preventDefault();
-                const deltaX = e.clientX - swipeStartX;
-                if (deltaX > 0) {
-                    swipeElement.classList.add('swiping');
-                    swipeElement.style.transform = `translateX(${Math.min(deltaX, 100)}px)`;
-                    if (deltaX > swipeThreshold) swipeElement.classList.add('active');
-                    else swipeElement.classList.remove('active');
-                }
-            }
-        }
-        
-        function handleMouseUp(e) {
-            if (swipeElement && swipeStartX !== null) {
-                const deltaX = e.clientX - swipeStartX;
-                if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
-                swipeElement.style.transform = '';
-                swipeElement.classList.remove('swiping', 'active');
-                swipeStartX = null; swipeElement = null;
-            }
-        }
-
-        socket.on('connect', async () => {
-            addSystemMessage('Conectando ao servidor...');
-            await fetchMyLocation();
-            setupSwipeEvents();
-            carregarListaDePalavras();
-        });
-        
-        socket.on('chat_start', (data) => {
-            isConnected = true;
-            currentPartnerId = data.partnerId;
-            addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
-            showActionButton('encerrar');
-        });
-        
-        socket.on('message', (data) => {
-            if (data.senderId !== socket.id) {
-                addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
-            }
-        });
-        
-        function onPartnerLeft() {
-            isConnected = false;
-            currentPartnerId = null;
-            removeTypingIndicator();
-            if (replyingTo) cancelReply();
-            showActionButton('iniciar');
-            if (pongGameActive) {
-                endPongGame('partner_disconnected');
-            }
-        }
-
-        socket.on('partner_disconnected', () => {
-            addSystemMessage('❌ Parceiro desconectado.');
-            onPartnerLeft();
-        });
-        
-        socket.on('chat_ended', () => {
-            addSystemMessage('❌ O parceiro encerrou a conversa.');
-            onPartnerLeft();
-        });
-        
-        socket.on('system_message', (data) => {
-            addSystemMessage(data.message);
-        });
-
-        socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
-        socket.on('error', (data) => { addSystemMessage(`⚠️ Erro: ${data.message}`); });
-        socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
-
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
-
-            if (isConnected) {
-                if (contemPalavraOfensiva(message)) {
-                    addOffensiveMessage(message);
-                    messageInput.value = '';
-                    if (replyingTo) cancelReply();
-                    return;
-                }
-                
-                const messageData = { text: message };
-                if (replyingTo) {
-                    messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' };
-                }
-                socket.emit('message', messageData);
-                addMessage(message, 'Você', true, replyingTo, myLocation);
-                messageInput.value = '';
-                if (replyingTo) cancelReply();
-                if (isTyping) {
-                    isTyping = false;
-                    socket.emit('typing', { isTyping: false });
-                }
-            } else {
-                addSystemMessage("⚠️ Você precisa de um parceiro para enviar mensagens. Clique em 'Iniciar novo chat'.");
-            }
-            messageInput.focus();
-        }
-
-        function addOffensiveMessage(msg) {
-            const msgElement = document.createElement('div');
-            msgElement.className = 'message sent offensive';
-            const textNode = document.createElement('div');
-            textNode.textContent = msg;
-            const attentionIcon = document.createElement('span');
-            attentionIcon.className = 'attention-icon';
-            attentionIcon.textContent = '⚠️';
-            const reasonText = document.createElement('div');
-            reasonText.className = 'reason';
-            reasonText.textContent = 'Sua mensagem não foi enviada pois contém linguagem que viola as diretrizes da comunidade.';
-            attentionIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                reasonText.classList.toggle('visible');
-            });
-            msgElement.appendChild(textNode);
-            msgElement.appendChild(attentionIcon);
-            msgElement.appendChild(reasonText);
-            chatDiv.appendChild(msgElement);
-            scrollToBottom();
-        }
-
-        function addMessage(msg, sender, isMe, replyTo = null, location = null) {
-            const msgElement = document.createElement('div');
-            msgElement.className = `message ${isMe ? 'sent' : 'received'}`;
-            msgElement.dataset.messageId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            
-            if (!isMe) {
-                const senderInfoElement = document.createElement('div');
-                senderInfoElement.className = 'sender-info';
-                const nameElement = document.createElement('span');
-                nameElement.className = 'sender-name';
-                nameElement.textContent = sender;
-                const locationElement = document.createElement('span');
-                locationElement.className = 'sender-location';
-                locationElement.textContent = location || 'Desconhecido';
-                senderInfoElement.appendChild(nameElement);
-                senderInfoElement.appendChild(locationElement);
-                msgElement.appendChild(senderInfoElement);
-            }
-            
-            if (replyTo) {
-                const replyArea = document.createElement('div');
-                replyArea.className = 'reply-area';
-                const replyText = document.createElement('div');
-                replyText.className = 'reply-text';
-                const replySender = document.createElement('span');
-                replySender.className = 'reply-sender';
-                replySender.textContent = isMe ? `Respondendo a ${replyTo.sender}` : `Respondendo a Você`;
-                replyText.appendChild(replySender);
-                replyText.appendChild(document.createTextNode(`: ${replyTo.text}`));
-                replyArea.appendChild(replyText);
-                msgElement.appendChild(replyArea);
-            }
-            
-            const textElement = document.createElement('div');
-            textElement.textContent = msg;
-            msgElement.appendChild(textElement);
-            
-            chatDiv.appendChild(msgElement);
-            scrollToBottom();
-        }
-
-        function addSystemMessage(msg) {
-            const sysElement = document.createElement('div');
-            sysElement.className = 'message system';
-            sysElement.textContent = msg;
-            chatDiv.appendChild(sysElement);
-            scrollToBottom();
-        }
-
-        function scrollToBottom() { chatDiv.scrollTop = chatDiv.scrollHeight; }
-        
-        function showActionButton(action) {
-            actionBtn.style.display = 'block';
-            if (action === 'encerrar') {
-                actionBtn.textContent = 'Encerrar conversa';
-                actionBtn.onclick = function() {
-                    socket.emit('end_chat');
-                };
-            } else if (action === 'iniciar') {
-                actionBtn.textContent = 'Iniciar novo chat';
-                actionBtn.onclick = function() {
-                    chatDiv.innerHTML = '';
-                    addSystemMessage('Buscando um novo parceiro...');
-                    socket.emit('join', { location: myLocation });
-                    actionBtn.style.display = 'none';
-                };
-            }
-        }
-        
-        function showTypingIndicator() {
-            if (document.querySelector('.typing-indicator')) return;
-            const typingElement = document.createElement('div');
-            typingElement.className = 'typing-indicator';
-            typingElement.innerHTML = `Anônimo está digitando <div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
-            chatDiv.appendChild(typingElement);
-            scrollToBottom();
-        }
-        
-        function removeTypingIndicator() {
-            const typingElement = document.querySelector('.typing-indicator');
-            if (typingElement) typingElement.remove();
-        }
-        
-        function handleMessageReply(messageElement) {
-            const textElement = messageElement.querySelector('div:not(.sender-info):not(.reply-area)');
-            const sender = messageElement.classList.contains('sent') ? 'Você' : 'Anônimo';
-            
-            replyingTo = {
-                id: messageElement.dataset.messageId,
-                text: textElement ? textElement.textContent : '',
-                sender: sender
-            };
-            
-            updateReplyUI();
-            messageInput.focus();
-            
-            messageElement.classList.add('active');
-            setTimeout(() => { messageElement.classList.remove('active'); }, 300);
-        }
-        
-        function updateReplyUI() {
-            const existingReply = document.querySelector('#input-area > .reply-area');
-            if (existingReply) existingReply.remove();
-            
-            if (replyingTo) {
-                const replyArea = document.createElement('div');
-                replyArea.className = 'reply-area';
-                replyArea.innerHTML = `<div class="reply-text"><span class="reply-sender">Respondendo a ${replyingTo.sender}</span>: ${replyingTo.text.substring(0, 50)}...</div>`;
-                const closeButton = document.createElement('button');
-                closeButton.className = 'close-reply';
-                closeButton.innerHTML = '×';
-                closeButton.onclick = cancelReply;
-                replyArea.appendChild(closeButton);
-                messageInput.parentElement.insertBefore(replyArea, messageInput);
-            }
-        }
-        
-        function cancelReply() {
-            replyingTo = null;
-            updateReplyUI();
-        }
-
-        // --- LÓGICA DO MENU ---
-        menuBtn.addEventListener('click', () => {
-            menuBtn.classList.toggle('open');
-            sidebar.classList.toggle('open');
-        });
-        
-        playPongBtn.addEventListener('click', () => {
-            if (isConnected) {
-                socket.emit('pong_invite');
-                menuBtn.classList.remove('open');
-                sidebar.classList.remove('open');
-            } else {
-                addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
-            }
-        });
-        
-        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
-        socket.on('pong_invite_received', () => {
-            pongInviteModal.style.display = 'flex';
-        });
-
-        pongInviteAcceptBtn.addEventListener('click', () => {
-            socket.emit('pong_accept');
-            pongInviteModal.style.display = 'none';
-        });
-
-        pongInviteDeclineBtn.addEventListener('click', () => {
-            socket.emit('pong_decline');
-            pongInviteModal.style.display = 'none';
-        });
-
-        socket.on('pong_start', (data) => {
-            pongGameActive = true;
-            pongGameState = null; 
-            ball1Trail = [];
-            ball2Trail = [];
-
-            pongGameContainer.style.display = 'flex';
-            pongTimerElem.textContent = '3:00';
-            
-            if (pongAnimationId) cancelAnimationFrame(pongAnimationId);
-            pongAnimationId = requestAnimationFrame(drawPong);
-            
-            localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
-            pongInputState = { left: false, right: false };
-            if (clientAnimationLoopId) cancelAnimationFrame(clientAnimationLoopId);
-            clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
-        });
-
-        socket.on('pong_update', (state) => {
-            pongGameState = state;
-            pongScoreYouElem.textContent = `Você: ${state.you.score}`;
-            pongScoreOpponentElem.textContent = `Anônimo: ${state.opponent.score}`;
-
-            if (state.ball && state.ball.x) {
-                ball1Trail.unshift({ x: state.ball.x, y: state.ball.y });
-                if (ball1Trail.length > TRAIL_LENGTH) ball1Trail.pop();
-            }
-            if (state.ball2 && state.ball2.x) {
-                ball2Trail.unshift({ x: state.ball2.x, y: state.ball2.y });
-                if (ball2Trail.length > TRAIL_LENGTH) ball2Trail.pop();
-            }
-        });
-        
-        // [NOVO] Evento para a animação de gol
-        socket.on('pong_goal_scored', (data) => {
-            pongAnimationText.textContent = "GOOOL!";
-            pongAnimationText.className = 'goal show';
-            // Limpa a classe da animação após ela terminar para poder ser usada novamente
-            setTimeout(() => {
-                pongAnimationText.className = '';
-                pongAnimationText.style.display = 'none';
-            }, 2500); // Duração da animação em CSS
-        });
-
-        socket.on('pong_countdown_start', () => {
-            // [ATUALIZAÇÃO] Reseta a posição local do paddle no início de cada rodada
-            localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
-
-            pongCountdownElem.style.display = 'block';
-            let count = 3;
-            pongCountdownElem.textContent = count;
-            const countdownInterval = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    pongCountdownElem.textContent = count;
-                } else if (count === 0) {
-                    pongCountdownElem.textContent = 'VAI!';
-                } else {
-                    pongCountdownElem.style.display = 'none';
-                    clearInterval(countdownInterval);
-                }
-            }, 1000);
-        });
-
-        socket.on('pong_time_update', (data) => {
-            const duration = Math.max(0, data.time / 1000);
-            const minutes = Math.floor(duration / 60);
-            const seconds = Math.floor(duration % 60);
-            pongTimerElem.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        });
-
-        socket.on('pong_end', (result) => {
-            endPongGame(result.reason, result);
-        });
-        
-        function endPongGame(reason, result = null) {
-            if (!pongGameActive) return;
-            pongGameActive = false;
-            cancelAnimationFrame(pongAnimationId);
-            cancelAnimationFrame(clientAnimationLoopId);
-            pongAnimationId = null;
-            clientAnimationLoopId = null;
-            
-            let message = "Fim de jogo!";
-            let animationText = '';
-            let animationClass = '';
-
-            if(reason === 'player_left' || reason === 'partner_disconnected' || reason === 'chat_ended') {
-                message = "O oponente saiu do jogo."
-            } else if (result) {
-                 message = `Placar final: Você ${result.yourScore} x ${result.opponentScore} Anônimo.`;
-                 // [ATUALIZAÇÃO] Define o texto e a classe para a animação de fim de jogo
-                 if (result.yourScore > result.opponentScore) {
-                    animationText = "VITÓRIA!";
-                    animationClass = 'victory show';
-                 } else if (result.yourScore < result.opponentScore) {
-                    animationText = "DERROTA";
-                    animationClass = 'defeat show';
-                 } else {
-                    animationText = "EMPATE!";
-                    animationClass = 'goal show'; // Reutiliza a cor de gol para empate
-                 }
-            }
-            
-            // Ativa a animação de fim de jogo
-            if (animationText) {
-                pongAnimationText.textContent = animationText;
-                pongAnimationText.className = animationClass;
-            }
-
-            addSystemMessage(`🏆 ${message}`);
-            setTimeout(() => {
-                pongGameContainer.style.display = 'none';
-                // Limpa a animação para a próxima partida
-                pongAnimationText.className = '';
-                pongAnimationText.style.display = 'none';
-            }, 3000);
-        }
-        
-        function drawPong() {
-            if (!pongGameActive) return;
-            
-            pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
-            
-            pongCtx.strokeStyle = '#333';
-            pongCtx.beginPath();
-            pongCtx.setLineDash([5, 15]);
-            pongCtx.moveTo(0, pongCanvas.height / 2);
-            pongCtx.lineTo(pongCanvas.width, pongCanvas.height / 2);
-            pongCtx.stroke();
-            pongCtx.setLineDash([]);
-            
-            pongCtx.save();
-            ball1Trail.forEach((p, i) => {
-                pongCtx.globalAlpha = (1 - (i / ball1Trail.length)) * 0.4;
-                pongCtx.fillStyle = '#fff';
-                pongCtx.beginPath();
-                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                pongCtx.fill();
-            });
-            ball2Trail.forEach((p, i) => {
-                pongCtx.globalAlpha = (1 - (i / ball2Trail.length)) * 0.4;
-                pongCtx.fillStyle = '#ffae00';
-                pongCtx.beginPath();
-                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                pongCtx.fill();
-            });
-            pongCtx.restore();
-
-            if (pongGameState) {
-                if (pongGameState.ball && pongGameState.ball.x) {
-                    pongCtx.fillStyle = '#fff';
-                    pongCtx.beginPath();
-                    pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                    pongCtx.fill();
-                }
-
-                if (pongGameState.ball2 && pongGameState.ball2.x) {
-                    pongCtx.fillStyle = '#ffae00';
-                    pongCtx.beginPath();
-                    pongCtx.arc(pongGameState.ball2.x, pongGameState.ball2.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                    pongCtx.fill();
-                }
-                
-                pongCtx.fillStyle = '#ff4444'; 
-                const opponentPaddleX = pongGameState.opponent.paddleX;
-                pongCtx.fillRect(opponentPaddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-            }
-
-            pongCtx.fillStyle = '#00aaff';
-            const playerPaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT;
-            pongCtx.fillRect(localPlayerPaddleX, playerPaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-
-            pongAnimationId = requestAnimationFrame(drawPong);
-        }
-        
-        function clientPongLoop() {
-            if (!pongGameActive) return;
-            const moveSpeed = 5;
-            let moved = false;
-            if (pongInputState.left) {
-                localPlayerPaddleX -= moveSpeed;
-                moved = true;
-            }
-            if (pongInputState.right) {
-                localPlayerPaddleX += moveSpeed;
-                moved = true;
-            }
-            localPlayerPaddleX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX));
-            if(moved) {
-                socket.emit('pong_move', { paddleX: localPlayerPaddleX });
-            }
-            clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (!pongGameActive) return;
-            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') { e.preventDefault(); pongInputState.left = true; }
-            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') { e.preventDefault(); pongInputState.right = true; }
-        });
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pongInputState.left = false;
-            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pongInputState.right = false;
-        });
-        
-        const addTouchEvent = (element, startFunc, endFunc) => {
-            element.addEventListener('touchstart', (e) => { e.preventDefault(); startFunc(); }, { passive: false });
-            element.addEventListener('touchend', (e) => { e.preventDefault(); endFunc(); });
-            element.addEventListener('mousedown', startFunc);
-            element.addEventListener('mouseup', endFunc);
-            element.addEventListener('mouseleave', endFunc);
-        };
-        addTouchEvent(pongLeftBtn, () => pongInputState.left = true, () => pongInputState.left = false);
-        addTouchEvent(pongRightBtn, () => pongInputState.right = true, () => pongInputState.right = false);
-
-        pongLeaveBtn.addEventListener('click', () => {
-            if(pongGameActive) socket.emit('pong_leave');
-        });
-        // --- [FIM] LÓGICA DO JOGO PONG ---
-    </script>
+      draw();
+    }
+  </script>
 </body>
 </html>
