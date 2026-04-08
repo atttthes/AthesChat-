@@ -1,4 +1,4 @@
-// server.js ATUALIZADO - Inclui Chat, Pong, Jogo da Velha e "Que Rabisco é esse?"
+// server.js - COMPLETO COM PONG + JOGO DA VELHA + QUE RABISCO É ESSE?
 
 const express = require('express');
 const path = require('path');
@@ -32,9 +32,9 @@ const activeBots = new Map();
 const fakeOnlineBase = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
 const activePongGames = new Map();
 const activeTicTacToeGames = new Map();
-const activeDrawingGames = new Map(); // NOVO: Para o jogo de desenho
+const activeDrawingGames = new Map();
 
-// --- LÓGICA DO BOT (Inalterada) ---
+// --- LÓGICA DO BOT ---
 const botConversationLogic = {
     greetings: ["Olá!", "E aí, tudo bem?", "Oi, como vai?", "Opa, tudo certo?"],
     farewells: ["Preciso ir agora, até mais!", "Foi bom conversar, tchau!", "Falou, até a próxima!"],
@@ -108,7 +108,7 @@ class Bot {
 }
 
 
-// --- LÓGICA DO JOGO PONG (Inalterada) ---
+// --- LÓGICA DO JOGO PONG ---
 const PONG_CONFIG = {
     CANVAS_WIDTH: 300,
     CANVAS_HEIGHT: 400,
@@ -310,7 +310,7 @@ class PongGame {
     }
 }
 
-// --- LÓGICA DO JOGO DA VELHA (Inalterada) ---
+// --- LÓGICA DO JOGO DA VELHA ---
 const TICTACTOE_CONFIG = {
     BOARD_SIZE: 9,
     WIN_PATTERNS: [
@@ -322,8 +322,8 @@ const TICTACTOE_CONFIG = {
 
 class TicTacToeGame {
     constructor(player1Id, player2Id) {
-        this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), symbol: null };
-        this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), symbol: null };
+        this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), symbol: null, ready: false };
+        this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), symbol: null, ready: false };
         
         const randomStart = Math.random() < 0.5;
         if (randomStart) {
@@ -339,40 +339,67 @@ class TicTacToeGame {
         }
         
         this.board = Array(TICTACTOE_CONFIG.BOARD_SIZE).fill(null);
-        this.gameActive = true;
+        this.gameActive = false;
+        this.countdownActive = false;
         this.winner = null;
         this.isDraw = false;
         
         activeTicTacToeGames.set(player1Id, this);
         activeTicTacToeGames.set(player2Id, this);
         
-        console.log("Jogo da Velha criado: P1=" + player1Id + " (" + this.player1.symbol + "), P2=" + player2Id + " (" + this.player2.symbol + "). Começa: " + (this.currentTurn === player1Id ? 'P1' : 'P2'));
+        console.log("Jogo da Velha criado: P1=" + player1Id + " (" + this.player1.symbol + "), P2=" + player2Id + " (" + this.player2.symbol + ")");
     }
 
     broadcast(event, data) {
         if(this.player1.socket) this.player1.socket.emit(event, data);
         if(this.player2.socket) this.player2.socket.emit(event, data);
     }
-
-    start() {
-        this.player1.socket.emit('tictactoe_start', { 
-            opponentId: this.player2.id,
+    
+    sendToPlayer(playerId, event, data) {
+        const socket = io.sockets.sockets.get(playerId);
+        if(socket) socket.emit(event, data);
+    }
+    
+    setReady(playerId) {
+        if (playerId === this.player1.id) this.player1.ready = true;
+        else if (playerId === this.player2.id) this.player2.ready = true;
+        
+        if (this.player1.ready && this.player2.ready && !this.gameActive && !this.countdownActive) {
+            this.startCountdown();
+        }
+    }
+    
+    startCountdown() {
+        this.countdownActive = true;
+        let count = 3;
+        this.broadcast('ttt_countdown', { count: count });
+        const interval = setInterval(function() {
+            count--;
+            if (count > 0) {
+                this.broadcast('ttt_countdown', { count: count });
+            } else if (count === 0) {
+                clearInterval(interval);
+                this.startGame();
+            }
+        }.bind(this), 1000);
+    }
+    
+    startGame() {
+        this.gameActive = true;
+        this.countdownActive = false;
+        this.broadcast('ttt_game_start', {
+            yourSymbol: null,
+            firstTurn: null
+        });
+        this.sendToPlayer(this.player1.id, 'ttt_game_start', {
             yourSymbol: this.player1.symbol,
-            firstTurn: this.currentTurn === this.player1.id,
-            starter: this.firstPlayer === this.player1.id ? 'Você' : 'Oponente'
+            firstTurn: this.currentTurn === this.player1.id
         });
-        
-        this.player2.socket.emit('tictactoe_start', { 
-            opponentId: this.player1.id,
+        this.sendToPlayer(this.player2.id, 'ttt_game_start', {
             yourSymbol: this.player2.symbol,
-            firstTurn: this.currentTurn === this.player2.id,
-            starter: this.firstPlayer === this.player2.id ? 'Você' : 'Oponente'
+            firstTurn: this.currentTurn === this.player2.id
         });
-        
         this.broadcastState();
-        
-        const starterName = this.firstPlayer === this.player1.id ? 'Jogador ' + this.player1.symbol : 'Jogador ' + this.player2.symbol;
-        this.broadcast('system_message', { message: "🎲 Jogo da Velha iniciado! " + starterName + " começa!" });
     }
 
     makeMove(playerId, position) {
@@ -388,7 +415,7 @@ class TicTacToeGame {
         if (winPattern) {
             this.gameActive = false;
             this.winner = playerId;
-            this.broadcast('tictactoe_game_over', {
+            this.broadcast('ttt_game_over', {
                 winner: playerId,
                 winnerSymbol: symbol,
                 winPattern: winPattern,
@@ -403,7 +430,7 @@ class TicTacToeGame {
         if (isDraw) {
             this.gameActive = false;
             this.isDraw = true;
-            this.broadcast('tictactoe_game_over', {
+            this.broadcast('ttt_game_over', {
                 winner: null,
                 winnerSymbol: null,
                 winPattern: null,
@@ -445,18 +472,16 @@ class TicTacToeGame {
             player2Symbol: this.player2.symbol,
             currentTurnSymbol: this.currentTurn === this.player1.id ? this.player1.symbol : this.player2.symbol
         };
-        
-        this.broadcast('tictactoe_update', state);
+        this.broadcast('ttt_update', state);
     }
     
     end(reason) {
         activeTicTacToeGames.delete(this.player1.id);
         activeTicTacToeGames.delete(this.player2.id);
-        console.log("Jogo da Velha entre " + this.player1.id + " e " + this.player2.id + " finalizado. Motivo: " + reason);
-        
+        console.log("Jogo da Velha finalizado. Motivo: " + reason);
         setTimeout(function() {
-            if (this.player1.socket) this.player1.socket.emit('tictactoe_close');
-            if (this.player2.socket) this.player2.socket.emit('tictactoe_close');
+            if (this.player1.socket) this.player1.socket.emit('ttt_close');
+            if (this.player2.socket) this.player2.socket.emit('ttt_close');
         }.bind(this), 3000);
     }
     
@@ -467,24 +492,18 @@ class TicTacToeGame {
     }
 }
 
-// ================= NOVO: JOGO "QUE RABISCO É ESSE?" =================
-// Banco de palavras com 200+ palavras
-const DRAWING_WORDS = {
-    animais: ["cachorro", "gato", "elefante", "girafa", "leao", "tigre", "macaco", "pinguim", "golfinho", "cavalo", "rato", "coelho", "cobra", "papagaio", "abelha", "borboleta", "galinha", "vaca", "porco", "ovelha"],
-    objetos: ["cadeira", "mesa", "celular", "computador", "televisao", "geladeira", "fogao", "sofá", "cama", "abajur", "ventilador", "livro", "caneta", "relogio", "oculos", "chave", "guarda-chuva", "mochila", "espelho", "vaso"],
-    natureza: ["sol", "lua", "estrela", "chuva", "floresta", "montanha", "rio", "mar", "arvore", "flor", "grama", "nuvem", "arco-iris", "neve", "deserto", "ilha", "cachoeira", "vulcao", "planeta", "foguete"],
-    comida: ["pizza", "hamburguer", "sorvete", "bolo", "macarrao", "arroz", "feijao", "salada", "fruta", "chocolate", "batata-frita", "lasanha", "sanduiche", "ovo", "pao", "queijo", "presunto", "sushi", "hotdog", "pipoca"],
-    profissoes: ["medico", "professor", "bombeiro", "policial", "engenheiro", "advogado", "cozinheiro", "motorista", "cantor", "dentista", "enfermeiro", "piloto", "jogador", "bailarina", "ator", "pintor", "mecanico", "fotografo", "jornalista", "veterinario"],
-    esportes: ["futebol", "basquete", "tenis", "natacao", "volei", "corrida", "boxe", "skate", "surf", "ginastica", "handebol", "beisebol", "golfe", "esgrima", "judô", "karate", "ciclismo", "patins", "escalada", "pesca"],
-    veiculos: ["carro", "moto", "bicicleta", "aviao", "helicoptero", "navio", "caminhao", "onibus", "trator", "submarino", "barco", "jetski", "foguete", "trem", "metrô", "patinete", "skate", "carroça", "ambulancia", "policia"]
-};
+// ================= BANCO DE PALAVRAS PARA O JOGO DE DESENHO =================
+const DRAWING_WORDS = [
+    "cachorro", "gato", "elefante", "girafa", "leao", "tigre", "macaco", "pinguim", "golfinho", "cavalo",
+    "cadeira", "mesa", "celular", "computador", "televisao", "geladeira", "fogao", "sofá", "cama", "abajur",
+    "sol", "lua", "estrela", "chuva", "floresta", "montanha", "rio", "mar", "arvore", "flor",
+    "pizza", "hamburguer", "sorvete", "bolo", "macarrao", "arroz", "feijao", "salada", "fruta", "chocolate",
+    "medico", "professor", "bombeiro", "policial", "engenheiro", "advogado", "cozinheiro", "motorista", "cantor", "dentista",
+    "futebol", "basquete", "tenis", "natacao", "volei", "corrida", "boxe", "skate", "surf", "ginastica",
+    "carro", "moto", "bicicleta", "aviao", "helicoptero", "navio", "caminhao", "onibus", "trator", "submarino"
+];
 
-// Juntar todas as palavras em um array único
-let allDrawingWords = [];
-for (const category in DRAWING_WORDS) {
-    allDrawingWords = allDrawingWords.concat(DRAWING_WORDS[category]);
-}
-
+// ================= JOGO "QUE RABISCO É ESSE?" =================
 class DrawingGame {
     constructor(player1Id, player2Id) {
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), ready: false };
@@ -501,22 +520,20 @@ class DrawingGame {
         }
         
         // Escolher palavra aleatória
-        const randomIndex = Math.floor(Math.random() * allDrawingWords.length);
-        this.currentWord = allDrawingWords[randomIndex];
+        const randomIndex = Math.floor(Math.random() * DRAWING_WORDS.length);
+        this.currentWord = DRAWING_WORDS[randomIndex];
         
         this.gameActive = false;
         this.countdownActive = false;
         this.timeLeft = 60;
         this.timerInterval = null;
         this.winner = null;
-        this.winnerName = null;
-        this.hasDrawn = false;      // Desenhista fez algo?
-        this.hasGuessed = false;     // Adivinhador tentou chutar?
+        this.guessHistory = [];
         
         activeDrawingGames.set(player1Id, this);
         activeDrawingGames.set(player2Id, this);
         
-        console.log("Jogo de Desenho criado: Drawer=" + this.drawerId + " (" + this.currentWord + "), Guesser=" + this.guesserId);
+        console.log("Jogo de Desenho criado - Drawer: " + this.drawerId + " (" + this.currentWord + ") - Guesser: " + this.guesserId);
     }
     
     broadcast(event, data) {
@@ -530,18 +547,13 @@ class DrawingGame {
     }
     
     setReady(playerId) {
-        if (playerId === this.player1.id) {
-            this.player1.ready = true;
-        } else if (playerId === this.player2.id) {
-            this.player2.ready = true;
-        }
+        if (playerId === this.player1.id) this.player1.ready = true;
+        else if (playerId === this.player2.id) this.player2.ready = true;
         
-        // Verificar se ambos estão prontos
         if (this.player1.ready && this.player2.ready && !this.gameActive && !this.countdownActive) {
             this.startCountdown();
         }
         
-        // Notificar status de espera
         if (!this.player1.ready) {
             this.sendToPlayer(this.player2.id, 'drawing_waiting', { player: "Jogador 1" });
         } else if (!this.player2.ready) {
@@ -552,15 +564,13 @@ class DrawingGame {
     startCountdown() {
         this.countdownActive = true;
         let count = 3;
-        
         this.broadcast('drawing_countdown', { count: count });
-        
-        const countdownInterval = setInterval(function() {
+        const interval = setInterval(function() {
             count--;
             if (count > 0) {
                 this.broadcast('drawing_countdown', { count: count });
             } else if (count === 0) {
-                clearInterval(countdownInterval);
+                clearInterval(interval);
                 this.startGame();
             }
         }.bind(this), 1000);
@@ -570,16 +580,15 @@ class DrawingGame {
         this.gameActive = true;
         this.countdownActive = false;
         this.timeLeft = 60;
-        this.hasDrawn = false;
-        this.hasGuessed = false;
         
-        // Enviar para cada jogador seu papel e palavra (se for desenhista)
+        // Enviar para o desenhista
         this.sendToPlayer(this.drawerId, 'drawing_start', {
             role: 'drawer',
             word: this.currentWord,
             timeLimit: this.timeLeft
         });
         
+        // Enviar para o adivinhador
         this.sendToPlayer(this.guesserId, 'drawing_start', {
             role: 'guesser',
             wordLength: this.currentWord.length,
@@ -592,34 +601,16 @@ class DrawingGame {
             this.timeLeft--;
             this.broadcast('drawing_timer', { timeLeft: this.timeLeft });
             
-            // Verificar inatividade
             if (this.timeLeft <= 0) {
                 clearInterval(this.timerInterval);
-                this.endGameByInactivity();
+                this.endGame('timeout', 'Tempo esgotado!', null);
             }
         }.bind(this), 1000);
-        
-        // Monitor de inatividade - 30s sem desenhar
-        setTimeout(function() {
-            if (this.gameActive && !this.hasDrawn) {
-                this.endGame('drawer_inactive', 'Desenhista não desenhou nada', this.guesserId);
-            }
-        }.bind(this), 30000);
-        
-        // Monitor de inatividade - 45s sem chutar
-        setTimeout(function() {
-            if (this.gameActive && !this.hasGuessed) {
-                this.endGame('guesser_inactive', 'Adivinhador não chutou nada', this.drawerId);
-            }
-        }.bind(this), 45000);
     }
     
     makeDraw(playerId, drawingData) {
         if (!this.gameActive) return;
         if (playerId !== this.drawerId) return;
-        
-        this.hasDrawn = true;
-        // Reenviar o desenho para o adivinhador
         this.sendToPlayer(this.guesserId, 'drawing_update', drawingData);
     }
     
@@ -627,27 +618,24 @@ class DrawingGame {
         if (!this.gameActive) return;
         if (playerId !== this.guesserId) return;
         
-        this.hasGuessed = true;
         const normalizedGuess = guess.toLowerCase().trim();
         const normalizedWord = this.currentWord.toLowerCase();
         
-        // Verificar acerto (ignora acentos e diferenças de maiúscula/minúscula)
+        // Adicionar ao histórico de palpites
+        const guessEntry = {
+            guess: guess,
+            isCorrect: normalizedGuess === normalizedWord,
+            timestamp: Date.now()
+        };
+        this.guessHistory.push(guessEntry);
+        
+        // Enviar atualização do chat do jogo para ambos
+        this.broadcast('drawing_chat_update', { history: this.guessHistory });
+        
         if (normalizedGuess === normalizedWord) {
             this.endGame('correct_guess', 'Acertou a palavra!', this.guesserId);
         } else {
             this.sendToPlayer(this.guesserId, 'drawing_wrong_guess', { guess: guess });
-        }
-    }
-    
-    endGameByInactivity() {
-        if (!this.gameActive) return;
-        // Tempo acabou - quem fez mais coisa ganha?
-        if (this.hasGuessed && !this.hasDrawn) {
-            this.endGame('timeout', 'Tempo esgotado, adivinhador tentou', this.guesserId);
-        } else if (this.hasDrawn && !this.hasGuessed) {
-            this.endGame('timeout', 'Tempo esgotado, desenhista desenhou', this.drawerId);
-        } else {
-            this.endGame('timeout', 'Tempo esgotado!', null);
         }
     }
     
@@ -658,29 +646,22 @@ class DrawingGame {
         
         this.winner = winnerId;
         
-        let resultMessage = "";
-        if (winnerId === this.drawerId) {
-            resultMessage = "🏆 DESENHISTA VENCEU! " + message;
-        } else if (winnerId === this.guesserId) {
-            resultMessage = "🏆 ADIVINHADOR VENCEU! " + message;
-        } else {
-            resultMessage = "⏰ " + message + " Palavra era: " + this.currentWord;
-        }
+        let winnerRole = "Ninguém";
+        if (winnerId === this.drawerId) winnerRole = "Desenhista";
+        else if (winnerId === this.guesserId) winnerRole = "Adivinhador";
         
-        // Enviar resultado para ambos
         this.broadcast('drawing_game_over', {
             winnerId: winnerId,
-            winnerRole: winnerId === this.drawerId ? "Desenhista" : (winnerId === this.guesserId ? "Adivinhador" : "Ninguém"),
+            winnerRole: winnerRole,
             word: this.currentWord,
             reason: reason,
-            message: resultMessage
+            message: message,
+            history: this.guessHistory
         });
         
-        // Mensagem de sistema no chat
-        const chatMessage = "🏆 " + (winnerId === this.drawerId ? "Desenhista" : (winnerId === this.guesserId ? "Adivinhador" : "Ninguém")) + " venceu o Que Rabisco é esse! Palavra era: " + this.currentWord;
+        const chatMessage = "🏆 " + winnerRole + " venceu o Que Rabisco é esse! Palavra era: " + this.currentWord;
         this.broadcast('system_message', { message: chatMessage });
         
-        // Encerrar após 5 segundos
         setTimeout(function() {
             this.cleanup();
         }.bind(this), 5000);
@@ -839,25 +820,19 @@ io.on('connection', function(socket) {
     socket.on('pong_accept', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
-        
         if (activePongGames.has(socket.id) || activePongGames.has(userData.partnerId)) return;
-        
         const newGame = new PongGame(userData.partnerId, socket.id);
         newGame.start();
     });
     
     socket.on('pong_move', function(data) {
         const game = activePongGames.get(socket.id);
-        if (game) {
-            game.movePaddle(socket.id, data.paddleX);
-        }
+        if (game) game.movePaddle(socket.id, data.paddleX);
     });
     
     socket.on('pong_leave', function() {
         const game = activePongGames.get(socket.id);
-        if (game) {
-            game.end('player_left');
-        }
+        if (game) game.end('player_left');
     });
 
     // --- EVENTOS DO JOGO DA VELHA ---
@@ -867,12 +842,10 @@ io.on('connection', function(socket) {
             socket.emit('system_message', { message: "⚠️ Você só pode jogar com um parceiro real." });
             return;
         }
-        
         if (activeTicTacToeGames.has(socket.id)) {
-            socket.emit('system_message', { message: "⚠️ Você já está em uma partida de Jogo da Velha." });
+            socket.emit('system_message', { message: "⚠️ Você já está em uma partida." });
             return;
         }
-        
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
         if (partnerSocket) {
             if (activeTicTacToeGames.has(userData.partnerId)) {
@@ -880,7 +853,7 @@ io.on('connection', function(socket) {
                 return;
             }
             partnerSocket.emit('tictactoe_invite_received');
-            socket.emit('system_message', { message: "⏳ Convite para o Jogo da Velha enviado. Aguardando resposta..." });
+            socket.emit('system_message', { message: "⏳ Convite para Jogo da Velha enviado." });
         }
     });
     
@@ -888,54 +861,48 @@ io.on('connection', function(socket) {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
-        if (partnerSocket) {
-            partnerSocket.emit('system_message', { message: "❌ Seu parceiro recusou o desafio do Jogo da Velha." });
-        }
+        if (partnerSocket) partnerSocket.emit('system_message', { message: "❌ Seu parceiro recusou o desafio." });
     });
     
     socket.on('tictactoe_accept', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
-        
-        if (activeTicTacToeGames.has(socket.id) || activeTicTacToeGames.has(userData.partnerId)) {
-            socket.emit('system_message', { message: "⚠️ Alguém já está em uma partida." });
-            return;
-        }
-        
+        if (activeTicTacToeGames.has(socket.id) || activeTicTacToeGames.has(userData.partnerId)) return;
         const newGame = new TicTacToeGame(userData.partnerId, socket.id);
-        newGame.start();
+        socket.emit('ttt_tutorial_required');
+        const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+        if(partnerSocket) partnerSocket.emit('ttt_tutorial_required');
+    });
+    
+    socket.on('ttt_tutorial_ready', function() {
+        const game = activeTicTacToeGames.get(socket.id);
+        if (game) game.setReady(socket.id);
     });
     
     socket.on('tictactoe_move', function(data) {
         const game = activeTicTacToeGames.get(socket.id);
         if (game) {
             const result = game.makeMove(socket.id, data.position);
-            if (!result.success) {
-                socket.emit('system_message', { message: "⚠️ " + result.reason });
-            }
+            if (!result.success) socket.emit('system_message', { message: "⚠️ " + result.reason });
         }
     });
     
     socket.on('tictactoe_leave', function() {
         const game = activeTicTacToeGames.get(socket.id);
-        if (game) {
-            game.forceEnd(socket.id);
-        }
+        if (game) game.forceEnd(socket.id);
     });
 
-    // ================= NOVOS EVENTOS DO JOGO "QUE RABISCO É ESSE?" =================
+    // --- EVENTOS DO JOGO DE DESENHO ---
     socket.on('drawing_invite', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId || activeBots.has(userData.partnerId)) {
             socket.emit('system_message', { message: "⚠️ Você só pode jogar com um parceiro real." });
             return;
         }
-        
         if (activeDrawingGames.has(socket.id)) {
             socket.emit('system_message', { message: "⚠️ Você já está em uma partida de desenho." });
             return;
         }
-        
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
         if (partnerSocket) {
             if (activeDrawingGames.has(userData.partnerId)) {
@@ -943,7 +910,7 @@ io.on('connection', function(socket) {
                 return;
             }
             partnerSocket.emit('drawing_invite_received');
-            socket.emit('system_message', { message: "⏳ Convite para Que Rabisco é esse? enviado. Aguardando resposta..." });
+            socket.emit('system_message', { message: "⏳ Convite para Que Rabisco é esse? enviado." });
         }
     });
     
@@ -951,55 +918,38 @@ io.on('connection', function(socket) {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
-        if (partnerSocket) {
-            partnerSocket.emit('system_message', { message: "❌ Seu parceiro recusou o desafio do Que Rabisco é esse?" });
-        }
+        if (partnerSocket) partnerSocket.emit('system_message', { message: "❌ Seu parceiro recusou o desafio." });
     });
     
     socket.on('drawing_accept', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
-        
-        if (activeDrawingGames.has(socket.id) || activeDrawingGames.has(userData.partnerId)) {
-            socket.emit('system_message', { message: "⚠️ Alguém já está em uma partida." });
-            return;
-        }
-        
+        if (activeDrawingGames.has(socket.id) || activeDrawingGames.has(userData.partnerId)) return;
         const newGame = new DrawingGame(userData.partnerId, socket.id);
-        // Não inicia automático, aguarda tutorial
-        socket.emit('drawing_tutorial_required', { gameId: "drawing" });
+        socket.emit('drawing_tutorial_required');
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
-        if(partnerSocket) partnerSocket.emit('drawing_tutorial_required', { gameId: "drawing" });
+        if(partnerSocket) partnerSocket.emit('drawing_tutorial_required');
     });
     
     socket.on('drawing_tutorial_ready', function() {
         const game = activeDrawingGames.get(socket.id);
-        if (game) {
-            game.setReady(socket.id);
-        }
+        if (game) game.setReady(socket.id);
     });
     
     socket.on('drawing_make_draw', function(data) {
         const game = activeDrawingGames.get(socket.id);
-        if (game) {
-            game.makeDraw(socket.id, data);
-        }
+        if (game) game.makeDraw(socket.id, data);
     });
     
     socket.on('drawing_make_guess', function(data) {
         const game = activeDrawingGames.get(socket.id);
-        if (game) {
-            game.makeGuess(socket.id, data.guess);
-        }
+        if (game) game.makeGuess(socket.id, data.guess);
     });
     
     socket.on('drawing_leave', function() {
         const game = activeDrawingGames.get(socket.id);
-        if (game) {
-            game.forceEnd(socket.id);
-        }
+        if (game) game.forceEnd(socket.id);
     });
-
 
     function pairRealUsers(socket1, socket2) {
         const user1Data = connectedUsers.get(socket1.id);
@@ -1018,19 +968,13 @@ io.on('connection', function(socket) {
         const partnerId = userData.partnerId;
         
         const pongGame = activePongGames.get(socketId);
-        if (pongGame) {
-            pongGame.end('chat_ended');
-        }
+        if (pongGame) pongGame.end('chat_ended');
         
         const tttGame = activeTicTacToeGames.get(socketId);
-        if (tttGame) {
-            tttGame.forceEnd(socketId);
-        }
+        if (tttGame) tttGame.forceEnd(socketId);
         
         const drawingGame = activeDrawingGames.get(socketId);
-        if (drawingGame) {
-            drawingGame.forceEnd(socketId);
-        }
+        if (drawingGame) drawingGame.forceEnd(socketId);
         
         userData.partnerId = null;
 
