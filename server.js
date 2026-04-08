@@ -1,6 +1,3 @@
-```javascript
-// server.js ATUALIZADO COM JOGO DA VELHA - CORRIGIDO
-
 const express = require('express');
 const path = require('path');
 const http = require('http');
@@ -744,4 +741,3 @@ setInterval(broadcastDynamicOnlineCount, 4500);
 server.listen(PORT, function() {
     console.log("Servidor rodando na porta " + PORT);
 });
-```
