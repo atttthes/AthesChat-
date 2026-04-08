@@ -18,23 +18,11 @@
             --error-color: #ff4d4d;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        
-        /* --- [ALTERAÇÃO] --- */
-        /* Garante que o HTML ocupe 100% da altura para que o body possa fazer o mesmo */
-        html { height: 100%; }
-        
-        /* --- [ALTERAÇÃO] --- */
-        /* Trocado 'height: 100vh' por 'height: 100%' para se ajustar corretamente às barras do navegador móvel */
-        body { height: 100%; background-color: var(--primary-bg); color: var(--text-color); touch-action: pan-y; overflow: hidden; }
-        
+        body { height: 100vh; background-color: var(--primary-bg); color: var(--text-color); touch-action: pan-y; overflow: hidden; }
         #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
         #start-btn { background-color: var(--success-color); color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: all 0.3s; }
         #start-btn:hover { background-color: #45a049; transform: scale(1.05); }
-        
-        /* --- [ALTERAÇÃO] --- */
-        /* Trocado 'height: 100vh' por 'height: 100%' */
-        #chat-container { display: none; height: 100%; flex-direction: column; background-color: var(--secondary-bg); position: relative; }
-        
+        #chat-container { display: none; height: 100vh; flex-direction: column; background-color: var(--secondary-bg); position: relative; }
         #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; }
         .online-counter { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
         .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
@@ -69,7 +57,7 @@
         .close-reply { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 10px; font-size: 1.2em; line-height: 1; padding: 0; }
         .close-reply:hover { color: #fff; }
 
-        /* --- ESTILOS MENU E JOGO PONG --- */
+        /* --- ESTILOS MENU E JOGOS --- */
         #menu-btn { background: none; border: none; color: white; font-size: 24px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 30px; height: 30px; display: flex; flex-direction: column; justify-content: space-around; z-index: 1101; }
         #menu-btn .bar { display: block; width: 100%; height: 3px; background: white; border-radius: 2px; transition: all 0.3s ease-in-out; }
         #menu-btn.open .bar1 { transform: rotate(45deg) translate(7px, 7px); }
@@ -86,26 +74,33 @@
         .modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); }
         .modal-content h3 { margin-bottom: 20px; }
         .modal-actions button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 0 10px; }
-        #pong-invite-accept { background: var(--success-color); color: white; }
-        #pong-invite-decline { background: var(--error-color); color: white; }
+        #pong-invite-accept, #ttt-invite-accept { background: var(--success-color); color: white; }
+        #pong-invite-decline, #ttt-invite-decline { background: var(--error-color); color: white; }
 
+        /* --- ESTILOS JOGO PONG --- */
         #pong-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; }
         #pong-canvas { background: #000; border: 2px solid var(--text-muted); }
         #pong-info { display: flex; justify-content: space-around; width: 300px; color: var(--text-color); margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
         #pong-controls { display: flex; justify-content: space-between; width: 200px; margin-top: 20px; }
         .pong-btn { padding: 15px 30px; font-size: 1.5em; background: var(--tertiary-bg); color: var(--text-color); border: 2px solid #555; border-radius: 10px; user-select: none; }
         #pong-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #pong-countdown { position: absolute; font-size: 8em; font-weight: bold; color: rgba(255, 255, 255, 0.8); z-index: 10; display: none; user-select: none; text-shadow: 2px 2px 10px #000; }
 
-        #pong-countdown {
-            position: absolute;
-            font-size: 8em;
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.8);
-            z-index: 10;
-            display: none;
-            user-select: none;
-            text-shadow: 2px 2px 10px #000;
-        }
+        /* --- ESTILOS JOGO DA VELHA --- */
+        #tictactoe-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        .ttt-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background-color: var(--tertiary-bg); padding: 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: min(70vw, 70vh, 400px); height: min(70vw, 70vh, 400px); }
+        .ttt-cell { background: var(--secondary-bg); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease; color: var(--text-color); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2), 0 5px 10px rgba(0,0,0,0.3); }
+        .ttt-cell:hover { background: #3a3a3a; transform: scale(0.97); }
+        .ttt-cell.X { color: #ff6b6b; text-shadow: 0 0 5px #ff000050; }
+        .ttt-cell.O { color: #4ecdc4; text-shadow: 0 0 5px #00ffcc50; }
+        .ttt-cell.disabled { cursor: not-allowed; opacity: 0.8; }
+        .ttt-cell.disabled:hover { transform: none; }
+        #ttt-info { text-align: center; margin-bottom: 20px; }
+        #ttt-turn { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        #ttt-status { font-size: 1.1rem; color: var(--text-muted); }
+        #ttt-leave-btn { margin-top: 25px; padding: 12px 25px; background: var(--error-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        #ttt-leave-btn:hover { background: #cc0000; }
+        .ttt-turn-indicator { display: inline-block; padding: 8px 20px; border-radius: 30px; background: var(--tertiary-bg); margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -119,6 +114,7 @@
         <div id="sidebar">
              <ul>
                 <li id="play-pong-btn">🎮 Jogar Pong</li>
+                <li id="play-ttt-btn">❌ Jogo da Velha</li>
             </ul>
         </div>
         <div id="chat-header">
@@ -152,6 +148,18 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL DE CONVITE PARA O JOGO DA VELHA -->
+    <div id="ttt-invite-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>🎮 Seu parceiro(a) te desafiou para um Jogo da Velha!</h3>
+            <p>Clique no tabuleiro para marcar. Quem fizer uma linha, coluna ou diagonal vence!</p>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button id="ttt-invite-accept">Aceitar</button>
+                <button id="ttt-invite-decline">Recusar</button>
+            </div>
+        </div>
+    </div>
     
     <!-- TELA DO JOGO PONG -->
     <div id="pong-game-container">
@@ -167,6 +175,18 @@
             <button class="pong-btn" id="pong-right-btn">▶</button>
         </div>
         <button id="pong-leave-btn">Encerrar Jogo</button>
+    </div>
+
+    <!-- TELA DO JOGO DA VELHA -->
+    <div id="tictactoe-game-container">
+        <div id="ttt-info">
+            <div id="ttt-turn">🎲 Aguardando...</div>
+            <div id="ttt-status"></div>
+        </div>
+        <div class="ttt-board" id="ttt-board">
+            <!-- 9 células geradas via JS -->
+        </div>
+        <button id="ttt-leave-btn">🚪 Sair do Jogo</button>
     </div>
 
     <script>
@@ -185,6 +205,7 @@
         const menuBtn = document.getElementById('menu-btn');
         const sidebar = document.getElementById('sidebar');
         const playPongBtn = document.getElementById('play-pong-btn');
+        const playTttBtn = document.getElementById('play-ttt-btn');
         
         // Elementos do Pong
         const pongInviteModal = document.getElementById('pong-invite-modal');
@@ -201,6 +222,16 @@
         const pongLeaveBtn = document.getElementById('pong-leave-btn');
         const pongCountdownElem = document.getElementById('pong-countdown');
 
+        // Elementos do Jogo da Velha
+        const tttInviteModal = document.getElementById('ttt-invite-modal');
+        const tttInviteAcceptBtn = document.getElementById('ttt-invite-accept');
+        const tttInviteDeclineBtn = document.getElementById('ttt-invite-decline');
+        const tttGameContainer = document.getElementById('tictactoe-game-container');
+        const tttBoard = document.getElementById('ttt-board');
+        const tttTurnElem = document.getElementById('ttt-turn');
+        const tttStatusElem = document.getElementById('ttt-status');
+        const tttLeaveBtn = document.getElementById('ttt-leave-btn');
+
         // Variáveis de Estado do Chat
         let myLocation = "Desconhecido";
         let isConnected = false;
@@ -212,7 +243,7 @@
         const swipeThreshold = 50;
         let palavrasOfensivas = [];
         
-        // --- [INÍCIO] LÓGICA DO JOGO PONG ---
+        // --- VARIÁVEIS DO JOGO PONG ---
         let pongGameActive = false;
         let pongGameState = null;
         let pongAnimationId = null;
@@ -220,11 +251,16 @@
         let pongInputState = { left: false, right: false };
         let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
         let clientAnimationLoopId = null;
-        // [NOVO] Variáveis para o rastro da bola
         let ball1Trail = [];
         let ball2Trail = [];
         const TRAIL_LENGTH = 15;
-        // --- [FIM] LÓGICA DO JOGO PONG ---
+
+        // --- VARIÁVEIS DO JOGO DA VELHA ---
+        let tttGameActive = false;
+        let tttBoardState = Array(9).fill(null);
+        let tttMySymbol = null;
+        let tttCurrentTurn = null;
+        let tttGameOver = false;
 
         // --- LÓGICA DO CHAT (BASE) ---
         async function fetchMyLocation() {
@@ -292,7 +328,6 @@
             chatDiv.addEventListener('mousemove', handleMouseMove);
             chatDiv.addEventListener('mouseup', handleMouseUp);
             chatDiv.addEventListener('mouseleave', handleMouseUp);
-
             chatDiv.addEventListener('touchstart', (e) => handleMouseDown({ target: e.target, clientX: e.touches[0].clientX, button: 0, preventDefault: () => {} }));
             chatDiv.addEventListener('touchmove', (e) => handleMouseMove({ target: e.target, clientX: e.touches[0].clientX, preventDefault: () => {} }));
             chatDiv.addEventListener('touchend', (e) => handleMouseUp({ clientX: e.changedTouches[0].clientX }));
@@ -362,6 +397,9 @@
             showActionButton('iniciar');
             if (pongGameActive) {
                 endPongGame('partner_disconnected');
+            }
+            if (tttGameActive) {
+                endTicTacToeGame();
             }
         }
 
@@ -572,8 +610,18 @@
                 addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
             }
         });
+
+        playTttBtn.addEventListener('click', () => {
+            if (isConnected) {
+                socket.emit('tictactoe_invite');
+                menuBtn.classList.remove('open');
+                sidebar.classList.remove('open');
+            } else {
+                addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
+            }
+        });
         
-        // --- [INÍCIO] LÓGICA DO JOGO PONG (CLIENT-SIDE ATUALIZADO) ---
+        // --- LÓGICA DO JOGO PONG ---
         socket.on('pong_invite_received', () => {
             pongInviteModal.style.display = 'flex';
         });
@@ -590,17 +638,13 @@
 
         socket.on('pong_start', (data) => {
             pongGameActive = true;
-            pongGameState = null; // Limpa estado anterior
-            // [NOVO] Limpa os rastros do jogo anterior
+            pongGameState = null;
             ball1Trail = [];
             ball2Trail = [];
-
             pongGameContainer.style.display = 'flex';
             pongTimerElem.textContent = '3:00';
-            
             if (pongAnimationId) cancelAnimationFrame(pongAnimationId);
             pongAnimationId = requestAnimationFrame(drawPong);
-            
             localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
             pongInputState = { left: false, right: false };
             if (clientAnimationLoopId) cancelAnimationFrame(clientAnimationLoopId);
@@ -611,8 +655,6 @@
             pongGameState = state;
             pongScoreYouElem.textContent = `Você: ${state.you.score}`;
             pongScoreOpponentElem.textContent = `Anônimo: ${state.opponent.score}`;
-
-            // [NOVO] Adiciona a posição atual da bola ao rastro
             if (state.ball && state.ball.x) {
                 ball1Trail.unshift({ x: state.ball.x, y: state.ball.y });
                 if (ball1Trail.length > TRAIL_LENGTH) ball1Trail.pop();
@@ -658,25 +700,19 @@
             cancelAnimationFrame(clientAnimationLoopId);
             pongAnimationId = null;
             clientAnimationLoopId = null;
-            
             let message = "Fim de jogo!";
             if(reason === 'player_left' || reason === 'partner_disconnected' || reason === 'chat_ended') {
                 message = "O oponente saiu do jogo."
             } else if (result) {
                  message = `Placar final: Você ${result.yourScore} x ${result.opponentScore} Anônimo.`;
             }
-
             addSystemMessage(`🏆 ${message}`);
-            setTimeout(() => {
-                pongGameContainer.style.display = 'none';
-            }, 3000);
+            setTimeout(() => { pongGameContainer.style.display = 'none'; }, 3000);
         }
         
         function drawPong() {
             if (!pongGameActive) return;
-            
             pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
-            
             pongCtx.strokeStyle = '#333';
             pongCtx.beginPath();
             pongCtx.setLineDash([5, 15]);
@@ -684,11 +720,9 @@
             pongCtx.lineTo(pongCanvas.width, pongCanvas.height / 2);
             pongCtx.stroke();
             pongCtx.setLineDash([]);
-            
-            // [NOVO] Desenha os rastros das bolas
             pongCtx.save();
             ball1Trail.forEach((p, i) => {
-                pongCtx.globalAlpha = (1 - (i / ball1Trail.length)) * 0.4; // Opacidade decrescente
+                pongCtx.globalAlpha = (1 - (i / ball1Trail.length)) * 0.4;
                 pongCtx.fillStyle = '#fff';
                 pongCtx.beginPath();
                 pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
@@ -696,40 +730,32 @@
             });
             ball2Trail.forEach((p, i) => {
                 pongCtx.globalAlpha = (1 - (i / ball2Trail.length)) * 0.4;
-                pongCtx.fillStyle = '#ffae00'; // Cor da segunda bola
+                pongCtx.fillStyle = '#ffae00';
                 pongCtx.beginPath();
                 pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
                 pongCtx.fill();
             });
             pongCtx.restore();
-
             if (pongGameState) {
-                // Desenha a(s) bola(s) principal(is)
                 if (pongGameState.ball && pongGameState.ball.x) {
                     pongCtx.fillStyle = '#fff';
                     pongCtx.beginPath();
                     pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
                     pongCtx.fill();
                 }
-
                 if (pongGameState.ball2 && pongGameState.ball2.x) {
                     pongCtx.fillStyle = '#ffae00';
                     pongCtx.beginPath();
                     pongCtx.arc(pongGameState.ball2.x, pongGameState.ball2.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
                     pongCtx.fill();
                 }
-                
-                // Raquete do oponente (sempre em cima)
                 pongCtx.fillStyle = '#ff4444'; 
                 const opponentPaddleX = pongGameState.opponent.paddleX;
                 pongCtx.fillRect(opponentPaddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             }
-
-            // Sua raquete (sempre embaixo)
             pongCtx.fillStyle = '#00aaff';
             const playerPaddleY = pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT;
             pongCtx.fillRect(localPlayerPaddleX, playerPaddleY, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-
             pongAnimationId = requestAnimationFrame(drawPong);
         }
         
@@ -771,12 +797,141 @@
         };
         addTouchEvent(pongLeftBtn, () => pongInputState.left = true, () => pongInputState.left = false);
         addTouchEvent(pongRightBtn, () => pongInputState.right = true, () => pongInputState.right = false);
+        pongLeaveBtn.addEventListener('click', () => { if(pongGameActive) socket.emit('pong_leave'); });
 
-        pongLeaveBtn.addEventListener('click', () => {
-            if(pongGameActive) socket.emit('pong_leave');
+        // --- LÓGICA DO JOGO DA VELHA ---
+        function renderTicTacToeBoard() {
+            tttBoard.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'ttt-cell';
+                const value = tttBoardState[i];
+                if (value === 'X') {
+                    cell.textContent = '✖';
+                    cell.classList.add('X');
+                } else if (value === 'O') {
+                    cell.textContent = '◯';
+                    cell.classList.add('O');
+                } else {
+                    cell.textContent = '';
+                }
+                if (!tttGameOver && tttGameActive && tttCurrentTurn === tttMySymbol && value === null) {
+                    cell.style.cursor = 'pointer';
+                    cell.addEventListener('click', () => makeTicTacToeMove(i));
+                } else {
+                    cell.classList.add('disabled');
+                }
+                tttBoard.appendChild(cell);
+            }
+        }
+
+        function makeTicTacToeMove(position) {
+            if (!tttGameActive || tttGameOver) return;
+            if (tttCurrentTurn !== tttMySymbol) return;
+            if (tttBoardState[position] !== null) return;
+            socket.emit('tictactoe_move', { position: position });
+        }
+
+        function updateTicTacToeUI(state) {
+            tttBoardState = state.board;
+            tttCurrentTurn = state.currentTurnSymbol;
+            tttGameActive = state.gameActive;
+            tttGameOver = !state.gameActive;
+            
+            if (state.gameActive) {
+                if (state.currentTurnSymbol === tttMySymbol) {
+                    tttTurnElem.innerHTML = `🎯 SUA VEZ! (${tttMySymbol})`;
+                    tttStatusElem.innerHTML = 'Clique em uma posição para marcar';
+                } else {
+                    tttTurnElem.innerHTML = `⏳ Vez do oponente (${state.currentTurnSymbol})`;
+                    tttStatusElem.innerHTML = 'Aguardando jogada...';
+                }
+            } else {
+                if (state.isDraw) {
+                    tttTurnElem.innerHTML = '🤝 EMPATE!';
+                    tttStatusElem.innerHTML = 'Ninguém venceu. Fim de jogo!';
+                } else if (state.winner) {
+                    const winnerSymbol = state.currentTurnSymbol === tttMySymbol ? 'Você' : 'Oponente';
+                    tttTurnElem.innerHTML = `🏆 ${winnerSymbol} venceu!`;
+                    tttStatusElem.innerHTML = `Jogador ${state.currentTurnSymbol} venceu a partida!`;
+                }
+            }
+            renderTicTacToeBoard();
+        }
+
+        socket.on('tictactoe_invite_received', () => {
+            tttInviteModal.style.display = 'flex';
         });
-        // --- [FIM] LÓGICA DO JOGO PONG ---
+
+        tttInviteAcceptBtn.addEventListener('click', () => {
+            socket.emit('tictactoe_accept');
+            tttInviteModal.style.display = 'none';
+        });
+
+        tttInviteDeclineBtn.addEventListener('click', () => {
+            socket.emit('tictactoe_decline');
+            tttInviteModal.style.display = 'none';
+        });
+
+        socket.on('tictactoe_start', (data) => {
+            tttGameActive = true;
+            tttMySymbol = data.yourSymbol;
+            tttBoardState = Array(9).fill(null);
+            tttGameOver = false;
+            tttGameContainer.style.display = 'flex';
+            
+            if (data.firstTurn) {
+                tttCurrentTurn = tttMySymbol;
+                tttTurnElem.innerHTML = `🎯 SUA VEZ! (${tttMySymbol})`;
+                tttStatusElem.innerHTML = `Você começa! (${tttMySymbol})`;
+            } else {
+                tttCurrentTurn = (tttMySymbol === 'X') ? 'O' : 'X';
+                tttTurnElem.innerHTML = `⏳ Vez do oponente`;
+                tttStatusElem.innerHTML = `Oponente começa! Aguarde...`;
+            }
+            renderTicTacToeBoard();
+            addSystemMessage(`🎮 Jogo da Velha iniciado! Você é ${tttMySymbol}. ${data.firstTurn ? 'Você começa!' : 'Oponente começa!'}`);
+        });
+
+        socket.on('tictactoe_update', (state) => {
+            updateTicTacToeUI(state);
+        });
+
+        socket.on('tictactoe_game_over', (data) => {
+            tttGameActive = false;
+            tttGameOver = true;
+            if (data.isDraw) {
+                tttTurnElem.innerHTML = '🤝 EMPATE!';
+                tttStatusElem.innerHTML = 'Fim de jogo!';
+            } else {
+                const winnerIsMe = data.winner === socket.id;
+                tttTurnElem.innerHTML = winnerIsMe ? '🏆 VOCÊ VENCEU!' : '🏆 OPONENTE VENCEU!';
+                tttStatusElem.innerHTML = `Jogador ${data.winnerSymbol} venceu!`;
+            }
+            renderTicTacToeBoard();
+        });
+
+        socket.on('tictactoe_close', () => {
+            setTimeout(() => {
+                tttGameContainer.style.display = 'none';
+                tttGameActive = false;
+            }, 3000);
+        });
+
+        function endTicTacToeGame() {
+            if (tttGameActive) {
+                tttGameActive = false;
+                tttGameContainer.style.display = 'none';
+            }
+        }
+
+        tttLeaveBtn.addEventListener('click', () => {
+            if (tttGameActive) {
+                socket.emit('tictactoe_leave');
+                tttGameContainer.style.display = 'none';
+                tttGameActive = false;
+            }
+        });
     </script>
 </body>
 </html>
-

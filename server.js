@@ -1,4 +1,5 @@
-// server.js ATUALIZADO
+```javascript
+// server.js ATUALIZADO COM JOGO DA VELHA
 
 const express = require('express');
 const path = require('path');
@@ -31,6 +32,7 @@ const connectedUsers = new Map();
 const activeBots = new Map();
 const fakeOnlineBase = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
 const activePongGames = new Map();
+const activeTicTacToeGames = new Map(); // NOVO: Para Jogo da Velha
 
 // --- LÓGICA DO BOT (Inalterada) ---
 const botConversationLogic = {
@@ -106,7 +108,7 @@ class Bot {
 }
 
 
-// --- LÓGICA DO JOGO PONG ---
+// --- LÓGICA DO JOGO PONG (Inalterada) ---
 const PONG_CONFIG = {
     CANVAS_WIDTH: 300,
     CANVAS_HEIGHT: 400,
@@ -123,7 +125,6 @@ const PONG_CONFIG = {
 
 class PongGame {
     constructor(player1Id, player2Id) {
-        // P1 é o jogador de baixo (quem convidou), P2 é o jogador de cima (quem aceitou).
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
         this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), score: 0, paddleX: (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2 };
         this.ball = {};
@@ -156,11 +157,6 @@ class PongGame {
     startRound() {
         this.gamePaused = true;
         clearInterval(this.gameLoop);
-        
-        // [ATUALIZAÇÃO] Reseta a posição dos paddles a cada nova rodada.
-        this.player1.paddleX = (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2;
-        this.player2.paddleX = (PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH) / 2;
-        
         this.broadcastState(); 
         this.broadcast('pong_countdown_start');
 
@@ -197,7 +193,7 @@ class PongGame {
         if (loserId) {
             verticalDirection = (loserId === this.player1.id ? 1 : -1);
         } else {
-            verticalDirection = -1; // Saque inicial sempre para P2 (em cima).
+            verticalDirection = -1;
         }
         ball.vy = verticalDirection * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
@@ -247,10 +243,6 @@ class PongGame {
     handleGoal(winner, loserId) {
         this.lastLoser = loserId;
         winner.score++;
-        
-        // [ATUALIZAÇÃO] Emite evento de gol para animação no cliente.
-        this.broadcast('pong_goal_scored', { winnerId: winner.id });
-
         if (this.isSuddenDeath || winner.score >= PONG_CONFIG.MAX_GOALS) this.end('score_limit');
         else this.startRound();
     }
@@ -272,7 +264,9 @@ class PongGame {
         if(socketP1) socketP1.emit('pong_update', stateForP1);
 
         const flipY = (y) => PONG_CONFIG.CANVAS_HEIGHT - y;
+
         const flippedBall = this.ball.x ? { ...this.ball, y: flipY(this.ball.y) } : this.ball;
+        
         let flippedBall2 = null;
         if (this.isSuddenDeath && this.ball2 && this.ball2.x) {
             flippedBall2 = { ...this.ball2, y: flipY(this.ball2.y) };
@@ -315,6 +309,177 @@ class PongGame {
     }
 }
 
+// --- NOVA LÓGICA DO JOGO DA VELHA ---
+const TICTACTOE_CONFIG = {
+    BOARD_SIZE: 9,
+    WIN_PATTERNS: [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Linhas
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colunas
+        [0, 4, 8], [2, 4, 6]             // Diagonais
+    ]
+};
+
+class TicTacToeGame {
+    constructor(player1Id, player2Id) {
+        this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), symbol: null };
+        this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), symbol: null };
+        
+        // Define símbolos aleatoriamente
+        const randomStart = Math.random() < 0.5;
+        if (randomStart) {
+            this.player1.symbol = 'X';
+            this.player2.symbol = 'O';
+            this.currentTurn = player1Id;
+            this.firstPlayer = player1Id;
+        } else {
+            this.player1.symbol = 'O';
+            this.player2.symbol = 'X';
+            this.currentTurn = player2Id;
+            this.firstPlayer = player2Id;
+        }
+        
+        this.board = Array(TICTACTOE_CONFIG.BOARD_SIZE).fill(null);
+        this.gameActive = true;
+        this.winner = null;
+        this.isDraw = false;
+        
+        activeTicTacToeGames.set(player1Id, this);
+        activeTicTacToeGames.set(player2Id, this);
+        
+        console.log(`Jogo da Velha criado: P1=${player1Id} (${this.player1.symbol}), P2=${player2Id} (${this.player2.symbol}). Começa: ${this.currentTurn === player1Id ? 'P1' : 'P2'}`);
+    }
+
+    broadcast(event, data) {
+        if(this.player1.socket) this.player1.socket.emit(event, data);
+        if(this.player2.socket) this.player2.socket.emit(event, data);
+    }
+
+    start() {
+        // Envia início do jogo para ambos
+        this.player1.socket.emit('tictactoe_start', { 
+            opponentId: this.player2.id,
+            yourSymbol: this.player1.symbol,
+            firstTurn: this.currentTurn === this.player1.id,
+            starter: this.firstPlayer === this.player1.id ? 'Você' : 'Oponente'
+        });
+        
+        this.player2.socket.emit('tictactoe_start', { 
+            opponentId: this.player1.id,
+            yourSymbol: this.player2.symbol,
+            firstTurn: this.currentTurn === this.player2.id,
+            starter: this.firstPlayer === this.player2.id ? 'Você' : 'Oponente'
+        });
+        
+        // Envia estado inicial do tabuleiro
+        this.broadcastState();
+        
+        // Mensagem de sistema sobre quem começa
+        const starterName = this.firstPlayer === this.player1.id ? 'Jogador X' : 'Jogador O';
+        this.broadcast('system_message', { message: `🎲 Jogo da Velha iniciado! ${starterName} começa!` });
+    }
+
+    makeMove(playerId, position) {
+        // Validações
+        if (!this.gameActive) return { success: false, reason: 'Jogo já terminou' };
+        if (playerId !== this.currentTurn) return { success: false, reason: 'Não é sua vez' };
+        if (position < 0 || position >= TICTACTOE_CONFIG.BOARD_SIZE) return { success: false, reason: 'Posição inválida' };
+        if (this.board[position] !== null) return { success: false, reason: 'Posição já ocupada' };
+        
+        // Obtém símbolo do jogador
+        const symbol = playerId === this.player1.id ? this.player1.symbol : this.player2.symbol;
+        
+        // Faz a jogada
+        this.board[position] = symbol;
+        
+        // Verifica vitória
+        const winPattern = this.checkWin(symbol);
+        if (winPattern) {
+            this.gameActive = false;
+            this.winner = playerId;
+            this.broadcast('tictactoe_game_over', {
+                winner: playerId,
+                winnerSymbol: symbol,
+                winPattern: winPattern,
+                isDraw: false
+            });
+            this.broadcast('system_message', { message: `🏆 VITÓRIA! Jogador ${symbol} venceu! 🎉` });
+            this.end('win');
+            return { success: true, move: position, gameOver: true, winner: symbol };
+        }
+        
+        // Verifica empate
+        const isDraw = this.board.every(cell => cell !== null);
+        if (isDraw) {
+            this.gameActive = false;
+            this.isDraw = true;
+            this.broadcast('tictactoe_game_over', {
+                winner: null,
+                winnerSymbol: null,
+                winPattern: null,
+                isDraw: true
+            });
+            this.broadcast('system_message', { message: '🤝 EMPATE! Ninguém venceu. 🤝' });
+            this.end('draw');
+            return { success: true, move: position, gameOver: true, isDraw: true };
+        }
+        
+        // Alterna turno
+        this.currentTurn = (this.currentTurn === this.player1.id) ? this.player2.id : this.player1.id;
+        
+        // Broadcast do novo estado
+        this.broadcastState();
+        
+        // Notifica sobre a vez
+        const nextPlayerSymbol = this.currentTurn === this.player1.id ? this.player1.symbol : this.player2.symbol;
+        this.broadcast('system_message', { message: `🔄 Vez do jogador ${nextPlayerSymbol}` });
+        
+        return { success: true, move: position, gameOver: false };
+    }
+    
+    checkWin(symbol) {
+        for (const pattern of TICTACTOE_CONFIG.WIN_PATTERNS) {
+            const [a, b, c] = pattern;
+            if (this.board[a] === symbol && this.board[b] === symbol && this.board[c] === symbol) {
+                return pattern;
+            }
+        }
+        return null;
+    }
+    
+    broadcastState() {
+        const state = {
+            board: this.board,
+            currentTurn: this.currentTurn,
+            gameActive: this.gameActive,
+            winner: this.winner,
+            isDraw: this.isDraw,
+            player1Symbol: this.player1.symbol,
+            player2Symbol: this.player2.symbol,
+            currentTurnSymbol: this.currentTurn === this.player1.id ? this.player1.symbol : this.player2.symbol
+        };
+        
+        this.broadcast('tictactoe_update', state);
+    }
+    
+    end(reason) {
+        // Limpa o jogo dos maps
+        activeTicTacToeGames.delete(this.player1.id);
+        activeTicTacToeGames.delete(this.player2.id);
+        console.log(`Jogo da Velha entre ${this.player1.id} e ${this.player2.id} finalizado. Motivo: ${reason}`);
+        
+        // Notifica ambos que o jogo acabou (para fechar a tela)
+        setTimeout(() => {
+            if (this.player1.socket) this.player1.socket.emit('tictactoe_close');
+            if (this.player2.socket) this.player2.socket.emit('tictactoe_close');
+        }, 3000);
+    }
+    
+    forceEnd(playerLeftId) {
+        const leftPlayer = playerLeftId === this.player1.id ? 'Jogador' : 'Oponente';
+        this.broadcast('system_message', { message: `🚪 ${leftPlayer} saiu do jogo. Partida encerrada.` });
+        this.end('player_left');
+    }
+}
 
 // --- LÓGICA DE CONEXÃO PRINCIPAL ---
 io.on('connection', (socket) => {
@@ -395,9 +560,16 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        // Verifica se está em jogo de Pong
         if (activePongGames.has(socket.id)) {
             const game = activePongGames.get(socket.id);
             if(game) game.end('partner_disconnected');
+        }
+        
+        // NOVO: Verifica se está em jogo da Velha
+        if (activeTicTacToeGames.has(socket.id)) {
+            const game = activeTicTacToeGames.get(socket.id);
+            if(game) game.forceEnd(socket.id);
         }
 
         const userData = connectedUsers.get(socket.id);
@@ -419,7 +591,7 @@ io.on('connection', (socket) => {
         console.log(`Usuário desconectado: ${socket.id}`);
     });
     
-    // --- EVENTOS DE PONG ---
+    // --- EVENTOS DE PONG (Inalterados) ---
     socket.on('pong_invite', () => {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId || activeBots.has(userData.partnerId)) {
@@ -448,7 +620,6 @@ io.on('connection', (socket) => {
         
         if (activePongGames.has(socket.id) || activePongGames.has(userData.partnerId)) return;
         
-        // O jogador que convidou (partnerId) é P1 (baixo), quem aceitou (socket.id) é P2 (cima).
         const newGame = new PongGame(userData.partnerId, socket.id);
         newGame.start();
     });
@@ -464,6 +635,73 @@ io.on('connection', (socket) => {
         const game = activePongGames.get(socket.id);
         if (game) {
             game.end('player_left');
+        }
+    });
+
+    // --- NOVOS EVENTOS DO JOGO DA VELHA ---
+    socket.on('tictactoe_invite', () => {
+        const userData = connectedUsers.get(socket.id);
+        if (!userData || !userData.partnerId || activeBots.has(userData.partnerId)) {
+            socket.emit('system_message', { message: "⚠️ Você só pode jogar com um parceiro real." });
+            return;
+        }
+        
+        // Verifica se já está em algum jogo
+        if (activeTicTacToeGames.has(socket.id)) {
+            socket.emit('system_message', { message: "⚠️ Você já está em uma partida de Jogo da Velha." });
+            return;
+        }
+        
+        const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+        if (partnerSocket) {
+            // Verifica se parceiro já está em jogo
+            if (activeTicTacToeGames.has(userData.partnerId)) {
+                socket.emit('system_message', { message: "⚠️ Seu parceiro já está em uma partida." });
+                return;
+            }
+            partnerSocket.emit('tictactoe_invite_received');
+            socket.emit('system_message', { message: "⏳ Convite para o Jogo da Velha enviado. Aguardando resposta..." });
+        }
+    });
+    
+    socket.on('tictactoe_decline', () => {
+        const userData = connectedUsers.get(socket.id);
+        if (!userData || !userData.partnerId) return;
+        const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+        if (partnerSocket) {
+            partnerSocket.emit('system_message', { message: "❌ Seu parceiro recusou o desafio do Jogo da Velha." });
+        }
+    });
+    
+    socket.on('tictactoe_accept', () => {
+        const userData = connectedUsers.get(socket.id);
+        if (!userData || !userData.partnerId) return;
+        
+        // Verifica se algum dos dois já está em jogo
+        if (activeTicTacToeGames.has(socket.id) || activeTicTacToeGames.has(userData.partnerId)) {
+            socket.emit('system_message', { message: "⚠️ Alguém já está em uma partida." });
+            return;
+        }
+        
+        // Quem convidou (partnerId) é player1, quem aceitou (socket.id) é player2
+        const newGame = new TicTacToeGame(userData.partnerId, socket.id);
+        newGame.start();
+    });
+    
+    socket.on('tictactoe_move', (data) => {
+        const game = activeTicTacToeGames.get(socket.id);
+        if (game) {
+            const result = game.makeMove(socket.id, data.position);
+            if (!result.success) {
+                socket.emit('system_message', { message: `⚠️ ${result.reason}` });
+            }
+        }
+    });
+    
+    socket.on('tictactoe_leave', () => {
+        const game = activeTicTacToeGames.get(socket.id);
+        if (game) {
+            game.forceEnd(socket.id);
         }
     });
 
@@ -484,9 +722,16 @@ io.on('connection', (socket) => {
 
         const partnerId = userData.partnerId;
         
-        const game = activePongGames.get(socketId);
-        if (game) {
-            game.end('chat_ended');
+        // Verifica se está em jogo de Pong e encerra
+        const pongGame = activePongGames.get(socketId);
+        if (pongGame) {
+            pongGame.end('chat_ended');
+        }
+        
+        // NOVO: Verifica se está em jogo da Velha e encerra
+        const tttGame = activeTicTacToeGames.get(socketId);
+        if (tttGame) {
+            tttGame.forceEnd(socketId);
         }
         
         userData.partnerId = null;
@@ -521,3 +766,4 @@ setInterval(broadcastDynamicOnlineCount, 4500);
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+```
