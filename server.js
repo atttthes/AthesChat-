@@ -1,5 +1,5 @@
 ```javascript
-// server.js ATUALIZADO COM JOGO DA VELHA
+// server.js ATUALIZADO COM JOGO DA VELHA - CORRIGIDO
 
 const express = require('express');
 const path = require('path');
@@ -32,9 +32,9 @@ const connectedUsers = new Map();
 const activeBots = new Map();
 const fakeOnlineBase = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
 const activePongGames = new Map();
-const activeTicTacToeGames = new Map(); // NOVO: Para Jogo da Velha
+const activeTicTacToeGames = new Map();
 
-// --- LÓGICA DO BOT (Inalterada) ---
+// --- LÓGICA DO BOT ---
 const botConversationLogic = {
     greetings: ["Olá!", "E aí, tudo bem?", "Oi, como vai?", "Opa, tudo certo?"],
     farewells: ["Preciso ir agora, até mais!", "Foi bom conversar, tchau!", "Falou, até a próxima!"],
@@ -52,29 +52,29 @@ const botConversationLogic = {
 
 class Bot {
     constructor(partnerSocket) {
-        this.id = `bot_${Date.now()}`;
+        this.id = "bot_" + Date.now();
         this.partnerId = partnerSocket.id;
         this.partnerSocket = partnerSocket;
         this.location = ["São Paulo", "Rio de Janeiro", "Minas Gerais", "Bahia", "Paraná"][Math.floor(Math.random() * 5)];
         this.messageTimeout = null;
         activeBots.set(this.id, this);
-        console.log(`Bot ${this.id} criado para o usuário ${this.partnerId}`);
+        console.log("Bot " + this.id + " criado para o usuário " + this.partnerId);
     }
     startConversation() {
         connectedUsers.get(this.partnerId).partnerId = this.id;
         this.partnerSocket.emit('chat_start', { partnerId: this.id });
-        setTimeout(() => {
+        setTimeout(function() {
             const greeting = botConversationLogic.greetings[Math.floor(Math.random() * botConversationLogic.greetings.length)];
             this.sendMessage(greeting);
-        }, 1500);
+        }.bind(this), 1500);
     }
     handleMessage(text) {
         clearTimeout(this.messageTimeout);
         this.partnerSocket.emit('typing', { isTyping: true });
-        this.messageTimeout = setTimeout(() => {
+        this.messageTimeout = setTimeout(function() {
             let response = this.findResponse(text);
             this.sendMessage(response);
-        }, 1000 + Math.random() * 1500);
+        }.bind(this), 1000 + Math.random() * 1500);
     }
     findResponse(text) {
         const lowerText = text.toLowerCase();
@@ -95,20 +95,20 @@ class Bot {
     }
     disconnect(farewellMessage) {
         if (farewellMessage) this.sendMessage(farewellMessage);
-        setTimeout(() => {
+        setTimeout(function() {
             const partnerData = connectedUsers.get(this.partnerId);
             if (partnerData && partnerData.partnerId === this.id) {
                 this.partnerSocket.emit('chat_ended');
                 partnerData.partnerId = null;
             }
             activeBots.delete(this.id);
-            console.log(`Bot ${this.id} desconectado.`);
-        }, 1000);
+            console.log("Bot " + this.id + " desconectado.");
+        }.bind(this), 1000);
     }
 }
 
 
-// --- LÓGICA DO JOGO PONG (Inalterada) ---
+// --- LÓGICA DO JOGO PONG ---
 const PONG_CONFIG = {
     CANVAS_WIDTH: 300,
     CANVAS_HEIGHT: 400,
@@ -150,7 +150,7 @@ class PongGame {
         this.player1.socket.emit('pong_start', { opponentId: this.player2.id });
         this.player2.socket.emit('pong_start', { opponentId: this.player1.id });
         
-        this.durationTimer = setInterval(() => this.tick(), 1000);
+        this.durationTimer = setInterval(function() { this.tick(); }.bind(this), 1000);
         this.startRound();
     }
     
@@ -160,7 +160,7 @@ class PongGame {
         this.broadcastState(); 
         this.broadcast('pong_countdown_start');
 
-        setTimeout(() => {
+        setTimeout(function() {
             this.resetBall(this.ball, this.lastLoser);
             if (this.isSuddenDeath) {
                 if (!this.ball2) this.ball2 = {};
@@ -168,8 +168,8 @@ class PongGame {
             }
             this.gamePaused = false;
             this.lastLoser = null;
-            this.gameLoop = setInterval(() => this.update(), PONG_CONFIG.UPDATE_INTERVAL);
-        }, PONG_CONFIG.COUNTDOWN_SECONDS * 1000);
+            this.gameLoop = setInterval(function() { this.update(); }.bind(this), PONG_CONFIG.UPDATE_INTERVAL);
+        }.bind(this), PONG_CONFIG.COUNTDOWN_SECONDS * 1000);
     }
     
     tick() {
@@ -181,7 +181,8 @@ class PongGame {
         }
     }
     
-    resetBall(ball, loserId, isSecondBall = false) {
+    resetBall(ball, loserId, isSecondBall) {
+        if (isSecondBall === undefined) isSecondBall = false;
         ball.x = PONG_CONFIG.CANVAS_WIDTH / 2;
         ball.y = PONG_CONFIG.CANVAS_HEIGHT / 2;
         ball.speedMultiplier = 1.0;
@@ -263,13 +264,13 @@ class PongGame {
         const socketP1 = io.sockets.sockets.get(this.player1.id);
         if(socketP1) socketP1.emit('pong_update', stateForP1);
 
-        const flipY = (y) => PONG_CONFIG.CANVAS_HEIGHT - y;
+        const flipY = function(y) { return PONG_CONFIG.CANVAS_HEIGHT - y; };
 
-        const flippedBall = this.ball.x ? { ...this.ball, y: flipY(this.ball.y) } : this.ball;
+        const flippedBall = this.ball.x ? { x: this.ball.x, y: flipY(this.ball.y), vx: this.ball.vx, vy: this.ball.vy, speedMultiplier: this.ball.speedMultiplier, rallyCount: this.ball.rallyCount } : this.ball;
         
         let flippedBall2 = null;
         if (this.isSuddenDeath && this.ball2 && this.ball2.x) {
-            flippedBall2 = { ...this.ball2, y: flipY(this.ball2.y) };
+            flippedBall2 = { x: this.ball2.x, y: flipY(this.ball2.y), vx: this.ball2.vx, vy: this.ball2.vy, speedMultiplier: this.ball2.speedMultiplier, rallyCount: this.ball2.rallyCount };
         }
 
         const stateForP2 = {
@@ -294,8 +295,8 @@ class PongGame {
             return;
         }
 
-        const resultForP1 = { reason, yourScore: this.player1.score, opponentScore: this.player2.score };
-        const resultForP2 = { reason, yourScore: this.player2.score, opponentScore: this.player1.score };
+        const resultForP1 = { reason: reason, yourScore: this.player1.score, opponentScore: this.player2.score };
+        const resultForP2 = { reason: reason, yourScore: this.player2.score, opponentScore: this.player1.score };
         
         const socketP1 = io.sockets.sockets.get(this.player1.id);
         if(socketP1) socketP1.emit('pong_end', resultForP1);
@@ -305,17 +306,17 @@ class PongGame {
 
         activePongGames.delete(this.player1.id);
         activePongGames.delete(this.player2.id);
-        console.log(`Jogo de Pong entre ${this.player1.id} e ${this.player2.id} finalizado.`);
+        console.log("Jogo de Pong entre " + this.player1.id + " e " + this.player2.id + " finalizado.");
     }
 }
 
-// --- NOVA LÓGICA DO JOGO DA VELHA ---
+// --- LÓGICA DO JOGO DA VELHA ---
 const TICTACTOE_CONFIG = {
     BOARD_SIZE: 9,
     WIN_PATTERNS: [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Linhas
-        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colunas
-        [0, 4, 8], [2, 4, 6]             // Diagonais
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
     ]
 };
 
@@ -324,7 +325,6 @@ class TicTacToeGame {
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), symbol: null };
         this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), symbol: null };
         
-        // Define símbolos aleatoriamente
         const randomStart = Math.random() < 0.5;
         if (randomStart) {
             this.player1.symbol = 'X';
@@ -346,7 +346,7 @@ class TicTacToeGame {
         activeTicTacToeGames.set(player1Id, this);
         activeTicTacToeGames.set(player2Id, this);
         
-        console.log(`Jogo da Velha criado: P1=${player1Id} (${this.player1.symbol}), P2=${player2Id} (${this.player2.symbol}). Começa: ${this.currentTurn === player1Id ? 'P1' : 'P2'}`);
+        console.log("Jogo da Velha criado: P1=" + player1Id + " (" + this.player1.symbol + "), P2=" + player2Id + " (" + this.player2.symbol + "). Começa: " + (this.currentTurn === player1Id ? 'P1' : 'P2'));
     }
 
     broadcast(event, data) {
@@ -355,7 +355,6 @@ class TicTacToeGame {
     }
 
     start() {
-        // Envia início do jogo para ambos
         this.player1.socket.emit('tictactoe_start', { 
             opponentId: this.player2.id,
             yourSymbol: this.player1.symbol,
@@ -370,28 +369,21 @@ class TicTacToeGame {
             starter: this.firstPlayer === this.player2.id ? 'Você' : 'Oponente'
         });
         
-        // Envia estado inicial do tabuleiro
         this.broadcastState();
         
-        // Mensagem de sistema sobre quem começa
-        const starterName = this.firstPlayer === this.player1.id ? 'Jogador X' : 'Jogador O';
-        this.broadcast('system_message', { message: `🎲 Jogo da Velha iniciado! ${starterName} começa!` });
+        const starterName = this.firstPlayer === this.player1.id ? 'Jogador ' + this.player1.symbol : 'Jogador ' + this.player2.symbol;
+        this.broadcast('system_message', { message: "🎲 Jogo da Velha iniciado! " + starterName + " começa!" });
     }
 
     makeMove(playerId, position) {
-        // Validações
         if (!this.gameActive) return { success: false, reason: 'Jogo já terminou' };
         if (playerId !== this.currentTurn) return { success: false, reason: 'Não é sua vez' };
         if (position < 0 || position >= TICTACTOE_CONFIG.BOARD_SIZE) return { success: false, reason: 'Posição inválida' };
         if (this.board[position] !== null) return { success: false, reason: 'Posição já ocupada' };
         
-        // Obtém símbolo do jogador
         const symbol = playerId === this.player1.id ? this.player1.symbol : this.player2.symbol;
-        
-        // Faz a jogada
         this.board[position] = symbol;
         
-        // Verifica vitória
         const winPattern = this.checkWin(symbol);
         if (winPattern) {
             this.gameActive = false;
@@ -402,13 +394,12 @@ class TicTacToeGame {
                 winPattern: winPattern,
                 isDraw: false
             });
-            this.broadcast('system_message', { message: `🏆 VITÓRIA! Jogador ${symbol} venceu! 🎉` });
+            this.broadcast('system_message', { message: "🏆 VITÓRIA! Jogador " + symbol + " venceu! 🎉" });
             this.end('win');
             return { success: true, move: position, gameOver: true, winner: symbol };
         }
         
-        // Verifica empate
-        const isDraw = this.board.every(cell => cell !== null);
+        const isDraw = this.board.every(function(cell) { return cell !== null; });
         if (isDraw) {
             this.gameActive = false;
             this.isDraw = true;
@@ -423,22 +414,19 @@ class TicTacToeGame {
             return { success: true, move: position, gameOver: true, isDraw: true };
         }
         
-        // Alterna turno
         this.currentTurn = (this.currentTurn === this.player1.id) ? this.player2.id : this.player1.id;
-        
-        // Broadcast do novo estado
         this.broadcastState();
         
-        // Notifica sobre a vez
         const nextPlayerSymbol = this.currentTurn === this.player1.id ? this.player1.symbol : this.player2.symbol;
-        this.broadcast('system_message', { message: `🔄 Vez do jogador ${nextPlayerSymbol}` });
+        this.broadcast('system_message', { message: "🔄 Vez do jogador " + nextPlayerSymbol });
         
         return { success: true, move: position, gameOver: false };
     }
     
     checkWin(symbol) {
-        for (const pattern of TICTACTOE_CONFIG.WIN_PATTERNS) {
-            const [a, b, c] = pattern;
+        for (var p = 0; p < TICTACTOE_CONFIG.WIN_PATTERNS.length; p++) {
+            const pattern = TICTACTOE_CONFIG.WIN_PATTERNS[p];
+            const a = pattern[0], b = pattern[1], c = pattern[2];
             if (this.board[a] === symbol && this.board[b] === symbol && this.board[c] === symbol) {
                 return pattern;
             }
@@ -462,32 +450,30 @@ class TicTacToeGame {
     }
     
     end(reason) {
-        // Limpa o jogo dos maps
         activeTicTacToeGames.delete(this.player1.id);
         activeTicTacToeGames.delete(this.player2.id);
-        console.log(`Jogo da Velha entre ${this.player1.id} e ${this.player2.id} finalizado. Motivo: ${reason}`);
+        console.log("Jogo da Velha entre " + this.player1.id + " e " + this.player2.id + " finalizado. Motivo: " + reason);
         
-        // Notifica ambos que o jogo acabou (para fechar a tela)
-        setTimeout(() => {
+        setTimeout(function() {
             if (this.player1.socket) this.player1.socket.emit('tictactoe_close');
             if (this.player2.socket) this.player2.socket.emit('tictactoe_close');
-        }, 3000);
+        }.bind(this), 3000);
     }
     
     forceEnd(playerLeftId) {
         const leftPlayer = playerLeftId === this.player1.id ? 'Jogador' : 'Oponente';
-        this.broadcast('system_message', { message: `🚪 ${leftPlayer} saiu do jogo. Partida encerrada.` });
+        this.broadcast('system_message', { message: "🚪 " + leftPlayer + " saiu do jogo. Partida encerrada." });
         this.end('player_left');
     }
 }
 
 // --- LÓGICA DE CONEXÃO PRINCIPAL ---
-io.on('connection', (socket) => {
-    console.log(`Novo usuário conectado: ${socket.id}`);
+io.on('connection', function(socket) {
+    console.log("Novo usuário conectado: " + socket.id);
     
     connectedUsers.set(socket.id, { id: socket.id, partnerId: null, location: 'Desconhecido' });
     
-    socket.on('join', (data) => {
+    socket.on('join', function(data) {
         const currentUserData = connectedUsers.get(socket.id);
         if (!currentUserData) return;
         if (data && data.location) currentUserData.location = data.location;
@@ -506,7 +492,7 @@ io.on('connection', (socket) => {
             if (bot) bot.disconnect();
             activeBots.delete(botId);
 
-            console.log(`Bot ${botId} removido para dar lugar a um usuário real.`);
+            console.log("Bot " + botId + " removido para dar lugar a um usuário real.");
             userWithBot.emit('system_message', { message: '✔️ Um parceiro real foi encontrado! Conectando...' });
             connectedUsers.get(userWithBot.id).partnerId = null;
             pairRealUsers(socket, userWithBot);
@@ -523,7 +509,7 @@ io.on('connection', (socket) => {
             pairRealUsers(socket, realPartner);
         } else {
             socket.emit('waiting');
-            setTimeout(() => {
+            setTimeout(function() {
                 if (connectedUsers.has(socket.id) && !connectedUsers.get(socket.id).partnerId) {
                     const bot = new Bot(socket);
                     bot.startConversation();
@@ -532,7 +518,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('message', (data) => {
+    socket.on('message', function(data) {
         const senderData = connectedUsers.get(socket.id);
         if (!senderData || !senderData.partnerId) return;
         const partnerId = senderData.partnerId;
@@ -547,7 +533,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('typing', (data) => {
+    socket.on('typing', function(data) {
         const partnerId = connectedUsers.get(socket.id)?.partnerId;
         if (partnerId && !activeBots.has(partnerId)) {
             const partnerSocket = io.sockets.sockets.get(partnerId);
@@ -555,18 +541,16 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('end_chat', () => {
+    socket.on('end_chat', function() {
         endUserChat(socket.id);
     });
 
-    socket.on('disconnect', () => {
-        // Verifica se está em jogo de Pong
+    socket.on('disconnect', function() {
         if (activePongGames.has(socket.id)) {
             const game = activePongGames.get(socket.id);
             if(game) game.end('partner_disconnected');
         }
         
-        // NOVO: Verifica se está em jogo da Velha
         if (activeTicTacToeGames.has(socket.id)) {
             const game = activeTicTacToeGames.get(socket.id);
             if(game) game.forceEnd(socket.id);
@@ -588,11 +572,11 @@ io.on('connection', (socket) => {
             }
         }
         connectedUsers.delete(socket.id);
-        console.log(`Usuário desconectado: ${socket.id}`);
+        console.log("Usuário desconectado: " + socket.id);
     });
     
-    // --- EVENTOS DE PONG (Inalterados) ---
-    socket.on('pong_invite', () => {
+    // --- EVENTOS DE PONG ---
+    socket.on('pong_invite', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId || activeBots.has(userData.partnerId)) {
             socket.emit('system_message', { message: "⚠️ Você só pode jogar com um parceiro real." });
@@ -605,7 +589,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    socket.on('pong_decline', () => {
+    socket.on('pong_decline', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
@@ -614,7 +598,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    socket.on('pong_accept', () => {
+    socket.on('pong_accept', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         
@@ -624,29 +608,28 @@ io.on('connection', (socket) => {
         newGame.start();
     });
     
-    socket.on('pong_move', (data) => {
+    socket.on('pong_move', function(data) {
         const game = activePongGames.get(socket.id);
         if (game) {
             game.movePaddle(socket.id, data.paddleX);
         }
     });
     
-    socket.on('pong_leave', () => {
+    socket.on('pong_leave', function() {
         const game = activePongGames.get(socket.id);
         if (game) {
             game.end('player_left');
         }
     });
 
-    // --- NOVOS EVENTOS DO JOGO DA VELHA ---
-    socket.on('tictactoe_invite', () => {
+    // --- EVENTOS DO JOGO DA VELHA ---
+    socket.on('tictactoe_invite', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId || activeBots.has(userData.partnerId)) {
             socket.emit('system_message', { message: "⚠️ Você só pode jogar com um parceiro real." });
             return;
         }
         
-        // Verifica se já está em algum jogo
         if (activeTicTacToeGames.has(socket.id)) {
             socket.emit('system_message', { message: "⚠️ Você já está em uma partida de Jogo da Velha." });
             return;
@@ -654,7 +637,6 @@ io.on('connection', (socket) => {
         
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
         if (partnerSocket) {
-            // Verifica se parceiro já está em jogo
             if (activeTicTacToeGames.has(userData.partnerId)) {
                 socket.emit('system_message', { message: "⚠️ Seu parceiro já está em uma partida." });
                 return;
@@ -664,7 +646,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    socket.on('tictactoe_decline', () => {
+    socket.on('tictactoe_decline', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
@@ -673,32 +655,30 @@ io.on('connection', (socket) => {
         }
     });
     
-    socket.on('tictactoe_accept', () => {
+    socket.on('tictactoe_accept', function() {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         
-        // Verifica se algum dos dois já está em jogo
         if (activeTicTacToeGames.has(socket.id) || activeTicTacToeGames.has(userData.partnerId)) {
             socket.emit('system_message', { message: "⚠️ Alguém já está em uma partida." });
             return;
         }
         
-        // Quem convidou (partnerId) é player1, quem aceitou (socket.id) é player2
         const newGame = new TicTacToeGame(userData.partnerId, socket.id);
         newGame.start();
     });
     
-    socket.on('tictactoe_move', (data) => {
+    socket.on('tictactoe_move', function(data) {
         const game = activeTicTacToeGames.get(socket.id);
         if (game) {
             const result = game.makeMove(socket.id, data.position);
             if (!result.success) {
-                socket.emit('system_message', { message: `⚠️ ${result.reason}` });
+                socket.emit('system_message', { message: "⚠️ " + result.reason });
             }
         }
     });
     
-    socket.on('tictactoe_leave', () => {
+    socket.on('tictactoe_leave', function() {
         const game = activeTicTacToeGames.get(socket.id);
         if (game) {
             game.forceEnd(socket.id);
@@ -713,7 +693,7 @@ io.on('connection', (socket) => {
         if (user2Data) user2Data.partnerId = socket1.id;
         socket1.emit('chat_start', { partnerId: socket2.id });
         socket2.emit('chat_start', { partnerId: socket1.id });
-        console.log(`Usuários ${socket1.id} e ${socket2.id} pareados.`);
+        console.log("Usuários " + socket1.id + " e " + socket2.id + " pareados.");
     }
     
     function endUserChat(socketId) {
@@ -722,13 +702,11 @@ io.on('connection', (socket) => {
 
         const partnerId = userData.partnerId;
         
-        // Verifica se está em jogo de Pong e encerra
         const pongGame = activePongGames.get(socketId);
         if (pongGame) {
             pongGame.end('chat_ended');
         }
         
-        // NOVO: Verifica se está em jogo da Velha e encerra
         const tttGame = activeTicTacToeGames.get(socketId);
         if (tttGame) {
             tttGame.forceEnd(socketId);
@@ -763,7 +741,7 @@ function broadcastDynamicOnlineCount() {
 
 setInterval(broadcastDynamicOnlineCount, 4500);
 
-server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+server.listen(PORT, function() {
+    console.log("Servidor rodando na porta " + PORT);
 });
 ```
