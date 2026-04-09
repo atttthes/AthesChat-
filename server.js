@@ -1,4 +1,4 @@
-// server.js - Com Pong + Jogo da Velha (CORRIGIDO)
+// server.js - Com Pong + Jogo da Velha + Adivinhe o Rabisco (CORRIGIDO)
 
 const express = require('express');
 const path = require('path');
@@ -32,6 +32,49 @@ const activeBots = new Map();
 const fakeOnlineBase = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
 const activePongGames = new Map();
 const activeTicTacToeGames = new Map();
+const activeDrawingGames = new Map();
+
+// --- LISTA DE PALAVRAS PARA O JOGO ADIVINHE O RABISCO ---
+const DRAWING_WORDS = {
+    facil: [
+        "sol", "lua", "arvore", "casa", "carro", "flor", "peixe", "passaro", "coracao", "estrela",
+        "nuvem", "chuva", "arco iris", "sorvete", "maca", "banana", "gato", "cachorro", "rato", "coelho",
+        "bola", "pipa", "boneco", "boneca", "ursinho", "navio", "aviao", "trem", "onibus", "bicicleta",
+        "pato", "galinha", "vaca", "cavalo", "abelha", "borboleta", "joaninha", "formiga", "macaco", "elefante"
+    ],
+    medio: [
+        "castelo", "dinossauro", "foguete", "tartaruga", "abacaxi", "melancia", "morango", "chocolate",
+        "hamburguer", "pizza", "violao", "tambor", "flauta", "princesa", "pirata", "robo", "fantasma",
+        "bruxa", "espada", "escudo", "coroa", "trono", "bau", "mapa", "bussola", "piramide", "esfinge",
+        "mumia", "sereia", "unicornio", "dragao", "fenix", "yeti", "alienigena", "astronauta"
+    ],
+    dificil: [
+        "caleidoscopio", "labirinto", "missil", "camaleao", "holograma", "miragem", "anfiteatro",
+        "planetario", "observatorio", "telescopio", "microscopio", "catapulta", "manivela", "fantoche",
+        "pergaminho", "espantalho", "carrossel", "vitral", "mosaico", "sarcófago", "obelisco", "aqueduto",
+        "coliseu", "catedral", "mosteiro"
+    ]
+};
+
+function getRandomWord() {
+    const random = Math.random();
+    let difficulty;
+    if (random < 0.5) difficulty = "facil";
+    else if (random < 0.85) difficulty = "medio";
+    else difficulty = "dificil";
+    
+    const words = DRAWING_WORDS[difficulty];
+    const word = words[Math.floor(Math.random() * words.length)];
+    return { word, difficulty };
+}
+
+function normalizeString(str) {
+    return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
 
 // --- LÓGICA DO BOT ---
 const botConversationLogic = {
@@ -129,7 +172,6 @@ const PONG_CONFIG = {
 
 class PongGame {
     constructor(player1Id, player2Id) {
-        // player1 = quem convidou (embaixo), player2 = quem aceitou (cima)
         this.player1 = { 
             id: player1Id, 
             socket: io.sockets.sockets.get(player1Id), 
@@ -162,7 +204,6 @@ class PongGame {
     }
 
     start() {
-        // Verifica se ambos os sockets ainda estão conectados
         if (!this.player1.socket || !this.player2.socket) {
             this.end('player_disconnected');
             return;
@@ -215,7 +256,7 @@ class PongGame {
         if (loserId) {
             verticalDirection = (loserId === this.player1.id ? 1 : -1);
         } else {
-            verticalDirection = -1; // Saque inicial sempre para o player2 (cima)
+            verticalDirection = -1;
         }
         ball.vy = verticalDirection * PONG_CONFIG.INITIAL_BALL_SPEED_Y;
     }
@@ -235,19 +276,16 @@ class PongGame {
         ball.x += ball.vx * ball.speedMultiplier;
         ball.y += ball.vy * ball.speedMultiplier;
 
-        // Colisão com paredes laterais
         if (ball.x - PONG_CONFIG.BALL_RADIUS < 0 || ball.x + PONG_CONFIG.BALL_RADIUS > PONG_CONFIG.CANVAS_WIDTH) {
             ball.vx *= -1;
             ball.x = Math.max(PONG_CONFIG.BALL_RADIUS, Math.min(PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.BALL_RADIUS, ball.x));
         }
         
-        // Colisão com a raquete do player1 (embaixo)
         const hitPlayer1 = ball.y + PONG_CONFIG.BALL_RADIUS >= PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT && 
                           ball.vy > 0 && 
                           ball.x >= this.player1.paddleX && 
                           ball.x <= this.player1.paddleX + PONG_CONFIG.PADDLE_WIDTH;
         
-        // Colisão com a raquete do player2 (cima)
         const hitPlayer2 = ball.y - PONG_CONFIG.BALL_RADIUS <= PONG_CONFIG.PADDLE_HEIGHT && 
                           ball.vy < 0 && 
                           ball.x >= this.player2.paddleX && 
@@ -269,7 +307,6 @@ class PongGame {
             }
         }
         
-        // Gol
         if (ball.y > PONG_CONFIG.CANVAS_HEIGHT + PONG_CONFIG.BALL_RADIUS) {
             this.handleGoal(this.player2, this.player1.id);
         } else if (ball.y < -PONG_CONFIG.BALL_RADIUS) {
@@ -297,7 +334,6 @@ class PongGame {
     }
     
     broadcastState() {
-        // Estado para o player1 (embaixo) - coordenadas normais
         const stateForP1 = {
             ball: this.ball,
             ball2: this.isSuddenDeath ? this.ball2 : null,
@@ -307,7 +343,6 @@ class PongGame {
         const socketP1 = io.sockets.sockets.get(this.player1.id);
         if(socketP1) socketP1.emit('pong_update', stateForP1);
 
-        // Estado para o player2 (cima) - coordenadas Y invertidas
         const flipY = (y) => PONG_CONFIG.CANVAS_HEIGHT - y;
 
         const flippedBall = this.ball.x !== undefined ? { 
@@ -335,7 +370,6 @@ class PongGame {
         if (this.durationTimer) clearInterval(this.durationTimer);
         this.gamePaused = true;
 
-        // Morte súbita em caso de empate no tempo
         if (reason === 'time_up' && this.player1.score === this.player2.score && !this.isSuddenDeath) {
             this.isSuddenDeath = true;
             this.broadcast('system_message', { message: '🏆 EMPATE! Morte súbita ativada com 2 bolas. O próximo a marcar vence!' });
@@ -373,7 +407,6 @@ class TicTacToeGame {
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id), symbol: null };
         this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id), symbol: null };
         
-        // Define quem começa aleatoriamente
         const randomStart = Math.random() < 0.5;
         if (randomStart) {
             this.player1.symbol = 'X';
@@ -404,7 +437,6 @@ class TicTacToeGame {
     }
 
     start() {
-        // Verifica se ambos os sockets ainda estão conectados
         if (!this.player1.socket || !this.player2.socket) {
             this.end('player_disconnected');
             return;
@@ -521,6 +553,154 @@ class TicTacToeGame {
     }
 }
 
+// ================= JOGO ADIVINHE O RABISCO =================
+class DrawingGame {
+    constructor(player1Id, player2Id) {
+        this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id) };
+        this.player2 = { id: player2Id, socket: io.sockets.sockets.get(player2Id) };
+        
+        // Sorteio aleatório de quem desenha (50% cada)
+        const randomDrawer = Math.random() < 0.5;
+        if (randomDrawer) {
+            this.drawerId = player1Id;
+            this.guesserId = player2Id;
+        } else {
+            this.drawerId = player2Id;
+            this.guesserId = player1Id;
+        }
+        
+        const { word, difficulty } = getRandomWord();
+        this.currentWord = word;
+        this.difficulty = difficulty;
+        this.gameEnded = false;
+        
+        activeDrawingGames.set(player1Id, this);
+        activeDrawingGames.set(player2Id, this);
+        
+        console.log(`Jogo Drawing criado: Desenhista=${this.drawerId}, Adivinhador=${this.guesserId}, Palavra=${this.currentWord}`);
+    }
+    
+    start() {
+        if (!this.player1.socket || !this.player2.socket) {
+            this.end('player_disconnected');
+            return;
+        }
+        
+        // Envia para o desenhista
+        const drawerSocket = io.sockets.sockets.get(this.drawerId);
+        if (drawerSocket) {
+            drawerSocket.emit('drawing_start', {
+                role: 'drawer',
+                word: this.currentWord,
+                difficulty: this.difficulty
+            });
+        }
+        
+        // Envia para o adivinhador
+        const guesserSocket = io.sockets.sockets.get(this.guesserId);
+        if (guesserSocket) {
+            guesserSocket.emit('drawing_start', {
+                role: 'guesser',
+                wordHidden: true
+            });
+        }
+        
+        this.broadcast('system_message', { message: `✏️ Jogo Adivinhe o Rabisco iniciado! ${this.drawerId === this.player1.id ? 'Jogador 1' : 'Jogador 2'} desenha, o outro adivinha!` });
+    }
+    
+    broadcast(event, data) {
+        if(this.player1.socket) this.player1.socket.emit(event, data);
+        if(this.player2.socket) this.player2.socket.emit(event, data);
+    }
+    
+    handleDraw(playerId, drawData) {
+        if (this.gameEnded) return;
+        if (playerId !== this.drawerId) return;
+        
+        // Retransmite para o adivinhador
+        const guesserSocket = io.sockets.sockets.get(this.guesserId);
+        if (guesserSocket) {
+            guesserSocket.emit('drawing_update', drawData);
+        }
+    }
+    
+    handleClear(playerId) {
+        if (this.gameEnded) return;
+        if (playerId !== this.drawerId) return;
+        
+        const guesserSocket = io.sockets.sockets.get(this.guesserId);
+        if (guesserSocket) {
+            guesserSocket.emit('drawing_clear_update');
+        }
+    }
+    
+    handleGuess(playerId, guess) {
+        if (this.gameEnded) return;
+        if (playerId !== this.guesserId) return;
+        
+        const normalizedGuess = normalizeString(guess);
+        const normalizedWord = normalizeString(this.currentWord);
+        
+        if (normalizedGuess === normalizedWord) {
+            this.endGame('correct', playerId);
+        } else {
+            const guesserSocket = io.sockets.sockets.get(this.guesserId);
+            if (guesserSocket) {
+                guesserSocket.emit('system_message', { message: "❌ Palavra incorreta! Tente novamente." });
+            }
+        }
+    }
+    
+    handleTimeout() {
+        if (this.gameEnded) return;
+        this.endGame('timeout');
+    }
+    
+    handleGiveUp(playerId) {
+        if (this.gameEnded) return;
+        this.endGame('give_up', playerId);
+    }
+    
+    endGame(reason, winnerId = null) {
+        this.gameEnded = true;
+        
+        if (reason === 'correct') {
+            this.broadcast('drawing_correct', {
+                word: this.currentWord,
+                guesserId: winnerId
+            });
+            this.broadcast('system_message', { message: `🎉 ACERTOU! A palavra era "${this.currentWord}". Parabéns!` });
+        } else if (reason === 'timeout') {
+            this.broadcast('drawing_timeout', { word: this.currentWord });
+            this.broadcast('system_message', { message: `⏰ Tempo esgotado! A palavra era "${this.currentWord}".` });
+        } else if (reason === 'give_up') {
+            this.broadcast('drawing_give_up', { word: this.currentWord });
+            this.broadcast('system_message', { message: `😔 Um jogador desistiu! A palavra era "${this.currentWord}".` });
+        } else if (reason === 'player_disconnected') {
+            this.broadcast('drawing_end');
+            this.broadcast('system_message', { message: `🔌 Um jogador desconectou. Jogo encerrado.` });
+        }
+        
+        this.end();
+    }
+    
+    end() {
+        activeDrawingGames.delete(this.player1.id);
+        activeDrawingGames.delete(this.player2.id);
+        console.log(`Jogo Drawing entre ${this.player1.id} e ${this.player2.id} finalizado.`);
+        
+        setTimeout(() => {
+            if (this.player1.socket) this.player1.socket.emit('drawing_end');
+            if (this.player2.socket) this.player2.socket.emit('drawing_end');
+        }, 3000);
+    }
+    
+    forceEnd(playerLeftId) {
+        if (this.gameEnded) return;
+        this.endGame('player_disconnected');
+    }
+}
+
 // ================= FUNÇÕES AUXILIARES =================
 function pairRealUsers(socket1, socket2) {
     const user1Data = connectedUsers.get(socket1.id);
@@ -538,7 +718,6 @@ function endUserChat(socketId) {
 
     const partnerId = userData.partnerId;
     
-    // Encerra jogos ativos
     const pongGame = activePongGames.get(socketId);
     if (pongGame) {
         pongGame.end('chat_ended');
@@ -547,6 +726,11 @@ function endUserChat(socketId) {
     const tttGame = activeTicTacToeGames.get(socketId);
     if (tttGame) {
         tttGame.forceEnd(socketId);
+    }
+    
+    const drawingGame = activeDrawingGames.get(socketId);
+    if (drawingGame) {
+        drawingGame.forceEnd(socketId);
     }
     
     userData.partnerId = null;
@@ -578,7 +762,6 @@ io.on('connection', (socket) => {
         if (data && data.location) currentUserData.location = data.location;
         if (currentUserData.partnerId) return;
 
-        // Verifica se existe algum usuário com bot para substituir
         let userWithBot = null;
         for (const [userId, userData] of connectedUsers) {
             if (userData.partnerId && activeBots.has(userData.partnerId)) {
@@ -600,7 +783,6 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // Procura por um parceiro real disponível
         let realPartner = null;
         for (const [userId, userData] of connectedUsers) {
             if (userId !== socket.id && !userData.partnerId) {
@@ -655,7 +837,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        // Encerra jogos do usuário
         if (activePongGames.has(socket.id)) {
             const game = activePongGames.get(socket.id);
             if(game) game.end('partner_disconnected');
@@ -663,6 +844,11 @@ io.on('connection', (socket) => {
         
         if (activeTicTacToeGames.has(socket.id)) {
             const game = activeTicTacToeGames.get(socket.id);
+            if(game) game.forceEnd(socket.id);
+        }
+        
+        if (activeDrawingGames.has(socket.id)) {
+            const game = activeDrawingGames.get(socket.id);
             if(game) game.forceEnd(socket.id);
         }
 
@@ -713,7 +899,6 @@ io.on('connection', (socket) => {
         const userData = connectedUsers.get(socket.id);
         if (!userData || !userData.partnerId) return;
         
-        // Verifica se ambos os jogadores ainda estão conectados
         const partnerSocket = io.sockets.sockets.get(userData.partnerId);
         if (!partnerSocket) {
             socket.emit('system_message', { message: "⚠️ Seu parceiro desconectou." });
@@ -725,8 +910,6 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // player1 = quem convidou (socket.id? Não, quem convidou é o partnerId)
-        // quem aceitou é o socket.id atual
         const newGame = new PongGame(userData.partnerId, socket.id);
         newGame.start();
     });
@@ -811,6 +994,103 @@ io.on('connection', (socket) => {
         const game = activeTicTacToeGames.get(socket.id);
         if (game) {
             game.forceEnd(socket.id);
+        }
+    });
+    
+    // ========== EVENTOS DO ADIVINHE O RABISCO ==========
+    socket.on('drawing_invite', () => {
+        const userData = connectedUsers.get(socket.id);
+        if (!userData || !userData.partnerId || activeBots.has(userData.partnerId)) {
+            socket.emit('system_message', { message: "⚠️ Você só pode jogar com um parceiro real." });
+            return;
+        }
+        
+        if (activeDrawingGames.has(socket.id)) {
+            socket.emit('system_message', { message: "⚠️ Você já está em uma partida de Adivinhe o Rabisco." });
+            return;
+        }
+        
+        const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+        if (partnerSocket) {
+            if (activeDrawingGames.has(userData.partnerId)) {
+                socket.emit('system_message', { message: "⚠️ Seu parceiro já está em uma partida." });
+                return;
+            }
+            partnerSocket.emit('drawing_invite_received');
+            socket.emit('system_message', { message: "⏳ Convite para Adivinhe o Rabisco enviado. Aguardando resposta..." });
+        }
+    });
+    
+    socket.on('drawing_decline', () => {
+        const userData = connectedUsers.get(socket.id);
+        if (!userData || !userData.partnerId) return;
+        const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+        if (partnerSocket) {
+            partnerSocket.emit('system_message', { message: "❌ Seu parceiro recusou o desafio do Adivinhe o Rabisco." });
+        }
+    });
+    
+    socket.on('drawing_accept', () => {
+        const userData = connectedUsers.get(socket.id);
+        if (!userData || !userData.partnerId) return;
+        
+        const partnerSocket = io.sockets.sockets.get(userData.partnerId);
+        if (!partnerSocket) {
+            socket.emit('system_message', { message: "⚠️ Seu parceiro desconectou." });
+            return;
+        }
+        
+        if (activeDrawingGames.has(socket.id) || activeDrawingGames.has(userData.partnerId)) {
+            socket.emit('system_message', { message: "⚠️ Alguém já está em uma partida." });
+            return;
+        }
+        
+        const newGame = new DrawingGame(userData.partnerId, socket.id);
+        newGame.start();
+    });
+    
+    socket.on('drawing_draw', (data) => {
+        const game = activeDrawingGames.get(socket.id);
+        if (game) {
+            game.handleDraw(socket.id, data);
+        }
+    });
+    
+    socket.on('drawing_clear', () => {
+        const game = activeDrawingGames.get(socket.id);
+        if (game) {
+            game.handleClear(socket.id);
+        }
+    });
+    
+    socket.on('drawing_guess', (data) => {
+        const game = activeDrawingGames.get(socket.id);
+        if (game) {
+            game.handleGuess(socket.id, data.guess);
+        }
+    });
+    
+    socket.on('drawing_typing', (data) => {
+        const game = activeDrawingGames.get(socket.id);
+        if (game) {
+            const drawerSocket = io.sockets.sockets.get(game.drawerId);
+            if (drawerSocket) {
+                drawerSocket.emit('drawing_typing', { text: data.text });
+            }
+        }
+    });
+    
+    socket.on('drawing_timeout', () => {
+        const game = activeDrawingGames.get(socket.id);
+        if (game) {
+            game.handleTimeout();
+        }
+    });
+    
+    socket.on('drawing_give_up', () => {
+        const game = activeDrawingGames.get(socket.id);
+        if (game) {
+            game.handleGiveUp(socket.id);
         }
     });
 });
