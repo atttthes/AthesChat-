@@ -553,7 +553,7 @@ class TicTacToeGame {
     }
 }
 
-// ================= JOGO ADIVINHE O RABISCO =================
+// ================= JOGO ADIVINHE O RABISCO - CORRIGIDO =================
 class DrawingGame {
     constructor(player1Id, player2Id) {
         this.player1 = { id: player1Id, socket: io.sockets.sockets.get(player1Id) };
@@ -662,6 +662,7 @@ class DrawingGame {
     }
     
     endGame(reason, winnerId = null) {
+        if (this.gameEnded) return;
         this.gameEnded = true;
         
         if (reason === 'correct') {
@@ -674,6 +675,7 @@ class DrawingGame {
             this.broadcast('drawing_timeout', { word: this.currentWord });
             this.broadcast('system_message', { message: `⏰ Tempo esgotado! A palavra era "${this.currentWord}".` });
         } else if (reason === 'give_up') {
+            // Quando um desiste, ambos recebem o evento e fecham o jogo
             this.broadcast('drawing_give_up', { word: this.currentWord });
             this.broadcast('system_message', { message: `😔 Um jogador desistiu! A palavra era "${this.currentWord}".` });
         } else if (reason === 'player_disconnected') {
@@ -685,14 +687,13 @@ class DrawingGame {
     }
     
     end() {
+        // Envia evento de fim para ambos os jogadores
+        if (this.player1.socket) this.player1.socket.emit('drawing_end');
+        if (this.player2.socket) this.player2.socket.emit('drawing_end');
+        
         activeDrawingGames.delete(this.player1.id);
         activeDrawingGames.delete(this.player2.id);
         console.log(`Jogo Drawing entre ${this.player1.id} e ${this.player2.id} finalizado.`);
-        
-        setTimeout(() => {
-            if (this.player1.socket) this.player1.socket.emit('drawing_end');
-            if (this.player2.socket) this.player2.socket.emit('drawing_end');
-        }, 3000);
     }
     
     forceEnd(playerLeftId) {
