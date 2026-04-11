@@ -93,7 +93,7 @@
         #ttt-turn { font-size: 1.3rem; margin-bottom: 10px; text-align: center; }
         #ttt-status { text-align: center; margin-bottom: 15px; color: var(--text-muted); }
 
-        /* JOGO DE DESENHO - CORRIGIDO */
+        /* JOGO DE DESENHO */
         .drawing-wrapper {
             display: flex;
             flex-wrap: wrap;
@@ -157,24 +157,12 @@
             box-shadow: 0 0 10px #e94560;
         }
         .drawing-color-picker {
-            background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            background: linear-gradient(135deg, red, orange, yellow, green, blue, indigo, violet);
             width: 40px;
             height: 40px;
             border-radius: 50%;
             border: 2px solid white;
             cursor: pointer;
-            position: relative;
-        }
-        .drawing-color-picker:hover::after {
-            content: "🎨";
-            position: absolute;
-            bottom: -25px;
-            left: 10px;
-            background: #1a1a2e;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 12px;
-            white-space: nowrap;
         }
         .drawing-chat-messages {
             flex: 1;
@@ -290,35 +278,6 @@
         .tutorial-card p { text-align: left; margin: 10px 0; font-size: 0.9rem; }
         .tutorial-card .role-box { background: #533483; padding: 10px; border-radius: 20px; margin: 10px 0; }
         .tutorial-card button { background: #e94560; border: none; padding: 12px 30px; border-radius: 50px; font-weight: bold; color: white; margin-top: 15px; cursor: pointer; }
-        .color-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 2100;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .color-picker-wheel {
-            background: var(--tertiary-bg);
-            padding: 20px;
-            border-radius: 20px;
-            text-align: center;
-        }
-        .color-preview {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            margin: 10px auto;
-            border: 2px solid white;
-        }
-        .hue-slider {
-            width: 200px;
-            margin: 10px;
-        }
     </style>
 </head>
 <body>
@@ -356,7 +315,7 @@
         </div>
     </div>
     
-    <!-- MODAIS DE CONVITE -->
+    <!-- MODAL DE CONVITE PARA O PONG -->
     <div id="pong-invite-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Seu parceiro(a) te desafiou para uma partida de Pong!</h3>
@@ -368,6 +327,7 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONVITE PARA O JOGO DA VELHA -->
     <div id="ttt-invite-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Seu parceiro(a) te desafiou para um Jogo da Velha!</h3>
@@ -379,6 +339,7 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONVITE PARA O JOGO DE DESENHO -->
     <div id="drawing-invite-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>🎨 Desafio: Que Rabisco é esse?</h3>
@@ -390,7 +351,7 @@
         </div>
     </div>
     
-    <!-- TELA DO PONG -->
+    <!-- TELA DO JOGO PONG -->
     <div id="pong-game-container">
         <div id="pong-countdown"></div>
         <div id="pong-info">
@@ -414,7 +375,7 @@
         <button id="ttt-leave-btn">Sair do Jogo</button>
     </div>
 
-    <!-- TELA DO JOGO DE DESENHO CORRIGIDO -->
+    <!-- TELA DO JOGO DE DESENHO -->
     <div id="drawing-game-container">
         <div id="drawing-game-content">
             <div class="drawing-status" id="drawing-status">🎨 Aguardando...</div>
@@ -425,10 +386,10 @@
                         <div id="drawing-word-display" class="drawing-word-display"></div>
                         <canvas id="draw-canvas" class="drawing-canvas" width="500" height="400"></canvas>
                         <div class="drawing-tools" id="drawing-tools">
-                            <button class="drawing-tool-btn" id="draw-pencil" data-tool="pencil">✏️ Lápis</button>
-                            <button class="drawing-tool-btn" id="draw-eraser" data-tool="eraser">🧽 Borracha</button>
+                            <button class="drawing-tool-btn" id="draw-pencil">✏️ Lápis</button>
+                            <button class="drawing-tool-btn" id="draw-eraser">🧽 Borracha</button>
                             <button class="drawing-tool-btn" id="draw-clear">🗑️ Limpar</button>
-                            <div class="drawing-color-picker" id="draw-color-picker" style="background: linear-gradient(135deg, red, orange, yellow, green, blue, indigo, violet);"></div>
+                            <div class="drawing-color-picker" id="draw-color-picker"></div>
                             <input type="range" id="draw-size" min="2" max="30" value="5" style="width:80px">
                         </div>
                         <div class="drawing-timer" id="drawing-timer-display">⏱️ Tempo: 60s</div>
@@ -824,7 +785,7 @@
         }
         tttLeaveBtn.onclick = () => { socket.emit('tictactoe_leave'); tttGameContainer.style.display = 'none'; };
         
-        // ================= JOGO DE DESENHO CORRIGIDO =================
+        // ================= JOGO DE DESENHO =================
         const drawCanvas = document.getElementById('draw-canvas');
         const drawingWordDisplayElem = document.getElementById('drawing-word-display');
         const drawingTimerDisplay = document.getElementById('drawing-timer-display');
@@ -833,7 +794,6 @@
         const drawingLeaveBtn = document.getElementById('drawing-leave-btn');
         const drawingChatMessagesDiv = document.getElementById('drawing-chat-messages');
         
-        // Função para atualizar o destaque da ferramenta
         function updateToolHighlight() {
             document.querySelectorAll('.drawing-tool-btn').forEach(btn => {
                 if (btn.id === 'draw-pencil' && drawingTool === 'pencil') btn.classList.add('active');
@@ -842,21 +802,31 @@
             });
         }
         
-        // Seletor de cores com gradiente
         document.getElementById('draw-color-picker').onclick = () => {
             const input = document.createElement('input');
             input.type = 'color';
             input.value = drawingColor;
-            input.onchange = (e) => {
-                drawingColor = e.target.value;
-                updateToolHighlight();
-            };
+            input.onchange = (e) => { drawingColor = e.target.value; };
             input.click();
         };
         
         socket.on('drawing_invite_received', () => { drawingInviteModal.style.display = 'flex'; });
         document.getElementById('drawing-accept').onclick = () => { socket.emit('drawing_accept'); drawingInviteModal.style.display = 'none'; };
         document.getElementById('drawing-decline').onclick = () => { socket.emit('drawing_decline'); drawingInviteModal.style.display = 'none'; };
+        
+        function showTutorial(gameName, rules, onComplete) {
+            const div = document.createElement('div');
+            div.className = 'tutorial-overlay';
+            div.innerHTML = `
+                <div class="tutorial-card">
+                    <h2>🎮 ${gameName}</h2>
+                    ${rules.map(r => `<div class="role-box"><strong>${r.title}</strong><p>${r.content}</p></div>`).join('')}
+                    <button id="tutorial-ok">✅ ENTENDI, VAMOS JOGAR!</button>
+                </div>
+            `;
+            document.body.appendChild(div);
+            document.getElementById('tutorial-ok').onclick = () => { div.remove(); onComplete(); };
+        }
         
         socket.on('drawing_tutorial_required', () => {
             showTutorial('Que Rabisco é esse?', [
@@ -987,11 +957,8 @@
                 if (!isDrawing || drawingRole !== 'drawer' || !drawingGameActive) return;
                 e.preventDefault();
                 const pos = getCoords(e);
-                if (drawingTool === 'eraser') {
-                    drawingCtx.strokeStyle = 'white';
-                } else {
-                    drawingCtx.strokeStyle = drawingColor;
-                }
+                if (drawingTool === 'eraser') drawingCtx.strokeStyle = 'white';
+                else drawingCtx.strokeStyle = drawingColor;
                 drawingCtx.lineWidth = drawingSize;
                 drawingCtx.lineTo(pos.x, pos.y);
                 drawingCtx.stroke();
@@ -999,17 +966,7 @@
                 drawingCtx.moveTo(pos.x, pos.y);
                 sendDrawing();
             };
-            const endDraw = () => { 
-                isDrawing = false; 
-                drawingCtx.beginPath();
-            };
-            
-            drawCanvas.removeEventListener('mousedown', startDraw);
-            drawCanvas.removeEventListener('mousemove', moveDraw);
-            drawCanvas.removeEventListener('mouseup', endDraw);
-            drawCanvas.removeEventListener('touchstart', startDraw);
-            drawCanvas.removeEventListener('touchmove', moveDraw);
-            drawCanvas.removeEventListener('touchend', endDraw);
+            const endDraw = () => { isDrawing = false; drawingCtx.beginPath(); };
             
             drawCanvas.addEventListener('mousedown', startDraw);
             drawCanvas.addEventListener('mousemove', moveDraw);
@@ -1068,14 +1025,8 @@
             }
         };
         
-        document.getElementById('draw-pencil').onclick = () => { 
-            drawingTool = 'pencil'; 
-            updateToolHighlight();
-        };
-        document.getElementById('draw-eraser').onclick = () => { 
-            drawingTool = 'eraser'; 
-            updateToolHighlight();
-        };
+        document.getElementById('draw-pencil').onclick = () => { drawingTool = 'pencil'; updateToolHighlight(); };
+        document.getElementById('draw-eraser').onclick = () => { drawingTool = 'eraser'; updateToolHighlight(); };
         document.getElementById('draw-size').onchange = (e) => { drawingSize = parseInt(e.target.value); };
         
         drawingLeaveBtn.onclick = () => { 
@@ -1084,21 +1035,6 @@
             drawingGameArea.style.display = 'block';
             drawingStatusElem.style.display = 'none';
         };
-        
-        // ================= TUTORIAL GENÉRICO =================
-        function showTutorial(gameName, rules, onComplete) {
-            const div = document.createElement('div');
-            div.className = 'tutorial-overlay';
-            div.innerHTML = `
-                <div class="tutorial-card">
-                    <h2>🎮 ${gameName}</h2>
-                    ${rules.map(r => `<div class="role-box"><strong>${r.title}</strong><p>${r.content}</p></div>`).join('')}
-                    <button id="tutorial-ok">✅ ENTENDI, VAMOS JOGAR!</button>
-                </div>
-            `;
-            document.body.appendChild(div);
-            document.getElementById('tutorial-ok').onclick = () => { div.remove(); onComplete(); };
-        }
         
         // ================= EVENTOS PRINCIPAIS DO CHAT =================
         startBtn.addEventListener('click', () => {
@@ -1218,7 +1154,6 @@
             menuBtn.classList.remove('open');
         });
         
-        // Inicializar destaques das ferramentas
         updateToolHighlight();
     </script>
 </body>
