@@ -57,7 +57,6 @@
         .close-reply { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 10px; font-size: 1.2em; line-height: 1; padding: 0; }
         .close-reply:hover { color: #fff; }
 
-        /* --- ESTILOS MENU E JOGOS --- */
         #menu-btn { background: none; border: none; color: white; font-size: 24px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 30px; height: 30px; display: flex; flex-direction: column; justify-content: space-around; z-index: 1101; }
         #menu-btn .bar { display: block; width: 100%; height: 3px; background: white; border-radius: 2px; transition: all 0.3s ease-in-out; }
         #menu-btn.open .bar1 { transform: rotate(45deg) translate(7px, 7px); }
@@ -77,7 +76,6 @@
         .accept-btn { background: var(--success-color); color: white; }
         .decline-btn { background: var(--error-color); color: white; }
 
-        /* PONG */
         #pong-game-container, #ttt-game-container, #drawing-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; padding: 20px; }
         #pong-canvas { background: #000; border: 2px solid var(--text-muted); }
         #pong-info { display: flex; justify-content: space-around; width: 300px; color: var(--text-color); margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
@@ -86,7 +84,6 @@
         #pong-leave-btn, #ttt-leave-btn, #drawing-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         #pong-countdown { position: absolute; font-size: 8em; font-weight: bold; color: rgba(255, 255, 255, 0.8); z-index: 10; display: none; text-shadow: 2px 2px 10px #000; }
 
-        /* JOGO DA VELHA */
         .ttt-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: var(--tertiary-bg); padding: 15px; border-radius: 20px; width: min(70vw, 70vh, 400px); height: min(70vw, 70vh, 400px); margin: 20px auto; }
         .ttt-cell { background: var(--secondary-bg); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; cursor: pointer; transition: 0.1s; }
         .ttt-cell.X { color: #ff6b6b; }
@@ -94,7 +91,6 @@
         #ttt-turn { font-size: 1.3rem; margin-bottom: 10px; text-align: center; }
         #ttt-status { text-align: center; margin-bottom: 15px; color: var(--text-muted); }
 
-        /* JOGO DE DESENHO */
         .drawing-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px; max-width: 1000px; width: 100%; margin: 0 auto; }
         .drawing-canvas-area { flex: 2; min-width: 280px; text-align: center; }
         .drawing-chat-area { flex: 1; min-width: 220px; max-width: 280px; background: var(--tertiary-bg); border-radius: 20px; display: flex; flex-direction: column; height: auto; max-height: 450px; }
@@ -162,7 +158,6 @@
         </div>
     </div>
     
-    <!-- MODAL DE CONVITE PARA O PONG -->
     <div id="pong-invite-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Seu parceiro(a) te desafiou para uma partida de Pong!</h3>
@@ -174,7 +169,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE CONVITE PARA O JOGO DA VELHA -->
     <div id="ttt-invite-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Seu parceiro(a) te desafiou para um Jogo da Velha!</h3>
@@ -186,7 +180,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE CONVITE PARA O JOGO DE DESENHO -->
     <div id="drawing-invite-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>🎨 Desafio: Que Rabisco é esse?</h3>
@@ -198,7 +191,6 @@
         </div>
     </div>
     
-    <!-- TELA DO JOGO PONG -->
     <div id="pong-game-container">
         <div id="pong-countdown"></div>
         <div id="pong-info">
@@ -214,7 +206,6 @@
         <button id="pong-leave-btn">Encerrar Jogo</button>
     </div>
 
-    <!-- TELA DO JOGO DA VELHA -->
     <div id="ttt-game-container">
         <div id="ttt-turn">🎲 Aguardando...</div>
         <div id="ttt-status"></div>
@@ -222,7 +213,6 @@
         <button id="ttt-leave-btn">Sair do Jogo</button>
     </div>
 
-    <!-- TELA DO JOGO DE DESENHO -->
     <div id="drawing-game-container">
         <div id="drawing-game-content">
             <div class="drawing-status" id="drawing-status">🎨 Aguardando...</div>
@@ -259,7 +249,6 @@
     <script>
         const socket = io();
         
-        // ================= ELEMENTOS DO CHAT =================
         const chatDiv = document.getElementById('chat');
         const messageInput = document.getElementById('message');
         const sendBtn = document.getElementById('send-btn');
@@ -274,7 +263,6 @@
         const playTttBtn = document.getElementById('play-ttt-btn');
         const playDrawingBtn = document.getElementById('play-drawing-btn');
         
-        // ================= VARIÁVEIS DO CHAT =================
         let myLocation = "Desconhecido";
         let isConnected = false;
         let currentPartnerId = null;
@@ -285,7 +273,6 @@
         const swipeThreshold = 50;
         let palavrasOfensivas = [];
         
-        // ================= VARIÁVEIS DO PONG =================
         let pongGameActive = false;
         let pongGameState = null;
         let pongAnimationId = null;
@@ -296,13 +283,11 @@
         let ball1Trail = [], ball2Trail = [];
         const TRAIL_LENGTH = 15;
         
-        // ================= VARIÁVEIS DO JOGO DA VELHA =================
         let tttGameActive = false;
         let tttBoardState = Array(9).fill(null);
         let tttMySymbol = null;
         let tttCurrentTurn = null;
         
-        // ================= VARIÁVEIS DO JOGO DE DESENHO =================
         let drawingGameActive = false;
         let drawingRole = null;
         let drawingWord = null;
@@ -317,7 +302,6 @@
         let drawingWaitingMsg = document.getElementById('drawing-waiting');
         let drawingStatusElem = document.getElementById('drawing-status');
         
-        // ================= FUNÇÕES DO CHAT =================
         async function fetchMyLocation() {
             try {
                 const response = await fetch('https://ipapi.co/json/');
@@ -480,7 +464,6 @@
             });
         }
         
-        // ================= JOGO PONG =================
         const pongCanvas = document.getElementById('pong-canvas');
         const pongCtx = pongCanvas.getContext('2d');
         const pongScoreYouElem = document.getElementById('pong-score-you');
@@ -578,7 +561,6 @@
         pongRightBtn.addEventListener('mouseup', () => pongInputState.right = false);
         pongLeaveBtn.onclick = () => { socket.emit('pong_leave'); pongGameContainer.style.display = 'none'; };
         
-        // ================= JOGO DA VELHA =================
         const tttInviteModal = document.getElementById('ttt-invite-modal');
         const tttAcceptBtn = document.getElementById('ttt-accept');
         const tttDeclineBtn = document.getElementById('ttt-decline');
@@ -632,7 +614,6 @@
         }
         tttLeaveBtn.onclick = () => { socket.emit('tictactoe_leave'); tttGameContainer.style.display = 'none'; };
         
-        // ================= JOGO DE DESENHO =================
         const drawCanvas = document.getElementById('draw-canvas');
         const drawingWordDisplayElem = document.getElementById('drawing-word-display');
         const drawingTimerDisplay = document.getElementById('drawing-timer-display');
@@ -883,7 +864,6 @@
             drawingStatusElem.style.display = 'none';
         };
         
-        // ================= EVENTOS PRINCIPAIS DO CHAT =================
         startBtn.addEventListener('click', () => {
             startScreen.style.display = 'none';
             chatContainer.style.display = 'flex';
