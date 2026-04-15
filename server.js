@@ -692,7 +692,12 @@ io.on('connection', function(socket) {
         } else {
             const partnerSocket = io.sockets.sockets.get(partnerId);
             if (partnerSocket) {
-                partnerSocket.emit('message', { text: data.text, senderId: socket.id, replyTo: data.replyTo || null, location: senderData.location });
+                partnerSocket.emit('message', { 
+                    text: data.text, 
+                    senderId: socket.id, 
+                    replyTo: data.replyTo || null, 
+                    location: senderData.location 
+                });
             }
         }
     });
