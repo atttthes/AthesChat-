@@ -17,17 +17,41 @@
             --success-color: #4CAF50;
             --error-color: #ff4d4d;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; -webkit-touch-callout: none; user-select: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
         body { height: 100vh; background-color: var(--primary-bg); color: var(--text-color); touch-action: pan-y; overflow: hidden; }
         #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
         #start-btn { background-color: var(--success-color); color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: all 0.3s; }
         #start-btn:hover { background-color: #45a049; transform: scale(1.05); }
         #chat-container { display: none; height: 100vh; flex-direction: column; background-color: var(--secondary-bg); position: relative; }
+        
+        /* LETREIRO */
+        .marquee-container {
+            background: linear-gradient(90deg, #e94560, #c62a4a);
+            color: white;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            height: 36px;
+            display: none;
+            align-items: center;
+        }
+        .marquee-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 20s linear infinite;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        
         #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; }
         .online-counter { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
         .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
         #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
-        .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; word-wrap: break-word; }
+        .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; }
         .message.active { background-color: rgba(255, 255, 255, 0.1); }
         .message.swiping { transition: none; }
         .received { background: #333; align-self: flex-start; }
@@ -57,6 +81,7 @@
         .close-reply { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 10px; font-size: 1.2em; line-height: 1; padding: 0; }
         .close-reply:hover { color: #fff; }
 
+        /* ESTILOS MENU E JOGOS */
         #menu-btn { background: none; border: none; color: white; font-size: 24px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 30px; height: 30px; display: flex; flex-direction: column; justify-content: space-around; z-index: 1101; }
         #menu-btn .bar { display: block; width: 100%; height: 3px; background: white; border-radius: 2px; transition: all 0.3s ease-in-out; }
         #menu-btn.open .bar1 { transform: rotate(45deg) translate(7px, 7px); }
@@ -70,13 +95,14 @@
         #sidebar ul li:hover { background: #444; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1200; }
-        .modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); max-width: 90%; }
+        .modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); }
         .modal-content h3 { margin-bottom: 20px; }
         .modal-actions button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 0 10px; }
         .accept-btn { background: var(--success-color); color: white; }
         .decline-btn { background: var(--error-color); color: white; }
 
-        #pong-game-container, #ttt-game-container, #drawing-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; padding: 20px; }
+        /* JOGO PONG */
+        #pong-game-container, #ttt-game-container, #drawing-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; }
         #pong-canvas { background: #000; border: 2px solid var(--text-muted); }
         #pong-info { display: flex; justify-content: space-around; width: 300px; color: var(--text-color); margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
         #pong-controls { display: flex; justify-content: space-between; width: 200px; margin-top: 20px; }
@@ -84,20 +110,21 @@
         #pong-leave-btn, #ttt-leave-btn, #drawing-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         #pong-countdown { position: absolute; font-size: 8em; font-weight: bold; color: rgba(255, 255, 255, 0.8); z-index: 10; display: none; text-shadow: 2px 2px 10px #000; }
 
+        /* JOGO DA VELHA */
         .ttt-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: var(--tertiary-bg); padding: 15px; border-radius: 20px; width: min(70vw, 70vh, 400px); height: min(70vw, 70vh, 400px); margin: 20px auto; }
         .ttt-cell { background: var(--secondary-bg); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; cursor: pointer; transition: 0.1s; }
         .ttt-cell.X { color: #ff6b6b; }
         .ttt-cell.O { color: #4ecdc4; }
         #ttt-turn { font-size: 1.3rem; margin-bottom: 10px; text-align: center; }
-        #ttt-status { text-align: center; margin-bottom: 15px; color: var(--text-muted); }
 
+        /* JOGO DE DESENHO */
         .drawing-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px; max-width: 1000px; width: 100%; margin: 0 auto; }
         .drawing-canvas-area { flex: 2; min-width: 280px; text-align: center; }
         .drawing-chat-area { flex: 1; min-width: 220px; max-width: 280px; background: var(--tertiary-bg); border-radius: 20px; display: flex; flex-direction: column; height: auto; max-height: 450px; }
         .drawing-canvas { background: white; border-radius: 20px; border: 3px solid #533483; cursor: crosshair; width: 100%; max-width: 500px; height: auto; aspect-ratio: 5 / 4; touch-action: none; }
         .drawing-tools { background: #533483; padding: 10px; border-radius: 50px; margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
         .drawing-tool-btn { background: #1a1a2e; border: none; padding: 8px 16px; border-radius: 40px; color: white; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
-        .drawing-tool-btn.active { background: #e94560; transform: scale(1.05); box-shadow: 0 0 10px #e94560; }
+        .drawing-tool-btn.active { background: #e94560; transform: scale(1.05); }
         .drawing-color-picker { background: linear-gradient(135deg, red, orange, yellow, green, blue, indigo, violet); width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; cursor: pointer; }
         .drawing-chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; max-height: 250px; min-height: 150px; }
         .drawing-chat-message { padding: 6px 10px; border-radius: 12px; font-size: 0.8rem; word-wrap: break-word; }
@@ -127,16 +154,23 @@
     <div id="start-screen">
         <h1 style="color: white; margin-bottom: 20px;">AthesChat!</h1>
         <p style="color: #aaa; margin-bottom: 20px; text-align: center;">O chat anônimo que conecta o Brasil!</p>
-        <button id="start-btn" style="background-color: #4CAF50;">⚡ Comece a Conversar!</button>
-        <button id="admin-login-btn" style="background-color: #0062cc; margin-top: 15px; padding: 12px 25px; font-size: 14px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; color: white;">🔒 Admin Login</button>
+        <button id="start-btn">Comece a Conversar!</button>
     </div>
 
     <div id="chat-container">
+        <!-- LETREIRO -->
+        <div id="marqueeContainer" class="marquee-container" style="display: none;">
+            <div id="marqueeText" class="marquee-text"></div>
+        </div>
+        
         <div id="sidebar">
              <ul>
+                <li id="report-user-btn">🚨 Denunciar Usuário</li>
                 <li id="play-pong-btn">🎮 Jogar Pong</li>
                 <li id="play-ttt-btn">❌ Jogo da Velha</li>
                 <li id="play-drawing-btn">🎨 Que Rabisco é esse?</li>
+                <li style="border-top: 1px solid #444; margin-top: 10px;"></li>
+                <li id="admin-login-btn" style="color: #e94560;">🔐 Login</li>
             </ul>
         </div>
         <div id="chat-header">
@@ -159,39 +193,62 @@
         </div>
     </div>
     
-    <div id="pong-invite-modal" class="modal-overlay">
+    <!-- MODAL DE DENÚNCIA -->
+    <div id="reportModal" class="modal-overlay">
         <div class="modal-content">
-            <h3>🏓 Seu parceiro(a) te desafiou para uma partida de Pong!</h3>
-            <p>Quem fizer 3 gols ou tiver mais pontos em 3 minutos vence.</p>
-            <div class="modal-actions">
-                <button id="pong-accept" class="accept-btn">Aceitar</button>
-                <button id="pong-decline" class="decline-btn">Recusar</button>
+            <h3>🚨 Denunciar Usuário</h3>
+            <select id="reportReason" style="width:100%; padding:10px; margin:10px 0; background:#1e1e1e; color:white; border-radius:8px;">
+                <option value="ofensivo">Mensagem ofensiva</option>
+                <option value="spam">Spam</option>
+                <option value="assédio">Assédio</option>
+                <option value="conteúdo impróprio">Conteúdo impróprio</option>
+                <option value="outro">Outro</option>
+            </select>
+            <input type="text" id="reportUserId" placeholder="ID do usuário (opcional)" style="width:100%; padding:10px; margin:10px 0; background:#1e1e1e; color:white; border-radius:8px; border:none;">
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button id="confirmReportBtn" class="accept-btn">Denunciar</button>
+                <button id="cancelReportBtn" class="decline-btn">Cancelar</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL DE CONVITE PONG -->
+    <div id="pong-invite-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Seu parceiro(a) te desafiou para uma partida de Pong!</h3>
+            <p>Quem fizer 3 gols ou tiver mais pontos em 3 minutos vence.</p>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button id="pong-accept" class="accept-btn">Sim</button>
+                <button id="pong-decline" class="decline-btn">Não</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONVITE JOGO DA VELHA -->
     <div id="ttt-invite-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3>❌ Seu parceiro(a) te desafiou para um Jogo da Velha!</h3>
+            <h3>Seu parceiro(a) te desafiou para um Jogo da Velha!</h3>
             <p>Quem fizer uma linha, coluna ou diagonal vence!</p>
-            <div class="modal-actions">
+            <div class="modal-actions" style="margin-top: 20px;">
                 <button id="ttt-accept" class="accept-btn">Aceitar</button>
                 <button id="ttt-decline" class="decline-btn">Recusar</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL DE CONVITE DESENHO -->
     <div id="drawing-invite-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>🎨 Desafio: Que Rabisco é esse?</h3>
             <p>Um desenha, o outro adivinha! Quem acertar vence!</p>
-            <div class="modal-actions">
+            <div class="modal-actions" style="margin-top: 20px;">
                 <button id="drawing-accept" class="accept-btn">Aceitar</button>
                 <button id="drawing-decline" class="decline-btn">Recusar</button>
             </div>
         </div>
     </div>
     
+    <!-- TELA DO JOGO PONG -->
     <div id="pong-game-container">
         <div id="pong-countdown"></div>
         <div id="pong-info">
@@ -207,13 +264,14 @@
         <button id="pong-leave-btn">Encerrar Jogo</button>
     </div>
 
+    <!-- TELA DO JOGO DA VELHA -->
     <div id="ttt-game-container">
         <div id="ttt-turn">🎲 Aguardando...</div>
-        <div id="ttt-status"></div>
         <div class="ttt-board" id="ttt-board"></div>
         <button id="ttt-leave-btn">Sair do Jogo</button>
     </div>
 
+    <!-- TELA DO JOGO DE DESENHO -->
     <div id="drawing-game-container">
         <div id="drawing-game-content">
             <div class="drawing-status" id="drawing-status">🎨 Aguardando...</div>
@@ -250,6 +308,7 @@
     <script>
         const socket = io();
         
+        // Elementos do Chat
         const chatDiv = document.getElementById('chat');
         const messageInput = document.getElementById('message');
         const sendBtn = document.getElementById('send-btn');
@@ -258,13 +317,66 @@
         const startBtn = document.getElementById('start-btn');
         const actionBtn = document.getElementById('action-btn');
         const onlineCountElement = document.getElementById('online-count');
+        
+        // Elementos do Menu
         const menuBtn = document.getElementById('menu-btn');
         const sidebar = document.getElementById('sidebar');
         const playPongBtn = document.getElementById('play-pong-btn');
         const playTttBtn = document.getElementById('play-ttt-btn');
         const playDrawingBtn = document.getElementById('play-drawing-btn');
         const adminLoginBtn = document.getElementById('admin-login-btn');
+        const reportUserBtn = document.getElementById('report-user-btn');
         
+        // Elementos do Pong
+        const pongInviteModal = document.getElementById('pong-invite-modal');
+        const pongAcceptBtn = document.getElementById('pong-accept');
+        const pongDeclineBtn = document.getElementById('pong-decline');
+        const pongGameContainer = document.getElementById('pong-game-container');
+        const pongCanvas = document.getElementById('pong-canvas');
+        const pongCtx = pongCanvas.getContext('2d');
+        const pongScoreYouElem = document.getElementById('pong-score-you');
+        const pongScoreOpponentElem = document.getElementById('pong-score-opponent');
+        const pongTimerElem = document.getElementById('pong-timer');
+        const pongLeftBtn = document.getElementById('pong-left-btn');
+        const pongRightBtn = document.getElementById('pong-right-btn');
+        const pongLeaveBtn = document.getElementById('pong-leave-btn');
+        const pongCountdownElem = document.getElementById('pong-countdown');
+        
+        // Elementos do Jogo da Velha
+        const tttInviteModal = document.getElementById('ttt-invite-modal');
+        const tttAcceptBtn = document.getElementById('ttt-accept');
+        const tttDeclineBtn = document.getElementById('ttt-decline');
+        const tttGameContainer = document.getElementById('ttt-game-container');
+        const tttBoardDiv = document.getElementById('ttt-board');
+        const tttTurnElem = document.getElementById('ttt-turn');
+        const tttLeaveBtn = document.getElementById('ttt-leave-btn');
+        
+        // Elementos do Desenho
+        const drawingInviteModal = document.getElementById('drawing-invite-modal');
+        const drawingAcceptBtn = document.getElementById('drawing-accept');
+        const drawingDeclineBtn = document.getElementById('drawing-decline');
+        const drawingGameContainer = document.getElementById('drawing-game-container');
+        const drawingGameArea = document.getElementById('drawing-game-area');
+        const drawingWaitingMsg = document.getElementById('drawing-waiting');
+        const drawingStatusElem = document.getElementById('drawing-status');
+        const drawCanvas = document.getElementById('draw-canvas');
+        const drawingWordDisplayElem = document.getElementById('drawing-word-display');
+        const drawingTimerDisplay = document.getElementById('drawing-timer-display');
+        const drawingGuessInput = document.getElementById('draw-guess-input');
+        const drawingGuessBtn = document.getElementById('draw-guess-btn');
+        const drawingLeaveBtn = document.getElementById('drawing-leave-btn');
+        const drawingChatMessagesDiv = document.getElementById('drawing-chat-messages');
+        
+        // Elementos do Letreiro
+        const marqueeContainer = document.getElementById('marqueeContainer');
+        const marqueeText = document.getElementById('marqueeText');
+        
+        // Modal de Denúncia
+        const reportModal = document.getElementById('reportModal');
+        const confirmReportBtn = document.getElementById('confirmReportBtn');
+        const cancelReportBtn = document.getElementById('cancelReportBtn');
+        
+        // Variáveis de Estado do Chat
         let myLocation = "Desconhecido";
         let isConnected = false;
         let currentPartnerId = null;
@@ -275,21 +387,24 @@
         const swipeThreshold = 50;
         let palavrasOfensivas = [];
         
+        // Variáveis do Pong
         let pongGameActive = false;
         let pongGameState = null;
         let pongAnimationId = null;
-        const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5, CANVAS_WIDTH: 300, CANVAS_HEIGHT: 400 };
+        const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
         let pongInputState = { left: false, right: false };
-        let localPlayerPaddleX = 120;
+        let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
         let clientAnimationLoopId = null;
         let ball1Trail = [], ball2Trail = [];
         const TRAIL_LENGTH = 15;
         
+        // Variáveis do Jogo da Velha
         let tttGameActive = false;
         let tttBoardState = Array(9).fill(null);
         let tttMySymbol = null;
         let tttCurrentTurn = null;
         
+        // Variáveis do Desenho
         let drawingGameActive = false;
         let drawingRole = null;
         let drawingWord = null;
@@ -299,29 +414,29 @@
         let drawingColor = '#000000';
         let drawingSize = 5;
         let drawingChatMessages = [];
-        
-        // Botão de login admin
-        if (adminLoginBtn) {
-            adminLoginBtn.addEventListener('click', () => {
-                window.location.href = '/admin';
-            });
-        }
-        
+
+        // ================= FUNÇÕES DO CHAT =================
         async function fetchMyLocation() {
             try {
                 const response = await fetch('https://ipapi.co/json/');
                 const data = await response.json();
                 if (data && data.region) myLocation = data.region;
-            } catch(e) { myLocation = "Desconhecido"; }
+            } catch (error) {
+                console.error("Falha ao buscar localização:", error);
+                myLocation = "Desconhecido";
+            }
         }
-        
+
         async function carregarListaDePalavras() {
             try {
                 let response = await fetch('/palavras_proibidas.json');
                 if (!response.ok) response = await fetch('../palavras_proibidas.json');
                 if (!response.ok) throw new Error('Falha ao carregar lista de palavras.');
                 palavrasOfensivas = await response.json();
-            } catch(e) { console.error(e); addSystemMessage("⚠️ Não foi possível carregar o filtro de palavras."); }
+            } catch (error) {
+                console.error(error);
+                addSystemMessage("⚠️ Não foi possível carregar o filtro de palavras.");
+            }
         }
         
         function contemPalavraOfensiva(texto) {
@@ -331,7 +446,7 @@
                 return regex.test(texto);
             });
         }
-        
+
         function addSystemMessage(msg) {
             const sysElement = document.createElement('div');
             sysElement.className = 'message system';
@@ -339,8 +454,8 @@
             chatDiv.appendChild(sysElement);
             scrollToBottom();
         }
-        
-        function addMessage(msg, sender, isMe, replyTo, location) {
+
+        function addMessage(msg, sender, isMe, replyTo = null, location = null) {
             const msgElement = document.createElement('div');
             msgElement.className = `message ${isMe ? 'sent' : 'received'}`;
             msgElement.dataset.messageId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
@@ -374,22 +489,45 @@
             const textElement = document.createElement('div');
             textElement.textContent = msg;
             msgElement.appendChild(textElement);
+            
             chatDiv.appendChild(msgElement);
             scrollToBottom();
         }
-        
+
+        function addOffensiveMessage(msg) {
+            const msgElement = document.createElement('div');
+            msgElement.className = 'message sent offensive';
+            const textNode = document.createElement('div');
+            textNode.textContent = msg;
+            const attentionIcon = document.createElement('span');
+            attentionIcon.className = 'attention-icon';
+            attentionIcon.textContent = '⚠️';
+            const reasonText = document.createElement('div');
+            reasonText.className = 'reason';
+            reasonText.textContent = 'Sua mensagem não foi enviada pois contém linguagem que viola as diretrizes da comunidade.';
+            attentionIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                reasonText.classList.toggle('visible');
+            });
+            msgElement.appendChild(textNode);
+            msgElement.appendChild(attentionIcon);
+            msgElement.appendChild(reasonText);
+            chatDiv.appendChild(msgElement);
+            scrollToBottom();
+        }
+
         function scrollToBottom() { chatDiv.scrollTop = chatDiv.scrollHeight; }
         
         function showActionButton(action) {
             actionBtn.style.display = 'block';
             if (action === 'encerrar') {
                 actionBtn.textContent = 'Encerrar conversa';
-                actionBtn.onclick = () => socket.emit('end_chat');
-            } else {
+                actionBtn.onclick = function() { socket.emit('end_chat'); };
+            } else if (action === 'iniciar') {
                 actionBtn.textContent = 'Iniciar novo chat';
-                actionBtn.onclick = () => {
+                actionBtn.onclick = function() {
                     chatDiv.innerHTML = '';
-                    addSystemMessage('Buscando novo parceiro...');
+                    addSystemMessage('Buscando um novo parceiro...');
                     socket.emit('join', { location: myLocation });
                     actionBtn.style.display = 'none';
                 };
@@ -416,6 +554,8 @@
             replyingTo = { id: messageElement.dataset.messageId, text: textElement ? textElement.textContent : '', sender: sender };
             updateReplyUI();
             messageInput.focus();
+            messageElement.classList.add('active');
+            setTimeout(() => { messageElement.classList.remove('active'); }, 300);
         }
         
         function updateReplyUI() {
@@ -434,88 +574,227 @@
             }
         }
         
-        function cancelReply() {
-            replyingTo = null;
-            updateReplyUI();
-        }
+        function cancelReply() { replyingTo = null; updateReplyUI(); }
         
         function setupSwipeEvents() {
-            chatDiv.addEventListener('mousedown', (e) => {
-                const msg = e.target.closest('.message:not(.system):not(.offensive)');
-                if (e.button === 0 && msg) {
-                    e.preventDefault();
-                    swipeStartX = e.clientX;
-                    swipeElement = msg;
-                }
-            });
-            chatDiv.addEventListener('mousemove', (e) => {
-                if (swipeElement && swipeStartX !== null) {
-                    const deltaX = e.clientX - swipeStartX;
-                    if (deltaX > 0) {
-                        swipeElement.style.transform = `translateX(${Math.min(deltaX, 100)}px)`;
-                        if (deltaX > swipeThreshold) swipeElement.classList.add('active');
-                        else swipeElement.classList.remove('active');
-                    }
-                }
-            });
-            chatDiv.addEventListener('mouseup', (e) => {
-                if (swipeElement && swipeStartX !== null) {
-                    const deltaX = e.clientX - swipeStartX;
-                    if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
-                    swipeElement.style.transform = '';
-                    swipeElement.classList.remove('active');
-                    swipeStartX = null;
-                    swipeElement = null;
-                }
-            });
-            chatDiv.addEventListener('touchstart', (e) => {
-                const msg = e.target.closest('.message:not(.system):not(.offensive)');
-                if (msg) {
-                    e.preventDefault();
-                    swipeStartX = e.touches[0].clientX;
-                    swipeElement = msg;
-                }
-            });
-            chatDiv.addEventListener('touchmove', (e) => {
-                if (swipeElement && swipeStartX !== null) {
-                    const deltaX = e.touches[0].clientX - swipeStartX;
-                    if (deltaX > 0) {
-                        swipeElement.style.transform = `translateX(${Math.min(deltaX, 100)}px)`;
-                        if (deltaX > swipeThreshold) swipeElement.classList.add('active');
-                        else swipeElement.classList.remove('active');
-                    }
-                }
-            });
-            chatDiv.addEventListener('touchend', (e) => {
-                if (swipeElement && swipeStartX !== null) {
-                    const deltaX = (e.changedTouches[0].clientX - swipeStartX);
-                    if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
-                    swipeElement.style.transform = '';
-                    swipeElement.classList.remove('active');
-                    swipeStartX = null;
-                    swipeElement = null;
-                }
-            });
+            chatDiv.addEventListener('mousedown', handleMouseDown);
+            chatDiv.addEventListener('mousemove', handleMouseMove);
+            chatDiv.addEventListener('mouseup', handleMouseUp);
+            chatDiv.addEventListener('mouseleave', handleMouseUp);
+            chatDiv.addEventListener('touchstart', (e) => handleMouseDown({ target: e.target, clientX: e.touches[0].clientX, button: 0, preventDefault: () => {} }));
+            chatDiv.addEventListener('touchmove', (e) => handleMouseMove({ target: e.target, clientX: e.touches[0].clientX, preventDefault: () => {} }));
+            chatDiv.addEventListener('touchend', (e) => handleMouseUp({ clientX: e.changedTouches[0].clientX }));
         }
         
-        const pongCanvas = document.getElementById('pong-canvas');
-        const pongCtx = pongCanvas.getContext('2d');
-        const pongScoreYouElem = document.getElementById('pong-score-you');
-        const pongScoreOpponentElem = document.getElementById('pong-score-opponent');
-        const pongTimerElem = document.getElementById('pong-timer');
-        const pongLeftBtn = document.getElementById('pong-left-btn');
-        const pongRightBtn = document.getElementById('pong-right-btn');
-        const pongLeaveBtn = document.getElementById('pong-leave-btn');
-        const pongCountdownElem = document.getElementById('pong-countdown');
-        const pongInviteModal = document.getElementById('pong-invite-modal');
-        const pongAcceptBtn = document.getElementById('pong-accept');
-        const pongDeclineBtn = document.getElementById('pong-decline');
-        const pongGameContainer = document.getElementById('pong-game-container');
+        function getSwipeTarget(event) { return event.target.closest('.message:not(.system):not(.offensive)'); }
         
+        function handleMouseDown(e) {
+            const messageElement = getSwipeTarget(e);
+            if (e.button === 0 && messageElement) {
+                e.preventDefault();
+                swipeStartX = e.clientX;
+                swipeElement = messageElement;
+            }
+        }
+        
+        function handleMouseMove(e) {
+            if (swipeElement && swipeStartX !== null) {
+                e.preventDefault();
+                const deltaX = e.clientX - swipeStartX;
+                if (deltaX > 0) {
+                    swipeElement.classList.add('swiping');
+                    swipeElement.style.transform = `translateX(${Math.min(deltaX, 100)}px)`;
+                    if (deltaX > swipeThreshold) swipeElement.classList.add('active');
+                    else swipeElement.classList.remove('active');
+                }
+            }
+        }
+        
+        function handleMouseUp(e) {
+            if (swipeElement && swipeStartX !== null) {
+                const deltaX = e.clientX - swipeStartX;
+                if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
+                swipeElement.style.transform = '';
+                swipeElement.classList.remove('swiping', 'active');
+                swipeStartX = null; swipeElement = null;
+            }
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            if (isConnected) {
+                if (contemPalavraOfensiva(message)) {
+                    addOffensiveMessage(message);
+                    messageInput.value = '';
+                    if (replyingTo) cancelReply();
+                    return;
+                }
+                const messageData = { text: message };
+                if (replyingTo) {
+                    messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' };
+                }
+                socket.emit('message', messageData);
+                addMessage(message, 'Você', true, replyingTo, myLocation);
+                messageInput.value = '';
+                if (replyingTo) cancelReply();
+                if (isTyping) {
+                    isTyping = false;
+                    socket.emit('typing', { isTyping: false });
+                }
+            } else {
+                addSystemMessage("⚠️ Você precisa de um parceiro para enviar mensagens.");
+            }
+            messageInput.focus();
+        }
+
+        function onPartnerLeft() {
+            isConnected = false;
+            currentPartnerId = null;
+            removeTypingIndicator();
+            if (replyingTo) cancelReply();
+            showActionButton('iniciar');
+            if (pongGameActive) endPongGame('partner_disconnected');
+            if (tttGameActive) tttGameContainer.style.display = 'none';
+            if (drawingGameActive) drawingGameContainer.style.display = 'none';
+        }
+
+        // ================= LETREIRO =================
+        socket.on('admin_broadcast', (data) => {
+            marqueeText.textContent = data.message;
+            marqueeContainer.style.display = 'flex';
+            const speed = data.speed || 20;
+            const duration = (data.duration || 10) * 1000;
+            marqueeText.style.animation = `marquee ${speed}s linear infinite`;
+            setTimeout(() => {
+                marqueeContainer.style.display = 'none';
+                marqueeText.style.animation = '';
+            }, duration);
+        });
+
+        // ================= DENÚNCIA =================
+        reportUserBtn.addEventListener('click', () => {
+            reportModal.style.display = 'flex';
+        });
+
+        confirmReportBtn.addEventListener('click', () => {
+            const reason = document.getElementById('reportReason').value;
+            let userId = document.getElementById('reportUserId').value.trim();
+            if (!userId && currentPartnerId) userId = currentPartnerId;
+            if (!userId) {
+                alert('⚠️ Nenhum usuário para denunciar. Conecte-se a um parceiro ou informe o ID manualmente.');
+                return;
+            }
+            socket.emit('report_user', { reportedUserId: userId, reportedMessage: '', reason: reason });
+            reportModal.style.display = 'none';
+            document.getElementById('reportUserId').value = '';
+            addSystemMessage('✅ Denúncia enviada! Obrigado por ajudar a manter a comunidade segura.');
+        });
+
+        cancelReportBtn.addEventListener('click', () => {
+            reportModal.style.display = 'none';
+            document.getElementById('reportUserId').value = '';
+        });
+
+        socket.on('report_thanks', (data) => { addSystemMessage(data.message); });
+
+        // ================= EVENTOS SOCKET =================
+        startBtn.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            chatContainer.style.display = 'flex';
+            socket.emit('join', { location: myLocation });
+            messageInput.focus();
+        });
+
+        socket.on('connect', async () => {
+            addSystemMessage('Conectando ao servidor...');
+            await fetchMyLocation();
+            setupSwipeEvents();
+            carregarListaDePalavras();
+        });
+        
+        socket.on('users_online', (count) => { onlineCountElement.textContent = `${count} online`; });
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        
+        messageInput.addEventListener('input', () => {
+            if (!isTyping && isConnected) {
+                isTyping = true;
+                socket.emit('typing', { isTyping: true });
+            }
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                if (isTyping && isConnected) {
+                    isTyping = false;
+                    socket.emit('typing', { isTyping: false });
+                }
+            }, 1000);
+        });
+        
+        socket.on('chat_start', (data) => {
+            isConnected = true;
+            currentPartnerId = data.partnerId;
+            addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
+            showActionButton('encerrar');
+        });
+        
+        socket.on('message', (data) => {
+            if (data.senderId !== socket.id) {
+                addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
+            }
+        });
+        
+        socket.on('partner_disconnected', () => {
+            addSystemMessage('❌ Parceiro desconectado.');
+            onPartnerLeft();
+        });
+        
+        socket.on('chat_ended', () => {
+            addSystemMessage('❌ O parceiro encerrou a conversa.');
+            onPartnerLeft();
+        });
+        
+        socket.on('system_message', (data) => { addSystemMessage(data.message); });
+        socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
+        socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
+
+        // ================= LOGIN ADMIN =================
+        adminLoginBtn.addEventListener('click', () => {
+            window.location.href = '/admin';
+        });
+
+        // ================= MENU =================
+        menuBtn.addEventListener('click', () => {
+            menuBtn.classList.toggle('open');
+            sidebar.classList.toggle('open');
+        });
+        
+        playPongBtn.addEventListener('click', () => {
+            if (isConnected) socket.emit('pong_invite');
+            else addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
+            menuBtn.classList.remove('open');
+            sidebar.classList.remove('open');
+        });
+        
+        playTttBtn.addEventListener('click', () => {
+            if (isConnected) socket.emit('tictactoe_invite');
+            else addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
+            menuBtn.classList.remove('open');
+            sidebar.classList.remove('open');
+        });
+        
+        playDrawingBtn.addEventListener('click', () => {
+            if (isConnected) socket.emit('drawing_invite');
+            else addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
+            menuBtn.classList.remove('open');
+            sidebar.classList.remove('open');
+        });
+
+        // ================= JOGO PONG =================
         socket.on('pong_invite_received', () => { pongInviteModal.style.display = 'flex'; });
-        pongAcceptBtn.onclick = () => { socket.emit('pong_accept'); pongInviteModal.style.display = 'none'; };
-        pongDeclineBtn.onclick = () => { socket.emit('pong_decline'); pongInviteModal.style.display = 'none'; };
-        
+        pongAcceptBtn.addEventListener('click', () => { socket.emit('pong_accept'); pongInviteModal.style.display = 'none'; });
+        pongDeclineBtn.addEventListener('click', () => { socket.emit('pong_decline'); pongInviteModal.style.display = 'none'; });
+
         socket.on('pong_start', () => {
             pongGameActive = true;
             pongGameState = null;
@@ -525,12 +804,12 @@
             pongTimerElem.textContent = '3:00';
             if (pongAnimationId) cancelAnimationFrame(pongAnimationId);
             pongAnimationId = requestAnimationFrame(drawPong);
-            localPlayerPaddleX = 120;
+            localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
             pongInputState = { left: false, right: false };
             if (clientAnimationLoopId) cancelAnimationFrame(clientAnimationLoopId);
             clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
         });
-        
+
         socket.on('pong_update', (state) => {
             pongGameState = state;
             pongScoreYouElem.textContent = `Você: ${state.you.score}`;
@@ -543,96 +822,120 @@
             pongCountdownElem.style.display = 'block';
             let count = 3;
             pongCountdownElem.textContent = count;
-            const interval = setInterval(() => {
+            const countdownInterval = setInterval(() => {
                 count--;
                 if (count > 0) pongCountdownElem.textContent = count;
                 else if (count === 0) pongCountdownElem.textContent = 'VAI!';
-                else { pongCountdownElem.style.display = 'none'; clearInterval(interval); }
+                else { pongCountdownElem.style.display = 'none'; clearInterval(countdownInterval); }
             }, 1000);
         });
-        
+
         socket.on('pong_time_update', (data) => {
-            const minutes = Math.floor(data.time / 60000);
-            const seconds = Math.floor((data.time % 60000) / 1000);
+            const duration = Math.max(0, data.time / 1000);
+            const minutes = Math.floor(duration / 60);
+            const seconds = Math.floor(duration % 60);
             pongTimerElem.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         });
+
+        socket.on('pong_end', (result) => { endPongGame(result.reason, result); });
         
-        socket.on('pong_end', (result) => {
+        function endPongGame(reason, result = null) {
+            if (!pongGameActive) return;
             pongGameActive = false;
             cancelAnimationFrame(pongAnimationId);
             cancelAnimationFrame(clientAnimationLoopId);
-            addSystemMessage(`🏆 ${result.reason === 'score_limit' ? `Placar final: ${result.yourScore} x ${result.opponentScore}` : 'Jogo finalizado'}`);
+            let message = "Fim de jogo!";
+            if(reason === 'player_left' || reason === 'partner_disconnected' || reason === 'chat_ended') message = "O oponente saiu do jogo.";
+            else if (result) message = `Placar final: Você ${result.yourScore} x ${result.opponentScore} Anônimo.`;
+            addSystemMessage(`🏆 ${message}`);
             setTimeout(() => { pongGameContainer.style.display = 'none'; }, 3000);
-        });
+        }
         
         function drawPong() {
             if (!pongGameActive) return;
-            pongCtx.fillStyle = '#000';
-            pongCtx.fillRect(0, 0, PONG_CONFIG.CANVAS_WIDTH, PONG_CONFIG.CANVAS_HEIGHT);
+            pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
+            pongCtx.strokeStyle = '#333';
+            pongCtx.beginPath();
+            pongCtx.setLineDash([5, 15]);
+            pongCtx.moveTo(0, pongCanvas.height / 2);
+            pongCtx.lineTo(pongCanvas.width, pongCanvas.height / 2);
+            pongCtx.stroke();
+            pongCtx.setLineDash([]);
             
+            pongCtx.save();
+            ball1Trail.forEach((p, i) => {
+                pongCtx.globalAlpha = (1 - (i / ball1Trail.length)) * 0.4;
+                pongCtx.fillStyle = '#fff';
+                pongCtx.beginPath();
+                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+                pongCtx.fill();
+            });
+            ball2Trail.forEach((p, i) => {
+                pongCtx.globalAlpha = (1 - (i / ball2Trail.length)) * 0.4;
+                pongCtx.fillStyle = '#ffae00';
+                pongCtx.beginPath();
+                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+                pongCtx.fill();
+            });
+            pongCtx.restore();
+
             if (pongGameState) {
-                if (pongGameState.ball) {
+                if (pongGameState.ball && pongGameState.ball.x) {
                     pongCtx.fillStyle = '#fff';
                     pongCtx.beginPath();
                     pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
                     pongCtx.fill();
                 }
-                if (pongGameState.ball2) {
+                if (pongGameState.ball2 && pongGameState.ball2.x) {
                     pongCtx.fillStyle = '#ffae00';
                     pongCtx.beginPath();
                     pongCtx.arc(pongGameState.ball2.x, pongGameState.ball2.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
                     pongCtx.fill();
                 }
-                pongCtx.fillStyle = '#ff4444';
+                pongCtx.fillStyle = '#ff4444'; 
                 pongCtx.fillRect(pongGameState.opponent.paddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             }
             pongCtx.fillStyle = '#00aaff';
-            pongCtx.fillRect(localPlayerPaddleX, PONG_CONFIG.CANVAS_HEIGHT - PONG_CONFIG.PADDLE_HEIGHT, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-            
+            pongCtx.fillRect(localPlayerPaddleX, pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
             pongAnimationId = requestAnimationFrame(drawPong);
         }
         
         function clientPongLoop() {
             if (!pongGameActive) return;
             let moved = false;
-            if (pongInputState.left) { localPlayerPaddleX = Math.max(0, localPlayerPaddleX - 8); moved = true; }
-            if (pongInputState.right) { localPlayerPaddleX = Math.min(PONG_CONFIG.CANVAS_WIDTH - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX + 8); moved = true; }
-            if (moved) socket.emit('pong_move', { paddleX: localPlayerPaddleX });
+            if (pongInputState.left) { localPlayerPaddleX -= 5; moved = true; }
+            if (pongInputState.right) { localPlayerPaddleX += 5; moved = true; }
+            localPlayerPaddleX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX));
+            if(moved) socket.emit('pong_move', { paddleX: localPlayerPaddleX });
             clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
         }
-        
-        pongLeftBtn.addEventListener('mousedown', () => pongInputState.left = true);
-        pongLeftBtn.addEventListener('mouseup', () => pongInputState.left = false);
-        pongLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); pongInputState.left = true; });
-        pongLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); pongInputState.left = false; });
-        pongRightBtn.addEventListener('mousedown', () => pongInputState.right = true);
-        pongRightBtn.addEventListener('mouseup', () => pongInputState.right = false);
-        pongRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); pongInputState.right = true; });
-        pongRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); pongInputState.right = false; });
-        pongLeaveBtn.onclick = () => { socket.emit('pong_leave'); pongGameContainer.style.display = 'none'; };
-        
+
         window.addEventListener('keydown', (e) => {
             if (!pongGameActive) return;
-            if (e.key === 'ArrowLeft') { e.preventDefault(); pongInputState.left = true; }
-            if (e.key === 'ArrowRight') { e.preventDefault(); pongInputState.right = true; }
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') { e.preventDefault(); pongInputState.left = true; }
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') { e.preventDefault(); pongInputState.right = true; }
         });
         window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft') pongInputState.left = false;
-            if (e.key === 'ArrowRight') pongInputState.right = false;
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pongInputState.left = false;
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pongInputState.right = false;
         });
         
-        const tttInviteModal = document.getElementById('ttt-invite-modal');
-        const tttAcceptBtn = document.getElementById('ttt-accept');
-        const tttDeclineBtn = document.getElementById('ttt-decline');
-        const tttGameContainer = document.getElementById('ttt-game-container');
-        const tttBoardDiv = document.getElementById('ttt-board');
-        const tttTurnElem = document.getElementById('ttt-turn');
-        const tttLeaveBtn = document.getElementById('ttt-leave-btn');
-        
+        const addTouchEvent = (element, startFunc, endFunc) => {
+            element.addEventListener('touchstart', (e) => { e.preventDefault(); startFunc(); }, { passive: false });
+            element.addEventListener('touchend', (e) => { e.preventDefault(); endFunc(); });
+            element.addEventListener('mousedown', startFunc);
+            element.addEventListener('mouseup', endFunc);
+            element.addEventListener('mouseleave', endFunc);
+        };
+        addTouchEvent(pongLeftBtn, () => pongInputState.left = true, () => pongInputState.left = false);
+        addTouchEvent(pongRightBtn, () => pongInputState.right = true, () => pongInputState.right = false);
+        pongLeaveBtn.addEventListener('click', () => { if(pongGameActive) socket.emit('pong_leave'); });
+
+        // ================= JOGO DA VELHA =================
         socket.on('tictactoe_invite_received', () => { tttInviteModal.style.display = 'flex'; });
         tttAcceptBtn.onclick = () => { socket.emit('tictactoe_accept'); tttInviteModal.style.display = 'none'; };
         tttDeclineBtn.onclick = () => { socket.emit('tictactoe_decline'); tttInviteModal.style.display = 'none'; };
-        
+
         socket.on('tictactoe_start', (data) => {
             tttGameActive = true;
             tttMySymbol = data.yourSymbol;
@@ -641,21 +944,21 @@
             tttTurnElem.innerHTML = data.firstTurn ? `🎯 Sua vez (${tttMySymbol})` : `⏳ Vez do oponente`;
             renderTttBoard();
         });
-        
+
         socket.on('tictactoe_update', (state) => {
             tttBoardState = state.board;
             tttCurrentTurn = state.currentTurnSymbol;
             tttTurnElem.innerHTML = tttCurrentTurn === tttMySymbol ? '🎯 Sua vez!' : '⏳ Vez do oponente';
             renderTttBoard();
         });
-        
+
         socket.on('tictactoe_game_over', (data) => {
             tttGameActive = false;
             if (data.isDraw) tttTurnElem.innerHTML = '🤝 EMPATE!';
             else tttTurnElem.innerHTML = `🏆 Jogador ${data.winnerSymbol} venceu!`;
             setTimeout(() => { tttGameContainer.style.display = 'none'; }, 3000);
         });
-        
+
         socket.on('tictactoe_close', () => { tttGameContainer.style.display = 'none'; });
         
         function renderTttBoard() {
@@ -673,20 +976,8 @@
             }
         }
         tttLeaveBtn.onclick = () => { socket.emit('tictactoe_leave'); tttGameContainer.style.display = 'none'; };
-        
-        const drawCanvas = document.getElementById('draw-canvas');
-        const drawingWordDisplayElem = document.getElementById('drawing-word-display');
-        const drawingTimerDisplay = document.getElementById('drawing-timer-display');
-        const drawingGuessInput = document.getElementById('draw-guess-input');
-        const drawingGuessBtn = document.getElementById('draw-guess-btn');
-        const drawingLeaveBtn = document.getElementById('drawing-leave-btn');
-        const drawingChatMessagesDiv = document.getElementById('drawing-chat-messages');
-        const drawingGameContainerElem = document.getElementById('drawing-game-container');
-        const drawingGameArea = document.getElementById('drawing-game-area');
-        const drawingWaitingMsg = document.getElementById('drawing-waiting');
-        const drawingStatusElem = document.getElementById('drawing-status');
-        const drawingInviteModal = document.getElementById('drawing-invite-modal');
-        
+
+        // ================= JOGO DE DESENHO =================
         function updateToolHighlight() {
             document.querySelectorAll('.drawing-tool-btn').forEach(btn => {
                 if (btn.id === 'draw-pencil' && drawingTool === 'pencil') btn.classList.add('active');
@@ -704,19 +995,13 @@
         };
         
         socket.on('drawing_invite_received', () => { drawingInviteModal.style.display = 'flex'; });
-        document.getElementById('drawing-accept').onclick = () => { socket.emit('drawing_accept'); drawingInviteModal.style.display = 'none'; };
-        document.getElementById('drawing-decline').onclick = () => { socket.emit('drawing_decline'); drawingInviteModal.style.display = 'none'; };
+        drawingAcceptBtn.onclick = () => { socket.emit('drawing_accept'); drawingInviteModal.style.display = 'none'; };
+        drawingDeclineBtn.onclick = () => { socket.emit('drawing_decline'); drawingInviteModal.style.display = 'none'; };
         
         function showTutorial(gameName, rules, onComplete) {
             const div = document.createElement('div');
             div.className = 'tutorial-overlay';
-            div.innerHTML = `
-                <div class="tutorial-card">
-                    <h2>🎮 ${gameName}</h2>
-                    ${rules.map(r => `<div class="role-box"><strong>${r.title}</strong><p>${r.content}</p></div>`).join('')}
-                    <button id="tutorial-ok">✅ ENTENDI, VAMOS JOGAR!</button>
-                </div>
-            `;
+            div.innerHTML = `<div class="tutorial-card"><h2>🎮 ${gameName}</h2>${rules.map(r => `<div class="role-box"><strong>${r.title}</strong><p>${r.content}</p></div>`).join('')}<button id="tutorial-ok">✅ ENTENDI, VAMOS JOGAR!</button></div>`;
             document.body.appendChild(div);
             document.getElementById('tutorial-ok').onclick = () => { div.remove(); onComplete(); };
         }
@@ -738,7 +1023,7 @@
         socket.on('drawing_start', (data) => {
             drawingGameActive = true;
             drawingRole = data.role;
-            drawingGameContainerElem.style.display = 'flex';
+            drawingGameContainer.style.display = 'flex';
             drawingWaitingMsg.style.display = 'none';
             drawingGameArea.style.display = 'block';
             drawingStatusElem.style.display = 'none';
@@ -772,31 +1057,15 @@
             addDrawingChatMessage(`❌ "${data.guess}" está errado!`, 'error');
         });
         
-        socket.on('drawing_timer', (data) => {
-            drawingTimerDisplay.innerHTML = `⏱️ Tempo: ${data.timeLeft}s`;
-        });
+        socket.on('drawing_timer', (data) => { drawingTimerDisplay.innerHTML = `⏱️ Tempo: ${data.timeLeft}s`; });
         
         socket.on('drawing_game_over', (data) => {
             drawingGameActive = false;
             drawingGameArea.style.display = 'none';
             drawingStatusElem.style.display = 'block';
-            drawingStatusElem.innerHTML = `
-                <div class="result-screen">
-                    <h2>${data.winnerRole === "Desenhista" ? "🎨 DESENHISTA VENCEU!" : (data.winnerRole === "Adivinhador" ? "🕵️ ADIVINHADOR VENCEU!" : "⏰ TEMPO ESGOTADO!")}</h2>
-                    <div class="word-reveal">📝 Palavra: <span style="color:#ffd966">${data.word.toUpperCase()}</span></div>
-                    <div style="margin:10px 0; font-size:0.8rem;">${data.message}</div>
-                    <button class="btn-back" id="drawing-back-btn">🔙 Voltar ao Chat</button>
-                </div>
-            `;
+            drawingStatusElem.innerHTML = `<div class="result-screen"><h2>${data.winnerRole === "Desenhista" ? "🎨 DESENHISTA VENCEU!" : (data.winnerRole === "Adivinhador" ? "🕵️ ADIVINHADOR VENCEU!" : "⏰ TEMPO ESGOTADO!")}</h2><div class="word-reveal">📝 Palavra: <span style="color:#ffd966">${data.word.toUpperCase()}</span></div><div style="margin:10px 0; font-size:0.8rem;">${data.message}</div><button class="btn-back" id="drawing-back-btn">🔙 Voltar ao Chat</button></div>`;
             const backBtn = document.getElementById('drawing-back-btn');
-            if (backBtn) {
-                backBtn.onclick = () => {
-                    drawingGameContainerElem.style.display = 'none';
-                    drawingGameArea.style.display = 'block';
-                    drawingStatusElem.style.display = 'none';
-                    drawingWordDisplayElem.style.display = 'none';
-                };
-            }
+            if (backBtn) backBtn.onclick = () => { drawingGameContainer.style.display = 'none'; drawingGameArea.style.display = 'block'; drawingStatusElem.style.display = 'none'; };
             addSystemMessage(`🏆 ${data.winnerRole} venceu o Que Rabisco é esse! Palavra era: ${data.word.toUpperCase()}`);
         });
         
@@ -804,13 +1073,8 @@
             drawingChatMessagesDiv.innerHTML = '<div style="color:#aaa; margin-bottom:8px;">💬 HISTÓRICO DE PALPITES:</div>';
             drawingChatMessages.slice(-12).forEach(msg => {
                 const div = document.createElement('div');
-                if (msg.isCorrect) {
-                    div.className = 'drawing-chat-message drawing-chat-correct';
-                    div.innerHTML = `✅ ${msg.guess} - ACERTOU!`;
-                } else {
-                    div.className = 'drawing-chat-message drawing-chat-guess';
-                    div.innerHTML = `🕵️ Adivinhador: ${msg.guess}`;
-                }
+                if (msg.isCorrect) { div.className = 'drawing-chat-message drawing-chat-correct'; div.innerHTML = `✅ ${msg.guess} - ACERTOU!`; }
+                else { div.className = 'drawing-chat-message drawing-chat-guess'; div.innerHTML = `🕵️ Adivinhador: ${msg.guess}`; }
                 drawingChatMessagesDiv.appendChild(div);
             });
             drawingChatMessagesDiv.scrollTop = drawingChatMessagesDiv.scrollHeight;
@@ -927,168 +1191,7 @@
         document.getElementById('draw-eraser').onclick = () => { drawingTool = 'eraser'; updateToolHighlight(); };
         document.getElementById('draw-size').onchange = (e) => { drawingSize = parseInt(e.target.value); };
         
-        drawingLeaveBtn.onclick = () => { 
-            socket.emit('drawing_leave'); 
-            drawingGameContainerElem.style.display = 'none';
-            drawingGameArea.style.display = 'block';
-            drawingStatusElem.style.display = 'none';
-        };
-        
-        startBtn.addEventListener('click', () => {
-            startScreen.style.display = 'none';
-            chatContainer.style.display = 'flex';
-            socket.emit('join', { location: myLocation });
-            messageInput.focus();
-        });
-        
-        socket.on('connect', async () => {
-            addSystemMessage('Conectando ao servidor...');
-            await fetchMyLocation();
-            setupSwipeEvents();
-            carregarListaDePalavras();
-        });
-        
-        socket.on('users_online', (count) => { onlineCountElement.textContent = `${count} online`; });
-        sendBtn.addEventListener('click', () => { sendMessage(); });
-        messageInput.addEventListener('input', () => {
-            if (!isTyping && isConnected) {
-                isTyping = true;
-                socket.emit('typing', { isTyping: true });
-            }
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                if (isTyping && isConnected) {
-                    isTyping = false;
-                    socket.emit('typing', { isTyping: false });
-                }
-            }, 1000);
-        });
-        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-        
-        socket.on('chat_start', (data) => {
-            isConnected = true;
-            currentPartnerId = data.partnerId;
-            addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
-            showActionButton('encerrar');
-        });
-        
-        socket.on('message', (data) => {
-            if (data.senderId !== socket.id) {
-                addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
-            }
-        });
-        
-        function onPartnerLeft() {
-            isConnected = false;
-            currentPartnerId = null;
-            removeTypingIndicator();
-            if (replyingTo) cancelReply();
-            showActionButton('iniciar');
-            if (pongGameActive) {
-                pongGameActive = false;
-                cancelAnimationFrame(pongAnimationId);
-                cancelAnimationFrame(clientAnimationLoopId);
-                pongGameContainer.style.display = 'none';
-            }
-            if (tttGameActive) {
-                tttGameActive = false;
-                tttGameContainer.style.display = 'none';
-            }
-            if (drawingGameActive) {
-                drawingGameActive = false;
-                drawingGameContainerElem.style.display = 'none';
-            }
-        }
-        
-        socket.on('partner_disconnected', () => {
-            addSystemMessage('❌ Parceiro desconectado.');
-            onPartnerLeft();
-        });
-        
-        socket.on('chat_ended', () => {
-            addSystemMessage('❌ O parceiro encerrou a conversa.');
-            onPartnerLeft();
-        });
-        
-        socket.on('system_message', (data) => { addSystemMessage(data.message); });
-        socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
-        socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
-        
-        function sendMessage() {
-            const msg = messageInput.value.trim();
-            if (!msg) return;
-            if (isConnected) {
-                if (contemPalavraOfensiva(msg)) {
-                    addOffensiveMessage(msg);
-                    messageInput.value = '';
-                    if (replyingTo) cancelReply();
-                    return;
-                }
-                const messageData = { text: msg };
-                if (replyingTo) {
-                    messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: replyingTo.sender };
-                }
-                socket.emit('message', messageData);
-                addMessage(msg, 'Você', true, replyingTo, myLocation);
-                messageInput.value = '';
-                if (replyingTo) cancelReply();
-                if (isTyping) {
-                    isTyping = false;
-                    socket.emit('typing', { isTyping: false });
-                }
-            } else {
-                addSystemMessage("⚠️ Você precisa de um parceiro para enviar mensagens.");
-            }
-            messageInput.focus();
-        }
-        
-        function addOffensiveMessage(msg) {
-            const msgElement = document.createElement('div');
-            msgElement.className = 'message sent offensive';
-            const textNode = document.createElement('div');
-            textNode.textContent = msg;
-            const attentionIcon = document.createElement('span');
-            attentionIcon.className = 'attention-icon';
-            attentionIcon.textContent = '⚠️';
-            const reasonText = document.createElement('div');
-            reasonText.className = 'reason';
-            reasonText.textContent = 'Sua mensagem não foi enviada pois contém linguagem que viola as diretrizes da comunidade.';
-            attentionIcon.onclick = (e) => {
-                e.stopPropagation();
-                reasonText.classList.toggle('visible');
-            };
-            msgElement.appendChild(textNode);
-            msgElement.appendChild(attentionIcon);
-            msgElement.appendChild(reasonText);
-            chatDiv.appendChild(msgElement);
-            scrollToBottom();
-        }
-        
-        menuBtn.addEventListener('click', () => {
-            menuBtn.classList.toggle('open');
-            sidebar.classList.toggle('open');
-        });
-        
-        playPongBtn.addEventListener('click', () => {
-            if (isConnected) socket.emit('pong_invite');
-            else addSystemMessage("⚠️ Conecte-se a um parceiro para jogar.");
-            sidebar.classList.remove('open');
-            menuBtn.classList.remove('open');
-        });
-        
-        playTttBtn.addEventListener('click', () => {
-            if (isConnected) socket.emit('tictactoe_invite');
-            else addSystemMessage("⚠️ Conecte-se a um parceiro para jogar.");
-            sidebar.classList.remove('open');
-            menuBtn.classList.remove('open');
-        });
-        
-        playDrawingBtn.addEventListener('click', () => {
-            if (isConnected) socket.emit('drawing_invite');
-            else addSystemMessage("⚠️ Conecte-se a um parceiro para jogar.");
-            sidebar.classList.remove('open');
-            menuBtn.classList.remove('open');
-        });
+        drawingLeaveBtn.onclick = () => { socket.emit('drawing_leave'); drawingGameContainer.style.display = 'none'; };
         
         updateToolHighlight();
     </script>
