@@ -1,0 +1,12 @@
+{
+  "totalMensagens": 0,
+  "totalDenuncias": 0,
+  "totalBans": 0,
+  "mensagensPorDia": {},
+  "picoMaximoUsuarios": 0,
+  "totalPartidas": {
+    "pong": 0,
+    "velha": 0,
+    "desenho": 0
+  }
+}

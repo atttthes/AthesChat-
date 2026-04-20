@@ -1,0 +1,12 @@
+{
+  "palavrasProibidas": ["lixo", "bosta", "merda", "idiota", "otario"],
+  "botsAtivos": true,
+  "tempoEsperaBot": 3,
+  "limiteFakeUsers": { "min": 250, "max": 500 },
+  "pongTempoPartida": 3,
+  "pongGolsVencer": 3,
+  "desenhoTempoRodada": 60,
+  "tema": "escuro",
+  "corPrincipal": "#0062cc",
+  "nomeSite": "AthesChat!"
+}

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - AthesChat!</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="login-screen" class="login-container">
+        <div class="login-card">
+            <h1>🔒 AthesChat Admin</h1>
+            <input type="text" id="login-username" placeholder="Usuário">
+            <input type="password" id="login-password" placeholder="Senha">
+            <button id="login-btn">Entrar</button>
+            <div id="login-error" class="error-msg"></div>
+        </div>
+    </div>
+
+    <div id="admin-panel" style="display: none;">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3>🎮 AthesChat</h3>
+                <p>Painel Admin</p>
+            </div>
+            <ul class="sidebar-nav">
+                <li data-module="dashboard" class="active">🏠 Dashboard</li>
+                <li data-module="reports">🚨 Denúncias</li>
+                <li data-module="bans">🚫 Banimentos</li>
+                <li data-module="chat-monitor">👁️ Monitor Chat</li>
+                <li data-module="ads">📢 Anúncios</li>
+                <li data-module="config">⚙️ Configurações</li>
+                <li data-module="stats">📊 Estatísticas</li>
+                <li data-module="logs">📜 Logs</li>
+                <li data-module="broadcast">📨 Mensagem Global</li>
+            </ul>
+            <button id="logout-btn" class="logout-btn">🚪 Sair</button>
+        </div>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <h2 id="module-title">Dashboard</h2>
+                <div class="admin-info">
+                    <span>👤 admindoathes213</span>
+                </div>
+            </div>
+            
+            <div id="dashboard-module" class="module active">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-value" id="online-count">0</div><div class="stat-label">👥 Online</div></div>
+                    <div class="stat-card"><div class="stat-value" id="bots-count">0</div><div class="stat-label">🤖 Bots Ativos</div></div>
+                    <div class="stat-card"><div class="stat-value" id="msgs-today">0</div><div class="stat-label">💬 Msgs Hoje</div></div>
+                    <div class="stat-card"><div class="stat-value" id="reports-pending">0</div><div class="stat-label">🚨 Denúncias</div></div>
+                    <div class="stat-card"><div class="stat-value" id="games-active">0</div><div class="stat-label">🎮 Jogos Ativos</div></div>
+                    <div class="stat-card"><div class="stat-value" id="bans-total">0</div><div class="stat-label">🚫 Banidos</div></div>
+                    <div class="stat-card"><div class="stat-value" id="ads-active">0</div><div class="stat-label">📢 Anúncios</div></div>
+                    <div class="stat-card"><div class="stat-value" id="peak-users">0</div><div class="stat-label">📈 Pico Máximo</div></div>
+                </div>
+                <canvas id="activity-chart" style="max-height: 300px; margin-top: 30px;"></canvas>
+            </div>
+
+            <div id="reports-module" class="module">
+                <div class="module-header"><h3>🚨 Central de Denúncias</h3><button id="refresh-reports" class="btn-small">🔄 Atualizar</button></div>
+                <div id="reports-list" class="reports-list"></div>
+            </div>
+
+            <div id="bans-module" class="module">
+                <div class="module-header"><h3>🚫 Gerenciador de Banimentos</h3><button id="add-ban-btn" class="btn-small">➕ Banir Manualmente</button></div>
+                <div id="bans-list" class="bans-list"></div>
+                <div id="add-ban-modal" class="modal" style="display:none;">
+                    <div class="modal-content"><h3>Banir Usuário</h3><input type="text" id="ban-user" placeholder="Usuário"><textarea id="ban-reason" placeholder="Motivo"></textarea><label><input type="checkbox" id="ban-permanent"> Permanente</label><div id="temp-days" style="display:none;"><input type="number" id="ban-days" placeholder="Dias"> Temporário</div><button id="confirm-ban">Banir</button><button id="cancel-ban">Cancelar</button></div>
+                </div>
+            </div>
+
+            <div id="chat-monitor-module" class="module">
+                <div class="module-header"><h3>👁️ Monitor de Chat Ao Vivo</h3><div><span id="online-users-count">0</span> usuários online</div></div>
+                <div id="chat-feed" class="chat-feed"></div>
+                <div class="alert-box" id="alert-box"></div>
+            </div>
+
+            <div id="ads-module" class="module">
+                <div class="module-header"><h3>📢 Campanhas Publicitárias</h3><button id="add-ad-btn" class="btn-small">➕ Nova Campanha</button></div>
+                <div id="ads-list" class="ads-list"></div>
+            </div>
+
+            <div id="config-module" class="module">
+                <div class="config-section"><h4>📝 Palavras Proibidas</h4><textarea id="bad-words" rows="3" style="width:100%"></textarea><button id="save-words">Salvar</button></div>
+                <div class="config-section"><h4>🤖 Configurações dos Bots</h4><label><input type="checkbox" id="bots-enabled"> Bots ativos</label><label>Tempo de espera: <input type="number" id="bot-wait-time" value="3"> segundos</label></div>
+                <div class="config-section"><h4>🎮 Configurações dos Jogos</h4><label>Pong - Gols pra vencer: <input type="number" id="pong-goals" value="3"></label><label>Desenho - Tempo: <input type="number" id="drawing-time" value="60"> segundos</label></div>
+                <div class="config-section"><h4>🎨 Aparência</h4><label>Cor principal: <input type="color" id="theme-color" value="#0062cc"></label><label>Nome do site: <input type="text" id="site-name" value="AthesChat!"></label><button id="save-config">💾 Salvar todas configurações</button></div>
+            </div>
+
+            <div id="stats-module" class="module">
+                <canvas id="stats-chart" style="max-height: 400px;"></canvas>
+                <div class="stats-details" id="stats-details"></div>
+                <button id="export-csv" class="btn-small">📥 Exportar CSV</button>
+            </div>
+
+            <div id="logs-module" class="module">
+                <div id="logs-list" class="logs-list"></div>
+            </div>
+
+            <div id="broadcast-module" class="module">
+                <input type="text" id="broadcast-title" placeholder="Título do aviso">
+                <textarea id="broadcast-message" rows="3" placeholder="Mensagem para todos os usuários..."></textarea>
+                <select id="broadcast-type"><option value="sistema">Sistema</option><option value="anuncio">Anúncio</option><option value="alerta">Alerta</option></select>
+                <button id="send-broadcast">📨 Enviar Mensagem Global</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
