@@ -17,11 +17,11 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ================= ROTAS PRINCIPAIS =================
 app.get('/', (req, res) => {
-    const indexPath = path.join(__dirname, 'index.html');
+    const indexPath = path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
     } else {
