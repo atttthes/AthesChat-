@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Painel Admin - AthesChat</title>
+    <!-- REMOVIDA a referência ao script.js que causava conflito -->
     <style>
         * {
             margin: 0;
@@ -831,6 +832,9 @@
         </div>
     </div>
 
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
     <script>
         // Conexão Socket
         const socket = io();
@@ -875,11 +879,17 @@
                     iniciarMonitorChat();
                     setInterval(carregarDashboard, 10000);
                 } else {
-                    loginError.textContent = 'Credenciais inválidas';
+                    loginError.textContent = data.message || 'Credenciais inválidas';
                 }
             } catch (error) {
                 loginError.textContent = 'Erro ao conectar ao servidor';
+                console.error('Erro no login:', error);
             }
+        });
+
+        // Permitir login com Enter
+        document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
         });
 
         logoutBtn.addEventListener('click', () => {
@@ -887,7 +897,8 @@
             adminToken = null;
             loginContainer.style.display = 'flex';
             adminContainer.style.display = 'none';
-            window.location.href = '/';
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
         });
 
         // ================= NAVEGAÇÃO =================
@@ -900,6 +911,11 @@
                 
                 document.querySelectorAll('.module').forEach(mod => mod.classList.remove('active'));
                 document.getElementById(moduleId).classList.add('active');
+                
+                // Recarregar dados ao trocar de módulo
+                if (moduleId === 'reports') carregarDenuncias();
+                if (moduleId === 'banned') carregarBanidos();
+                if (moduleId === 'logs') carregarLogs();
             });
         });
 
@@ -1092,16 +1108,23 @@
             const feed = document.getElementById('liveChatFeed');
             
             socket.on('chat_message', (msg) => {
+                // Limpar estado vazio se existir
+                const emptyState = feed.querySelector('.empty-state');
+                if (emptyState) emptyState.remove();
+                
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'live-message';
                 messageDiv.innerHTML = `
                     <span style="color:#888;">${new Date().toLocaleTimeString()}</span>
-                    <strong> ${msg.senderId}</strong>: ${escapeHtml(msg.text)}
+                    <strong> ${msg.senderId ? msg.senderId.substring(0, 8) : 'Anônimo'}</strong>: ${escapeHtml(msg.text)}
                 `;
                 feed.appendChild(messageDiv);
                 feed.scrollTop = feed.scrollHeight;
                 
-                if (feed.children.length > 100) feed.removeChild(feed.children[0]);
+                // Limitar a 100 mensagens
+                if (feed.children.length > 100) {
+                    feed.removeChild(feed.children[0]);
+                }
             });
         }
 
@@ -1127,13 +1150,13 @@
             
             document.getElementById('broadcastTitle').value = '';
             document.getElementById('broadcastMessage').value = '';
-            alert('Mensagem enviada para todos os usuários!');
+            alert('✅ Mensagem enviada para todos os usuários!');
             
             // Adicionar ao histórico
             const historyDiv = document.getElementById('broadcastHistory');
             const historyItem = document.createElement('div');
             historyItem.className = 'broadcast-history-item';
-            historyItem.innerHTML = `<strong>${new Date().toLocaleString()}</strong>: ${fullMessage.substring(0, 100)}`;
+            historyItem.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${escapeHtml(fullMessage.substring(0, 100))}${fullMessage.length > 100 ? '...' : ''}`;
             historyDiv.insertBefore(historyItem, historyDiv.firstChild);
             if (historyDiv.children.length > 5) historyDiv.removeChild(historyDiv.lastChild);
         });
@@ -1149,7 +1172,7 @@
                 const logs = await response.json();
                 
                 const container = document.getElementById('logsList');
-                if (logs.length === 0) {
+                if (!logs || logs.length === 0) {
                     container.innerHTML = '<div class="empty-state">📋 Nenhum log registrado</div>';
                     return;
                 }
@@ -1173,7 +1196,7 @@
             return div.innerHTML;
         }
 
-        // Verificar token salvo
+        // Verificar token salvo ao carregar a página
         const savedToken = localStorage.getItem('adminToken');
         if (savedToken) {
             adminToken = savedToken;
@@ -1188,7 +1211,7 @@
             setInterval(carregarDashboard, 10000);
         }
 
-        console.log('Painel Admin AthesChat carregado!');
+        console.log('✅ Painel Admin AthesChat carregado!');
     </script>
 </body>
 </html>
