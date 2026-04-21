@@ -1,116 +1,1194 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - AthesChat!</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Painel Admin - AthesChat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        /* ================= LOGIN ================= */
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%);
+            z-index: 2000;
+        }
+
+        .login-card {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 30px;
+            width: 360px;
+            text-align: center;
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #e94560;
+            margin-bottom: 30px;
+        }
+
+        .login-input-group {
+            margin-bottom: 20px;
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1px solid #2d2d3a;
+            border-radius: 15px;
+            background: #1a1a2e;
+            color: white;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .login-card input:focus {
+            outline: none;
+            border-color: #e94560;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+        }
+
+        #loginBtn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #e94560, #c62a4a);
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #loginBtn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error-msg {
+            color: #ff6b6b;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .login-footer {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* ================= ADMIN PANEL ================= */
+        .admin-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar-admin {
+            width: 280px;
+            background: #0f0f1a;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #1a1a2e;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid #1a1a2e;
+        }
+
+        .sidebar-header h2 {
+            color: #e94560;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .admin-status {
+            font-size: 12px;
+            color: #4CAF50;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .admin-nav {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #aaa;
+            text-decoration: none;
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, #e94560, transparent);
+            color: white;
+            border-left: 3px solid #e94560;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            width: 30px;
+        }
+
+        .nav-text {
+            flex: 1;
+        }
+
+        .badge {
+            background: #e94560;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 11px;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid #1a1a2e;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 12px;
+            background: #2d2d3a;
+            border: none;
+            border-radius: 12px;
+            color: #ff6b6b;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px 30px;
+        }
+
+        .module {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .module.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .module-header {
+            margin-bottom: 25px;
+        }
+
+        .module-header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .module-header p {
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #16213e;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-icon {
+            font-size: 40px;
+            background: #1a1a2e;
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+        }
+
+        .stat-info h3 {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-info span {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e94560;
+        }
+
+        /* Activity Chart */
+        .activity-chart {
+            background: #16213e;
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .activity-chart h3 {
+            margin-bottom: 20px;
+        }
+
+        .chart-bars {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            gap: 15px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #e94560, #c62a4a);
+            border-radius: 10px 10px 5px 5px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 8px;
+            font-size: 11px;
+            color: white;
+            transition: height 0.5s;
+        }
+
+        /* Reports List */
+        .reports-list, .bans-list, .logs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .report-card, .ban-card, .log-entry {
+            background: #16213e;
+            border-radius: 15px;
+            padding: 18px;
+            transition: all 0.2s;
+        }
+
+        .report-card.priority-high {
+            border-left: 4px solid #ff4d4d;
+            background: #1a1a2e;
+        }
+
+        .report-card.priority-medium {
+            border-left: 4px solid #ffd700;
+        }
+
+        .report-header, .ban-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .report-message {
+            background: #0f0f1a;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .report-actions, .ban-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-ban {
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-ignore {
+            background: #2d2d3a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-warning {
+            background: #ffd700;
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #c62a4a;
+            transform: translateY(-1px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        /* Live Chat Feed */
+        .live-chat-feed {
+            background: #0f0f1a;
+            border-radius: 15px;
+            height: calc(100vh - 150px);
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .live-message {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .live-message.offensive {
+            background: #4d2020;
+            border-left: 3px solid #ff4d4d;
+        }
+
+        /* Broadcast Form */
+        .broadcast-form {
+            background: #16213e;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .broadcast-input, .broadcast-textarea, .broadcast-select {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: 1px solid #2d2d3a;
+            border-radius: 12px;
+            background: #1a1a2e;
+            color: white;
+            font-size: 14px;
+        }
+
+        .broadcast-textarea {
+            resize: vertical;
+        }
+
+        .broadcast-settings {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .broadcast-settings label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .broadcast-settings input {
+            width: 80px;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #2d2d3a;
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .last-broadcasts {
+            background: #16213e;
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .last-broadcasts h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .broadcast-history-item {
+            background: #1a1a2e;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        /* Logs */
+        .log-entry {
+            font-size: 13px;
+        }
+
+        .log-entry .timestamp {
+            color: #888;
+            margin-right: 10px;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 20px;
+            min-width: 320px;
+            max-width: 90%;
+        }
+
+        .modal-input, .modal-select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #2d2d3a;
+            border-radius: 10px;
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .accept-btn, .decline-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .accept-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .decline-btn {
+            background: #ff4d4d;
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar-admin {
+                width: 80px;
+            }
+            .sidebar-header h2, .nav-text, .admin-status, .sidebar-footer {
+                display: none;
+            }
+            .nav-icon {
+                width: auto;
+            }
+            .main-content {
+                padding: 15px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            .stat-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 30px;
+            }
+            .stat-info span {
+                font-size: 24px;
+            }
+            .broadcast-settings {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f0f1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+    </style>
 </head>
 <body>
-    <div id="login-screen" class="login-container">
+    <!-- TELA DE LOGIN -->
+    <div class="login-container" id="loginContainer">
         <div class="login-card">
-            <h1>🔒 AthesChat Admin</h1>
-            <input type="text" id="login-username" placeholder="Usuário">
-            <input type="password" id="login-password" placeholder="Senha">
-            <button id="login-btn">Entrar</button>
-            <div id="login-error" class="error-msg"></div>
+            <div class="login-logo">🛡️ AthesChat Admin</div>
+            <div class="login-input-group">
+                <input type="text" id="adminUsername" placeholder="Usuário" autocomplete="off">
+            </div>
+            <div class="login-input-group">
+                <input type="password" id="adminPassword" placeholder="Senha">
+            </div>
+            <button id="loginBtn">Entrar no Painel</button>
+            <div id="loginError" class="error-msg"></div>
+            <div class="login-footer">Acesso restrito ao administrador</div>
         </div>
     </div>
 
-    <div id="admin-panel" style="display: none;">
-        <div class="sidebar">
+    <!-- PAINEL ADMIN -->
+    <div class="admin-container" id="adminContainer" style="display: none;">
+        <!-- SIDEBAR -->
+        <div class="sidebar-admin">
             <div class="sidebar-header">
-                <h3>🎮 AthesChat</h3>
-                <p>Painel Admin</p>
+                <h2>🛡️ AthesChat</h2>
+                <div class="admin-status">👑 Admin Online</div>
             </div>
-            <ul class="sidebar-nav">
-                <li data-module="dashboard" class="active">🏠 Dashboard</li>
-                <li data-module="reports">🚨 Denúncias</li>
-                <li data-module="bans">🚫 Banimentos</li>
-                <li data-module="chat-monitor">👁️ Monitor Chat</li>
-                <li data-module="ads">📢 Anúncios</li>
-                <li data-module="config">⚙️ Configurações</li>
-                <li data-module="stats">📊 Estatísticas</li>
-                <li data-module="logs">📜 Logs</li>
-                <li data-module="broadcast">📨 Mensagem Global</li>
-            </ul>
-            <button id="logout-btn" class="logout-btn">🚪 Sair</button>
+            <nav class="admin-nav">
+                <div class="nav-item active" data-module="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </div>
+                <div class="nav-item" data-module="reports">
+                    <span class="nav-icon">🚨</span>
+                    <span class="nav-text">Denúncias</span>
+                    <span class="badge" id="reportsBadge">0</span>
+                </div>
+                <div class="nav-item" data-module="banned">
+                    <span class="nav-icon">🚫</span>
+                    <span class="nav-text">Banidos</span>
+                </div>
+                <div class="nav-item" data-module="livechat">
+                    <span class="nav-icon">👁️</span>
+                    <span class="nav-text">Chat Ao Vivo</span>
+                </div>
+                <div class="nav-item" data-module="broadcast">
+                    <span class="nav-icon">📢</span>
+                    <span class="nav-text">Mensagem Global</span>
+                </div>
+                <div class="nav-item" data-module="logs">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-text">Logs</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn">🚪 Sair do Painel</button>
+            </div>
         </div>
 
+        <!-- CONTEÚDO PRINCIPAL -->
         <div class="main-content">
-            <div class="top-bar">
-                <h2 id="module-title">Dashboard</h2>
-                <div class="admin-info">
-                    <span>👤 admindoathes213</span>
+            <!-- MÓDULO 1: DASHBOARD -->
+            <div id="dashboard" class="module active">
+                <div class="module-header">
+                    <h1>Dashboard</h1>
+                    <p>Visão geral do AthesChat em tempo real</p>
                 </div>
-            </div>
-            
-            <div id="dashboard-module" class="module active">
                 <div class="stats-grid">
-                    <div class="stat-card"><div class="stat-value" id="online-count">0</div><div class="stat-label">👥 Online</div></div>
-                    <div class="stat-card"><div class="stat-value" id="bots-count">0</div><div class="stat-label">🤖 Bots Ativos</div></div>
-                    <div class="stat-card"><div class="stat-value" id="msgs-today">0</div><div class="stat-label">💬 Msgs Hoje</div></div>
-                    <div class="stat-card"><div class="stat-value" id="reports-pending">0</div><div class="stat-label">🚨 Denúncias</div></div>
-                    <div class="stat-card"><div class="stat-value" id="games-active">0</div><div class="stat-label">🎮 Jogos Ativos</div></div>
-                    <div class="stat-card"><div class="stat-value" id="bans-total">0</div><div class="stat-label">🚫 Banidos</div></div>
-                    <div class="stat-card"><div class="stat-value" id="ads-active">0</div><div class="stat-label">📢 Anúncios</div></div>
-                    <div class="stat-card"><div class="stat-value" id="peak-users">0</div><div class="stat-label">📈 Pico Máximo</div></div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <h3>Usuários Online</h3>
+                            <span id="onlineNow">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🤖</div>
+                        <div class="stat-info">
+                            <h3>Bots Ativos</h3>
+                            <span id="activeBots">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💬</div>
+                        <div class="stat-info">
+                            <h3>Mensagens Hoje</h3>
+                            <span id="messagesToday">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🚨</div>
+                        <div class="stat-info">
+                            <h3>Denúncias</h3>
+                            <span id="pendingReports">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎮</div>
+                        <div class="stat-info">
+                            <h3>Jogos Ativos</h3>
+                            <span id="activeGames">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🚫</div>
+                        <div class="stat-info">
+                            <h3>Banidos Total</h3>
+                            <span id="totalBanned">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-info">
+                            <h3>Pico Máximo</h3>
+                            <span id="peakUsers">0</span>
+                        </div>
+                    </div>
                 </div>
-                <canvas id="activity-chart" style="max-height: 300px; margin-top: 30px;"></canvas>
-            </div>
-
-            <div id="reports-module" class="module">
-                <div class="module-header"><h3>🚨 Central de Denúncias</h3><button id="refresh-reports" class="btn-small">🔄 Atualizar</button></div>
-                <div id="reports-list" class="reports-list"></div>
-            </div>
-
-            <div id="bans-module" class="module">
-                <div class="module-header"><h3>🚫 Gerenciador de Banimentos</h3><button id="add-ban-btn" class="btn-small">➕ Banir Manualmente</button></div>
-                <div id="bans-list" class="bans-list"></div>
-                <div id="add-ban-modal" class="modal" style="display:none;">
-                    <div class="modal-content"><h3>Banir Usuário</h3><input type="text" id="ban-user" placeholder="Usuário"><textarea id="ban-reason" placeholder="Motivo"></textarea><label><input type="checkbox" id="ban-permanent"> Permanente</label><div id="temp-days" style="display:none;"><input type="number" id="ban-days" placeholder="Dias"> Temporário</div><button id="confirm-ban">Banir</button><button id="cancel-ban">Cancelar</button></div>
+                <div class="activity-chart">
+                    <h3>📊 Atividade nas Últimas 24h</h3>
+                    <div class="chart-bars" id="activityChart">
+                        <div class="chart-bar" style="height: 30%">00h</div>
+                        <div class="chart-bar" style="height: 45%">06h</div>
+                        <div class="chart-bar" style="height: 78%">12h</div>
+                        <div class="chart-bar" style="height: 95%">18h</div>
+                        <div class="chart-bar" style="height: 82%">20h</div>
+                        <div class="chart-bar" style="height: 60%">22h</div>
+                    </div>
                 </div>
             </div>
 
-            <div id="chat-monitor-module" class="module">
-                <div class="module-header"><h3>👁️ Monitor de Chat Ao Vivo</h3><div><span id="online-users-count">0</span> usuários online</div></div>
-                <div id="chat-feed" class="chat-feed"></div>
-                <div class="alert-box" id="alert-box"></div>
+            <!-- MÓDULO 2: CENTRAL DE DENÚNCIAS -->
+            <div id="reports" class="module">
+                <div class="module-header">
+                    <h1>🚨 Central de Denúncias</h1>
+                    <p>Analise e tome ações sobre as denúncias recebidas</p>
+                </div>
+                <div id="reportsList" class="reports-list">
+                    <div class="empty-state">📭 Nenhuma denúncia pendente</div>
+                </div>
             </div>
 
-            <div id="ads-module" class="module">
-                <div class="module-header"><h3>📢 Campanhas Publicitárias</h3><button id="add-ad-btn" class="btn-small">➕ Nova Campanha</button></div>
-                <div id="ads-list" class="ads-list"></div>
+            <!-- MÓDULO 3: GERENCIADOR DE BANIMENTOS -->
+            <div id="banned" class="module">
+                <div class="module-header">
+                    <h1>🚫 Usuários Banidos</h1>
+                    <p>Gerencie os usuários banidos do chat</p>
+                    <button id="manualBanBtn" class="btn-primary">➕ Banir Manualmente</button>
+                </div>
+                <div id="bansList" class="bans-list">
+                    <div class="empty-state">🔓 Nenhum usuário banido</div>
+                </div>
             </div>
 
-            <div id="config-module" class="module">
-                <div class="config-section"><h4>📝 Palavras Proibidas</h4><textarea id="bad-words" rows="3" style="width:100%"></textarea><button id="save-words">Salvar</button></div>
-                <div class="config-section"><h4>🤖 Configurações dos Bots</h4><label><input type="checkbox" id="bots-enabled"> Bots ativos</label><label>Tempo de espera: <input type="number" id="bot-wait-time" value="3"> segundos</label></div>
-                <div class="config-section"><h4>🎮 Configurações dos Jogos</h4><label>Pong - Gols pra vencer: <input type="number" id="pong-goals" value="3"></label><label>Desenho - Tempo: <input type="number" id="drawing-time" value="60"> segundos</label></div>
-                <div class="config-section"><h4>🎨 Aparência</h4><label>Cor principal: <input type="color" id="theme-color" value="#0062cc"></label><label>Nome do site: <input type="text" id="site-name" value="AthesChat!"></label><button id="save-config">💾 Salvar todas configurações</button></div>
+            <!-- MÓDULO 4: MONITOR DE CHAT AO VIVO -->
+            <div id="livechat" class="module">
+                <div class="module-header">
+                    <h1>👁️ Monitor de Chat Ao Vivo</h1>
+                    <p>Acompanhe as mensagens em tempo real</p>
+                    <div class="live-stats">
+                        <span>🟢 Online: <span id="liveOnlineCount">0</span></span>
+                    </div>
+                </div>
+                <div id="liveChatFeed" class="live-chat-feed">
+                    <div class="empty-state">📡 Aguardando mensagens...</div>
+                </div>
             </div>
 
-            <div id="stats-module" class="module">
-                <canvas id="stats-chart" style="max-height: 400px;"></canvas>
-                <div class="stats-details" id="stats-details"></div>
-                <button id="export-csv" class="btn-small">📥 Exportar CSV</button>
+            <!-- MÓDULO 5: MENSAGEM GLOBAL (LETREIRO) -->
+            <div id="broadcast" class="module">
+                <div class="module-header">
+                    <h1>📢 Mensagem Global</h1>
+                    <p>Envie uma mensagem para todos os usuários online (aparecerá no letreiro)</p>
+                </div>
+                <div class="broadcast-form">
+                    <input type="text" id="broadcastTitle" placeholder="Título da mensagem" class="broadcast-input">
+                    <textarea id="broadcastMessage" rows="3" placeholder="Digite a mensagem que será enviada para todos os usuários..." class="broadcast-textarea"></textarea>
+                    <div class="broadcast-settings">
+                        <label>Velocidade (segundos): <input type="number" id="broadcastSpeed" value="20" min="5" max="60"></label>
+                        <label>Duração (segundos): <input type="number" id="broadcastDuration" value="10" min="3" max="30"></label>
+                    </div>
+                    <button id="sendBroadcastBtn" class="btn-primary">📨 Enviar Mensagem</button>
+                </div>
+                <div id="lastBroadcasts" class="last-broadcasts">
+                    <h3>Últimas mensagens enviadas:</h3>
+                    <div id="broadcastHistory"></div>
+                </div>
             </div>
 
-            <div id="logs-module" class="module">
-                <div id="logs-list" class="logs-list"></div>
-            </div>
-
-            <div id="broadcast-module" class="module">
-                <input type="text" id="broadcast-title" placeholder="Título do aviso">
-                <textarea id="broadcast-message" rows="3" placeholder="Mensagem para todos os usuários..."></textarea>
-                <select id="broadcast-type"><option value="sistema">Sistema</option><option value="anuncio">Anúncio</option><option value="alerta">Alerta</option></select>
-                <button id="send-broadcast">📨 Enviar Mensagem Global</button>
+            <!-- MÓDULO 6: LOGS DO SISTEMA -->
+            <div id="logs" class="module">
+                <div class="module-header">
+                    <h1>📜 Logs do Sistema</h1>
+                    <p>Últimas 10 ações do administrador</p>
+                </div>
+                <div id="logsList" class="logs-list">
+                    <div class="empty-state">📋 Nenhum log registrado</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- MODAL DE BANIMENTO MANUAL -->
+    <div id="banModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>🚫 Banir Usuário</h3>
+            <input type="text" id="banUserId" placeholder="ID do usuário" class="modal-input">
+            <input type="text" id="banReason" placeholder="Motivo do banimento" class="modal-input">
+            <select id="banDuration" class="modal-select">
+                <option value="permanent">Permanente</option>
+                <option value="7">7 dias</option>
+                <option value="30">30 dias</option>
+                <option value="90">90 dias</option>
+            </select>
+            <div class="modal-actions">
+                <button id="confirmBanBtn" class="accept-btn">Banir</button>
+                <button id="cancelBanBtn" class="decline-btn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Conexão Socket
+        const socket = io();
+        let adminToken = null;
+
+        // Elementos
+        const loginContainer = document.getElementById('loginContainer');
+        const adminContainer = document.getElementById('adminContainer');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginError = document.getElementById('loginError');
+
+        // ================= AUTENTICAÇÃO =================
+        loginBtn.addEventListener('click', async () => {
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            if (!username || !password) {
+                loginError.textContent = 'Preencha todos os campos';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    adminToken = data.token;
+                    localStorage.setItem('adminToken', adminToken);
+                    loginContainer.style.display = 'none';
+                    adminContainer.style.display = 'flex';
+                    socket.emit('admin_register', adminToken);
+                    carregarDashboard();
+                    carregarDenuncias();
+                    carregarBanidos();
+                    carregarLogs();
+                    iniciarMonitorChat();
+                    setInterval(carregarDashboard, 10000);
+                } else {
+                    loginError.textContent = 'Credenciais inválidas';
+                }
+            } catch (error) {
+                loginError.textContent = 'Erro ao conectar ao servidor';
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('adminToken');
+            adminToken = null;
+            loginContainer.style.display = 'flex';
+            adminContainer.style.display = 'none';
+            window.location.href = '/';
+        });
+
+        // ================= NAVEGAÇÃO =================
+        document.querySelectorAll('.nav-item').forEach(link => {
+            link.addEventListener('click', (e) => {
+                const moduleId = link.dataset.module;
+                
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                link.classList.add('active');
+                
+                document.querySelectorAll('.module').forEach(mod => mod.classList.remove('active'));
+                document.getElementById(moduleId).classList.add('active');
+            });
+        });
+
+        // ================= DASHBOARD =================
+        async function carregarDashboard() {
+            if (!adminToken) return;
+            
+            try {
+                const response = await fetch('/admin/api/stats', {
+                    headers: { 'Authorization': adminToken }
+                });
+                const stats = await response.json();
+                
+                document.getElementById('onlineNow').textContent = stats.onlineNow || 0;
+                document.getElementById('activeBots').textContent = stats.activeBots || 0;
+                document.getElementById('messagesToday').textContent = stats.messagesToday || 0;
+                document.getElementById('pendingReports').textContent = stats.pendingReports || 0;
+                document.getElementById('activeGames').textContent = stats.activeGames || 0;
+                document.getElementById('totalBanned').textContent = stats.totalBanned || 0;
+                document.getElementById('peakUsers').textContent = stats.peakUsers || 0;
+                document.getElementById('reportsBadge').textContent = stats.pendingReports || 0;
+                document.getElementById('liveOnlineCount').textContent = stats.onlineNow || 0;
+            } catch (error) {
+                console.error('Erro ao carregar dashboard:', error);
+            }
+        }
+
+        // ================= DENÚNCIAS =================
+        async function carregarDenuncias() {
+            if (!adminToken) return;
+            
+            try {
+                const response = await fetch('/admin/api/reports', {
+                    headers: { 'Authorization': adminToken }
+                });
+                const reports = await response.json();
+                const pendingReports = reports.filter(r => r.status === 'pending');
+                
+                const container = document.getElementById('reportsList');
+                if (pendingReports.length === 0) {
+                    container.innerHTML = '<div class="empty-state">📭 Nenhuma denúncia pendente</div>';
+                    return;
+                }
+                
+                container.innerHTML = pendingReports.map(report => `
+                    <div class="report-card priority-${report.priority || 'medium'}">
+                        <div class="report-header">
+                            <span>🔴 Denúncia #${report.reportId}</span>
+                            <span>📅 ${new Date(report.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div><strong>Denunciado:</strong> ${report.reportedUser}</div>
+                        <div><strong>Motivo:</strong> ${report.reason}</div>
+                        <div class="report-message">"${escapeHtml(report.reportedMessage)}"</div>
+                        <div class="report-actions">
+                            <button class="btn-ban" onclick="acaoDenuncia('${report.reportId}', 'ban')">🚫 Banir</button>
+                            <button class="btn-warning" onclick="acaoDenuncia('${report.reportId}', 'suspend', 7)">⏱️ Suspender 7d</button>
+                            <button class="btn-warning" onclick="acaoDenuncia('${report.reportId}', 'suspend', 30)">⏱️ Suspender 30d</button>
+                            <button class="btn-warning" onclick="acaoDenuncia('${report.reportId}', 'warning')">⚠️ Avisar</button>
+                            <button class="btn-ignore" onclick="acaoDenuncia('${report.reportId}', 'ignore')">✅ Ignorar</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar denúncias:', error);
+            }
+        }
+
+        window.acaoDenuncia = async (reportId, acao, dias = null) => {
+            let reason = '';
+            let duration = null;
+            
+            if (acao === 'ban') {
+                reason = prompt('Motivo do banimento permanente:');
+                if (!reason) return;
+            } else if (acao === 'suspend') {
+                reason = prompt('Motivo da suspensão:');
+                if (!reason) return;
+                duration = dias;
+            } else if (acao === 'warning') {
+                const msg = prompt('Mensagem de aviso para o usuário:');
+                if (!msg) return;
+                await fetch(`/admin/api/reports/${reportId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
+                    body: JSON.stringify({ action: 'warning', warningMessage: msg })
+                });
+                carregarDenuncias();
+                carregarDashboard();
+                return;
+            } else if (acao === 'ignore') {
+                await fetch(`/admin/api/reports/${reportId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
+                    body: JSON.stringify({ action: 'ignore' })
+                });
+                carregarDenuncias();
+                carregarDashboard();
+                return;
+            }
+            
+            await fetch(`/admin/api/reports/${reportId}/action`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
+                body: JSON.stringify({ action: acao === 'ban' ? 'ban' : 'suspend', reason, duration })
+            });
+            carregarDenuncias();
+            carregarDashboard();
+            carregarBanidos();
+        };
+
+        // ================= BANIDOS =================
+        async function carregarBanidos() {
+            if (!adminToken) return;
+            
+            try {
+                const response = await fetch('/admin/api/bans', {
+                    headers: { 'Authorization': adminToken }
+                });
+                const bans = await response.json();
+                
+                const container = document.getElementById('bansList');
+                if (bans.length === 0) {
+                    container.innerHTML = '<div class="empty-state">🔓 Nenhum usuário banido</div>';
+                    return;
+                }
+                
+                container.innerHTML = bans.map(ban => `
+                    <div class="ban-card">
+                        <div class="ban-header">
+                            <span>🚫 Usuário: ${ban.userId}</span>
+                            <span>📅 ${new Date(ban.bannedAt).toLocaleDateString()}</span>
+                        </div>
+                        <div><strong>Motivo:</strong> ${ban.reason}</div>
+                        <div><strong>Expira:</strong> ${ban.expiresAt ? new Date(ban.expiresAt).toLocaleDateString() : 'Nunca'}</div>
+                        <div class="ban-actions">
+                            <button class="btn-ignore" onclick="desbanirUsuario('${ban.userId}')">🔓 Desbanir</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar banidos:', error);
+            }
+        }
+
+        window.desbanirUsuario = async (userId) => {
+            if (confirm(`Deseja desbanir o usuário ${userId}?`)) {
+                await fetch(`/admin/api/bans/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': adminToken }
+                });
+                carregarBanidos();
+                carregarDashboard();
+            }
+        };
+
+        // Banimento manual
+        document.getElementById('manualBanBtn')?.addEventListener('click', () => {
+            document.getElementById('banModal').style.display = 'flex';
+        });
+
+        document.getElementById('confirmBanBtn')?.addEventListener('click', async () => {
+            const userId = document.getElementById('banUserId').value;
+            const reason = document.getElementById('banReason').value;
+            const duration = document.getElementById('banDuration').value;
+            
+            if (!userId || !reason) {
+                alert('Preencha ID do usuário e motivo');
+                return;
+            }
+            
+            await fetch('/admin/api/bans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
+                body: JSON.stringify({ userId, reason, duration })
+            });
+            
+            document.getElementById('banModal').style.display = 'none';
+            document.getElementById('banUserId').value = '';
+            document.getElementById('banReason').value = '';
+            carregarBanidos();
+            carregarDashboard();
+        });
+
+        document.getElementById('cancelBanBtn')?.addEventListener('click', () => {
+            document.getElementById('banModal').style.display = 'none';
+        });
+
+        // ================= MONITOR DE CHAT =================
+        function iniciarMonitorChat() {
+            const feed = document.getElementById('liveChatFeed');
+            
+            socket.on('chat_message', (msg) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'live-message';
+                messageDiv.innerHTML = `
+                    <span style="color:#888;">${new Date().toLocaleTimeString()}</span>
+                    <strong> ${msg.senderId}</strong>: ${escapeHtml(msg.text)}
+                `;
+                feed.appendChild(messageDiv);
+                feed.scrollTop = feed.scrollHeight;
+                
+                if (feed.children.length > 100) feed.removeChild(feed.children[0]);
+            });
+        }
+
+        // ================= MENSAGEM GLOBAL =================
+        document.getElementById('sendBroadcastBtn')?.addEventListener('click', async () => {
+            const title = document.getElementById('broadcastTitle').value;
+            const message = document.getElementById('broadcastMessage').value;
+            const speed = parseInt(document.getElementById('broadcastSpeed').value);
+            const duration = parseInt(document.getElementById('broadcastDuration').value);
+            
+            if (!message) {
+                alert('Digite uma mensagem para enviar');
+                return;
+            }
+            
+            const fullMessage = title ? `[${title}] ${message}` : message;
+            
+            await fetch('/admin/api/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
+                body: JSON.stringify({ message: fullMessage, speed, duration })
+            });
+            
+            document.getElementById('broadcastTitle').value = '';
+            document.getElementById('broadcastMessage').value = '';
+            alert('Mensagem enviada para todos os usuários!');
+            
+            // Adicionar ao histórico
+            const historyDiv = document.getElementById('broadcastHistory');
+            const historyItem = document.createElement('div');
+            historyItem.className = 'broadcast-history-item';
+            historyItem.innerHTML = `<strong>${new Date().toLocaleString()}</strong>: ${fullMessage.substring(0, 100)}`;
+            historyDiv.insertBefore(historyItem, historyDiv.firstChild);
+            if (historyDiv.children.length > 5) historyDiv.removeChild(historyDiv.lastChild);
+        });
+
+        // ================= LOGS =================
+        async function carregarLogs() {
+            if (!adminToken) return;
+            
+            try {
+                const response = await fetch('/admin/api/logs', {
+                    headers: { 'Authorization': adminToken }
+                });
+                const logs = await response.json();
+                
+                const container = document.getElementById('logsList');
+                if (logs.length === 0) {
+                    container.innerHTML = '<div class="empty-state">📋 Nenhum log registrado</div>';
+                    return;
+                }
+                
+                container.innerHTML = logs.map(log => `
+                    <div class="log-entry">
+                        <span class="timestamp">${new Date(log.timestamp).toLocaleString()}</span>
+                        ${escapeHtml(log.mensagem)}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar logs:', error);
+            }
+        }
+
+        // ================= UTILITÁRIOS =================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Verificar token salvo
+        const savedToken = localStorage.getItem('adminToken');
+        if (savedToken) {
+            adminToken = savedToken;
+            loginContainer.style.display = 'none';
+            adminContainer.style.display = 'flex';
+            socket.emit('admin_register', adminToken);
+            carregarDashboard();
+            carregarDenuncias();
+            carregarBanidos();
+            carregarLogs();
+            iniciarMonitorChat();
+            setInterval(carregarDashboard, 10000);
+        }
+
+        console.log('Painel Admin AthesChat carregado!');
+    </script>
 </body>
 </html>
