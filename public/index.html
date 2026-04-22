@@ -22,35 +22,38 @@
         #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
         #start-btn { background-color: var(--success-color); color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: all 0.3s; }
         #start-btn:hover { background-color: #45a049; transform: scale(1.05); }
-        #chat-container { display: none; height: 100vh; flex-direction: column; background-color: var(--secondary-bg); position: relative; }
+        #chat-container { display: none; height: 100vh; flex-direction: column; background-color: var(--secondary-bg); position: relative; overflow: hidden; }
         
         /* LETREIRO */
         .marquee-container {
-            background: linear-gradient(90deg, #e94560, #c62a4a);
-            color: white;
             overflow: hidden;
             white-space: nowrap;
             position: relative;
-            height: 36px;
+            height: 46px;
             display: none;
             align-items: center;
+            justify-content: center;
+            padding: 0 20px;
         }
         .marquee-text {
             display: inline-block;
-            padding-left: 100%;
-            animation: marquee 20s linear infinite;
-            font-size: 14px;
+            white-space: nowrap;
             font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
         @keyframes marquee {
-            0% { transform: translateX(0); }
+            0% { transform: translateX(100%); }
             100% { transform: translateX(-100%); }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; }
         .online-counter { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
         .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
-        #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
+        #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
         .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; }
         .message.active { background-color: rgba(255, 255, 255, 0.1); }
         .message.swiping { transition: none; }
@@ -61,15 +64,15 @@
         .attention-icon { position: absolute; bottom: -8px; left: 8px; font-size: 18px; cursor: pointer; user-select: none; }
         .reason { display: none; margin-top: 8px; padding: 8px; background-color: #ffdddd; border-radius: 6px; font-size: 12px; color: #d8000c; user-select: text; text-align: left; }
         .reason.visible { display: block; }
-        #input-area { display: flex; padding: 15px; background: var(--tertiary-bg); border-top: 1px solid #333; position: relative; flex-wrap: wrap; }
+        #input-area { display: flex; padding: 15px; background: var(--tertiary-bg); border-top: 1px solid #333; position: relative; flex-wrap: wrap; flex-shrink: 0; }
         #message { flex-grow: 1; padding: 12px 15px; border: 1px solid #444; border-radius: 25px; outline: none; font-size: 16px; background-color: #333; color: var(--text-color); }
         #send-btn { background: var(--accent-color); color: white; border: none; border-radius: 25px; padding: 0 20px; margin-left: 10px; cursor: pointer; font-weight: bold; }
         #send-btn:hover { background: var(--accent-hover); }
         .sender-info { font-size: 0.7em; margin-bottom: 3px; display: flex; justify-content: space-between; }
         .sender-name { font-weight: bold; }
         .sender-location { opacity: 0.7; font-style: italic; }
-        #action-btn { background: var(--special-accent); color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; margin: 10px auto; display: block; transition: all 0.3s; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); }
-        #action-btn:hover { background: #7b1fa2; transform: translateX(-50%) scale(1.05); }
+        #action-btn { background: var(--special-accent); color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; margin: 0 auto 10px auto; display: none; transition: all 0.3s; position: relative; width: fit-content; }
+        #action-btn:hover { background: #7b1fa2; transform: scale(1.05); }
         .typing-indicator { display: inline-block; padding: 10px 15px; background: #333; border-radius: 18px; margin-bottom: 15px; max-width: 80%; align-self: flex-start; color: var(--text-muted); font-size: 0.9em; }
         .typing-dots { display: inline-flex; align-items: center; }
         .typing-dot { width: 6px; height: 6px; background-color: var(--text-muted); border-radius: 50%; margin: 0 2px; animation: typingAnimation 1.4s infinite ease-in-out; }
@@ -95,7 +98,7 @@
         #sidebar ul li:hover { background: #444; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1200; }
-        .modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); }
+        .modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); min-width: 280px; }
         .modal-content h3 { margin-bottom: 20px; }
         .modal-actions button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 0 10px; }
         .accept-btn { background: var(--success-color); color: white; }
@@ -148,6 +151,8 @@
         .tutorial-card p { text-align: left; margin: 10px 0; font-size: 0.9rem; }
         .tutorial-card .role-box { background: #533483; padding: 10px; border-radius: 20px; margin: 10px 0; }
         .tutorial-card button { background: #e94560; border: none; padding: 12px 30px; border-radius: 50px; font-weight: bold; color: white; margin-top: 15px; cursor: pointer; }
+        
+        select, input, button { font-family: inherit; }
     </style>
 </head>
 <body>
@@ -158,7 +163,6 @@
     </div>
 
     <div id="chat-container">
-        <!-- LETREIRO -->
         <div id="marqueeContainer" class="marquee-container" style="display: none;">
             <div id="marqueeText" class="marquee-text"></div>
         </div>
@@ -170,7 +174,7 @@
                 <li id="play-ttt-btn">❌ Jogo da Velha</li>
                 <li id="play-drawing-btn">🎨 Que Rabisco é esse?</li>
                 <li style="border-top: 1px solid #444; margin-top: 10px;"></li>
-                <li id="admin-login-btn" style="color: #e94560;">🔐 Login</li>
+                <li id="admin-login-btn" style="color: #e94560;">🔐 Login Admin</li>
             </ul>
         </div>
         <div id="chat-header">
@@ -193,10 +197,11 @@
         </div>
     </div>
     
-    <!-- MODAL DE DENÚNCIA -->
+    <!-- MODAL DE DENÚNCIA (SEM CAMPO DE ID) -->
     <div id="reportModal" class="modal-overlay">
         <div class="modal-content">
             <h3>🚨 Denunciar Usuário</h3>
+            <p style="margin-bottom: 10px; font-size: 14px; color: #aaa;">Você está denunciando seu parceiro atual.</p>
             <select id="reportReason" style="width:100%; padding:10px; margin:10px 0; background:#1e1e1e; color:white; border-radius:8px;">
                 <option value="ofensivo">Mensagem ofensiva</option>
                 <option value="spam">Spam</option>
@@ -204,7 +209,6 @@
                 <option value="conteúdo impróprio">Conteúdo impróprio</option>
                 <option value="outro">Outro</option>
             </select>
-            <input type="text" id="reportUserId" placeholder="ID do usuário (opcional)" style="width:100%; padding:10px; margin:10px 0; background:#1e1e1e; color:white; border-radius:8px; border:none;">
             <div class="modal-actions" style="margin-top: 20px;">
                 <button id="confirmReportBtn" class="accept-btn">Denunciar</button>
                 <button id="cancelReportBtn" class="decline-btn">Cancelar</button>
@@ -662,38 +666,61 @@
         // ================= LETREIRO =================
         socket.on('admin_broadcast', (data) => {
             marqueeText.textContent = data.message;
+            marqueeText.style.color = data.textColor;
+            marqueeText.style.fontSize = data.fontSize + 'px';
+            marqueeContainer.style.background = data.bgColor;
             marqueeContainer.style.display = 'flex';
-            const speed = data.speed || 20;
-            const duration = (data.duration || 10) * 1000;
-            marqueeText.style.animation = `marquee ${speed}s linear infinite`;
+            
+            if (data.effect === 'blink') {
+                marqueeText.style.animation = 'blink 1s infinite';
+                marqueeContainer.style.whiteSpace = 'normal';
+                marqueeContainer.style.justifyContent = 'center';
+            } else if (data.effect === 'neon') {
+                marqueeText.style.textShadow = '0 0 5px currentColor, 0 0 10px currentColor';
+                marqueeText.style.animation = `marquee ${data.speed}s linear infinite`;
+            } else {
+                marqueeText.style.animation = `marquee ${data.speed}s linear infinite`;
+                marqueeText.style.textShadow = 'none';
+                marqueeContainer.style.whiteSpace = 'nowrap';
+            }
+            
             setTimeout(() => {
                 marqueeContainer.style.display = 'none';
                 marqueeText.style.animation = '';
-            }, duration);
+                marqueeText.style.textShadow = '';
+            }, data.duration * 1000);
         });
 
         // ================= DENÚNCIA =================
         reportUserBtn.addEventListener('click', () => {
+            if (!currentPartnerId) {
+                alert('⚠️ Você precisa estar conectado a um parceiro para denunciar.');
+                return;
+            }
             reportModal.style.display = 'flex';
         });
 
         confirmReportBtn.addEventListener('click', () => {
             const reason = document.getElementById('reportReason').value;
-            let userId = document.getElementById('reportUserId').value.trim();
-            if (!userId && currentPartnerId) userId = currentPartnerId;
-            if (!userId) {
-                alert('⚠️ Nenhum usuário para denunciar. Conecte-se a um parceiro ou informe o ID manualmente.');
+            
+            if (!currentPartnerId) {
+                alert('⚠️ Você precisa estar conectado a um parceiro para denunciar.');
+                reportModal.style.display = 'none';
                 return;
             }
-            socket.emit('report_user', { reportedUserId: userId, reportedMessage: '', reason: reason });
+            
+            socket.emit('report_user', { 
+                reportedUserId: currentPartnerId, 
+                reportedMessage: '', 
+                reason: reason 
+            });
+            
             reportModal.style.display = 'none';
-            document.getElementById('reportUserId').value = '';
             addSystemMessage('✅ Denúncia enviada! Obrigado por ajudar a manter a comunidade segura.');
         });
 
         cancelReportBtn.addEventListener('click', () => {
             reportModal.style.display = 'none';
-            document.getElementById('reportUserId').value = '';
         });
 
         socket.on('report_thanks', (data) => { addSystemMessage(data.message); });
@@ -1103,29 +1130,50 @@
             drawingCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
             drawingCtx.lineCap = 'round';
             drawingCtx.lineJoin = 'round';
+            drawingCtx.strokeStyle = drawingColor;
+            drawingCtx.lineWidth = drawingSize;
+            
+            let lastX = null, lastY = null;
             
             const startDraw = (e) => {
                 if (drawingRole !== 'drawer' || !drawingGameActive) return;
                 e.preventDefault();
                 isDrawing = true;
                 const pos = getCoords(e);
+                lastX = pos.x;
+                lastY = pos.y;
                 drawingCtx.beginPath();
                 drawingCtx.moveTo(pos.x, pos.y);
             };
+            
             const moveDraw = (e) => {
                 if (!isDrawing || drawingRole !== 'drawer' || !drawingGameActive) return;
                 e.preventDefault();
                 const pos = getCoords(e);
-                if (drawingTool === 'eraser') drawingCtx.strokeStyle = 'white';
-                else drawingCtx.strokeStyle = drawingColor;
+                
+                if (drawingTool === 'eraser') {
+                    drawingCtx.strokeStyle = 'white';
+                } else {
+                    drawingCtx.strokeStyle = drawingColor;
+                }
                 drawingCtx.lineWidth = drawingSize;
+                
                 drawingCtx.lineTo(pos.x, pos.y);
                 drawingCtx.stroke();
                 drawingCtx.beginPath();
                 drawingCtx.moveTo(pos.x, pos.y);
+                
+                lastX = pos.x;
+                lastY = pos.y;
+                
                 sendDrawing();
             };
-            const endDraw = () => { isDrawing = false; drawingCtx.beginPath(); };
+            
+            const endDraw = () => { 
+                isDrawing = false; 
+                drawingCtx.beginPath();
+                sendDrawing();
+            };
             
             drawCanvas.removeEventListener('mousedown', startDraw);
             drawCanvas.removeEventListener('mousemove', moveDraw);
@@ -1133,6 +1181,7 @@
             drawCanvas.addEventListener('mousedown', startDraw);
             drawCanvas.addEventListener('mousemove', moveDraw);
             drawCanvas.addEventListener('mouseup', endDraw);
+            
             drawCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
             drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); moveDraw(e.touches[0]); });
             drawCanvas.addEventListener('touchend', endDraw);
@@ -1163,9 +1212,15 @@
         }
         
         socket.on('drawing_update', (data) => {
-            if (drawingRole === 'guesser' && drawingCtx) {
+            if (drawingRole === 'guesser' && drawingCtx && data.imageData) {
                 const img = new Image();
-                img.onload = () => { drawingCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height); };
+                img.onload = () => {
+                    drawingCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                    drawingCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+                };
+                img.onerror = (err) => {
+                    console.error('Erro ao carregar imagem do desenho:', err);
+                };
                 img.src = data.imageData;
             }
         });
