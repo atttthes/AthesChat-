@@ -102,7 +102,6 @@ let stats = lerArquivo('stats.json', {
     gamesPlayed: { pong: 0, tictactoe: 0, drawing: 0 }
 });
 
-// Garantir que dailyMessages existe
 if (!stats.dailyMessages) {
     stats.dailyMessages = {};
 }
@@ -114,11 +113,37 @@ let bans = lerArquivo('bans.json', []);
 let reports = lerArquivo('reports.json', []);
 let adminLogs = lerArquivo('admin_logs.json', []);
 
+// Lista de palavras ofensivas
+let palavrasOfensivas = [];
+
+function carregarPalavrasOfensivas() {
+    try {
+        const palavrasPath = path.join(__dirname, 'public', 'palavras_proibidas.json');
+        if (fs.existsSync(palavrasPath)) {
+            palavrasOfensivas = JSON.parse(fs.readFileSync(palavrasPath, 'utf8'));
+            console.log(`📋 Carregadas ${palavrasOfensivas.length} palavras ofensivas`);
+        } else {
+            console.log('⚠️ Arquivo de palavras proibidas não encontrado');
+        }
+    } catch (e) {
+        console.error('Erro ao carregar palavras ofensivas:', e);
+    }
+}
+
+function contemPalavraOfensiva(texto) {
+    if (palavrasOfensivas.length === 0) return false;
+    return palavrasOfensivas.some(palavra => {
+        const regex = new RegExp(`\\b${palavra.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+        return regex.test(texto);
+    });
+}
+
+carregarPalavrasOfensivas();
+
 // ================= API ADMIN =================
 app.get('/admin/api/stats', verificarTokenAdmin, (req, res) => {
     const hoje = new Date().toISOString().split('T')[0];
     
-    // Garantir que dailyMessages existe
     if (!stats.dailyMessages) {
         stats.dailyMessages = {};
     }
@@ -154,32 +179,44 @@ app.post('/admin/api/reports/:id/action', express.json(), verificarTokenAdmin, (
 
     adminLogs.unshift({
         timestamp: new Date().toISOString(),
-        mensagem: `Admin: ${action} aplicado ao usuário ${report.reportedUser}`
+        mensagem: `Admin: ${action} aplicado ao IP ${report.reportedIP} (Usuário: ${report.reportedUserId})`
     });
     if (adminLogs.length > 10) adminLogs.pop();
     escreverArquivo('admin_logs.json', adminLogs);
 
     if (action === 'ban' || action === 'suspend') {
         const expiresAt = (action === 'suspend' && duration) ? new Date(Date.now() + duration * 86400000) : null;
-        bans.push({
-            userId: report.reportedUser,
-            userIP: report.reportedIP,
-            reason: reason,
-            bannedBy: 'admin',
-            bannedAt: new Date().toISOString(),
-            expiresAt: expiresAt
-        });
-        escreverArquivo('bans.json', bans);
-
-        const bannedSocket = io.sockets.sockets.get(report.reportedUser);
-        if (bannedSocket) {
-            bannedSocket.emit('you_are_banned', { reason: reason });
-            bannedSocket.disconnect();
+        
+        const alreadyBanned = bans.some(b => b.userIP === report.reportedIP);
+        if (!alreadyBanned) {
+            bans.push({
+                userId: report.reportedUserId,
+                userIP: report.reportedIP,
+                reason: reason,
+                bannedBy: 'admin',
+                bannedAt: new Date().toISOString(),
+                expiresAt: expiresAt
+            });
+            escreverArquivo('bans.json', bans);
+        }
+        
+        for (const [socketId, userData] of connectedUsers) {
+            if (userData.ip === report.reportedIP) {
+                const bannedSocket = io.sockets.sockets.get(socketId);
+                if (bannedSocket) {
+                    bannedSocket.emit('you_are_banned', { reason: reason });
+                    bannedSocket.disconnect();
+                }
+            }
         }
     } else if (action === 'warning' && warningMessage) {
-        const warnedSocket = io.sockets.sockets.get(report.reportedUser);
-        if (warnedSocket) {
-            warnedSocket.emit('system_message', { message: `⚠️ AVISO DO ADMIN: ${warningMessage}` });
+        for (const [socketId, userData] of connectedUsers) {
+            if (userData.ip === report.reportedIP) {
+                const warnedSocket = io.sockets.sockets.get(socketId);
+                if (warnedSocket) {
+                    warnedSocket.emit('system_message', { message: `⚠️ AVISO DO ADMIN: ${warningMessage}` });
+                }
+            }
         }
     }
 
@@ -192,47 +229,70 @@ app.get('/admin/api/bans', verificarTokenAdmin, (req, res) => {
 });
 
 app.post('/admin/api/bans', express.json(), verificarTokenAdmin, (req, res) => {
-    const { userId, reason, duration } = req.body;
+    const { userId, userIP, reason, duration } = req.body;
     const expiresAt = duration === 'permanent' ? null : new Date(Date.now() + duration * 86400000);
-
-    bans.push({
-        userId: userId,
-        reason: reason,
-        bannedBy: 'admin',
-        bannedAt: new Date().toISOString(),
-        expiresAt: expiresAt
-    });
-    escreverArquivo('bans.json', bans);
-
-    const bannedSocket = io.sockets.sockets.get(userId);
-    if (bannedSocket) {
-        bannedSocket.emit('you_are_banned', { reason: reason });
-        bannedSocket.disconnect();
+    
+    let targetIP = userIP;
+    if (userId && !targetIP) {
+        const userData = connectedUsers.get(userId);
+        if (userData) targetIP = userData.ip;
     }
+    
+    if (!targetIP) {
+        return res.status(400).json({ error: "IP do usuário não encontrado" });
+    }
+    
+    const alreadyBanned = bans.some(b => b.userIP === targetIP);
+    if (!alreadyBanned) {
+        bans.push({
+            userId: userId || 'Desconhecido',
+            userIP: targetIP,
+            reason: reason,
+            bannedBy: 'admin',
+            bannedAt: new Date().toISOString(),
+            expiresAt: expiresAt
+        });
+        escreverArquivo('bans.json', bans);
+    }
+    
+    for (const [socketId, userData] of connectedUsers) {
+        if (userData.ip === targetIP) {
+            const bannedSocket = io.sockets.sockets.get(socketId);
+            if (bannedSocket) {
+                bannedSocket.emit('you_are_banned', { reason: reason });
+                bannedSocket.disconnect();
+            }
+        }
+    }
+    
     res.json({ success: true });
 });
 
-app.delete('/admin/api/bans/:userId', verificarTokenAdmin, (req, res) => {
-    const { userId } = req.params;
-    const index = bans.findIndex(b => b.userId === userId);
+app.delete('/admin/api/bans/:userIP', verificarTokenAdmin, (req, res) => {
+    const { userIP } = req.params;
+    const decodedIP = decodeURIComponent(userIP);
+    const index = bans.findIndex(b => b.userIP === decodedIP);
     if (index !== -1) bans.splice(index, 1);
     escreverArquivo('bans.json', bans);
     res.json({ success: true });
 });
 
 app.post('/admin/api/broadcast', express.json(), verificarTokenAdmin, (req, res) => {
-    const { message, speed, duration } = req.body;
+    const { message, textColor, bgColor, fontSize, speed, duration, effect } = req.body;
     
-    // Emitir para TODOS os usuários conectados
     io.emit('admin_broadcast', { 
-        message: message, 
-        speed: speed || 20, 
-        duration: duration || 10 
+        message: message,
+        textColor: textColor || '#ffffff',
+        bgColor: bgColor || '#e94560',
+        fontSize: fontSize || 16,
+        speed: speed || 15,
+        duration: duration || 10,
+        effect: effect || 'slide'
     });
     
     adminLogs.unshift({ 
         timestamp: new Date().toISOString(), 
-        mensagem: `Admin enviou mensagem global: ${message.substring(0, 50)}` 
+        mensagem: `Admin enviou broadcast: ${message.substring(0, 50)}` 
     });
     if (adminLogs.length > 10) adminLogs.pop();
     escreverArquivo('admin_logs.json', adminLogs);
@@ -250,7 +310,7 @@ app.get('/test', (req, res) => {
 });
 
 // ================= VARIÁVEIS GLOBAIS =================
-const connectedUsers = new Map(); // Armazena socket.id -> { id, partnerId, location, ip, isAdmin }
+const connectedUsers = new Map();
 const activeBots = new Map();
 const fakeOnlineBase = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
 const activePongGames = new Map();
@@ -345,7 +405,6 @@ class PongGame {
         activePongGames.set(player1Id, this); activePongGames.set(player2Id, this);
         this.gameLoop = null; this.durationTimer = null; this.timeRemaining = PONG_CONFIG.GAME_DURATION_MS;
         
-        // Incrementar estatísticas de jogos
         if (!stats.gamesPlayed) stats.gamesPlayed = { pong: 0, tictactoe: 0, drawing: 0 };
         stats.gamesPlayed.pong = (stats.gamesPlayed.pong || 0) + 1;
         escreverArquivo('stats.json', stats);
@@ -641,7 +700,6 @@ class DrawingGame {
 
 // ================= CONEXÃO SOCKET.IO =================
 io.on('connection', (socket) => {
-    // Capturar IP do socket
     const clientIP = socket.handshake.headers['x-forwarded-for'] || 
                      socket.handshake.address || 
                      socket.request?.connection?.remoteAddress || 
@@ -701,13 +759,20 @@ io.on('connection', (socket) => {
         if (!senderData?.partnerId) return;
         const partnerId = senderData.partnerId;
         
-        // Verificar se o usuário está banido
-        const userBan = bans.find(b => b.userId === socket.id || b.userIP === senderData.ip);
+        const userBan = bans.find(b => b.userIP === senderData.ip);
         if (userBan) {
-            socket.emit('you_are_banned', { reason: userBan.reason });
-            socket.disconnect();
-            return;
+            if (userBan.expiresAt && new Date(userBan.expiresAt) < new Date()) {
+                const index = bans.findIndex(b => b.userIP === senderData.ip);
+                if (index !== -1) bans.splice(index, 1);
+                escreverArquivo('bans.json', bans);
+            } else {
+                socket.emit('you_are_banned', { reason: userBan.reason });
+                socket.disconnect();
+                return;
+            }
         }
+        
+        const isOffensive = contemPalavraOfensiva(data.text);
         
         if (activeBots.has(partnerId)) {
             activeBots.get(partnerId).handleMessage(data.text);
@@ -720,16 +785,17 @@ io.on('connection', (socket) => {
                     replyTo: data.replyTo || null, 
                     location: senderData.location 
                 });
-                // Emitir para monitor do admin
-                io.emit('chat_message', { 
-                    senderId: socket.id, 
-                    text: data.text,
-                    senderIP: senderData.ip
-                });
             }
         }
         
-        // Atualizar estatísticas
+        io.emit('chat_message', { 
+            senderId: socket.id, 
+            text: data.text,
+            senderIP: senderData.ip,
+            timestamp: new Date().toISOString(),
+            isOffensive: isOffensive
+        });
+        
         const hoje = new Date().toISOString().split('T')[0];
         if (!stats.dailyMessages) stats.dailyMessages = {};
         stats.dailyMessages[hoje] = (stats.dailyMessages[hoje] || 0) + 1;
@@ -752,17 +818,29 @@ io.on('connection', (socket) => {
         if (!adminSessions.has(socket.id)) endUserChat(socket.id); 
     });
 
-    // ================= DENÚNCIA POR IP (CORRIGIDO) =================
     socket.on('report_user', (data) => {
         const reporterData = connectedUsers.get(socket.id);
         const reportedUserData = connectedUsers.get(data.reportedUserId);
+        
+        let reportedIP = null;
+        if (reportedUserData) {
+            reportedIP = reportedUserData.ip;
+        } else {
+            const targetSocket = io.sockets.sockets.get(data.reportedUserId);
+            if (targetSocket) {
+                reportedIP = targetSocket.handshake.headers['x-forwarded-for'] || 
+                            targetSocket.handshake.address || 
+                            targetSocket.request?.connection?.remoteAddress || 
+                            'Desconhecido';
+            }
+        }
         
         const newReport = {
             reportId: Date.now().toString(),
             reporterId: socket.id,
             reporterIP: reporterData?.ip || 'Desconhecido',
-            reportedUser: data.reportedUserId,
-            reportedIP: reportedUserData?.ip || 'Desconhecido',
+            reportedUserId: data.reportedUserId,
+            reportedIP: reportedIP || 'Desconhecido',
             reportedMessage: data.reportedMessage || "Mensagem não especificada",
             reason: data.reason,
             status: 'pending',
@@ -773,12 +851,11 @@ io.on('connection', (socket) => {
         reports.unshift(newReport);
         escreverArquivo('reports.json', reports);
         
-        // Apenas confirma para o denunciante, sem mostrar detalhes
         socket.emit('report_thanks', { 
             message: "Denúncia enviada com sucesso! Obrigado por ajudar a comunidade." 
         });
         
-        console.log(`🚨 Nova denúncia: ${data.reportedUserId} (IP: ${reportedUserData?.ip}) - Motivo: ${data.reason}`);
+        console.log(`🚨 Nova denúncia: IP ${reportedIP} - Motivo: ${data.reason}`);
     });
 
     socket.on('disconnect', () => {
@@ -798,7 +875,6 @@ io.on('connection', (socket) => {
         console.log(`Usuário desconectado: ${socket.id}`);
     });
 
-    // Eventos dos jogos
     socket.on('pong_invite', () => {
         const userData = connectedUsers.get(socket.id);
         if (!userData?.partnerId || activeBots.has(userData.partnerId)) {
