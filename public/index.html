@@ -34,6 +34,7 @@
             align-items: center;
             justify-content: center;
             padding: 0 20px;
+            flex-shrink: 0;
         }
         .marquee-text {
             display: inline-block;
@@ -50,10 +51,14 @@
             50% { opacity: 0.5; }
         }
         
-        #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; }
+        #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .online-counter { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
         .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
-        #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
+        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
+        /* Garante que a área de chat tenha altura mesmo vazia */
+        #chat:empty {
+            min-height: 200px;
+        }
         .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; }
         .message.active { background-color: rgba(255, 255, 255, 0.1); }
         .message.swiping { transition: none; }
@@ -197,7 +202,7 @@
         </div>
     </div>
     
-    <!-- MODAL DE DENÚNCIA (SEM CAMPO DE ID) -->
+    <!-- MODAL DE DENÚNCIA -->
     <div id="reportModal" class="modal-overlay">
         <div class="modal-content">
             <h3>🚨 Denunciar Usuário</h3>
@@ -762,6 +767,7 @@
             isConnected = true;
             currentPartnerId = data.partnerId;
             addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
+            addSystemMessage('💡 Dica: Deslize uma mensagem para a direita para respondê-la!');
             showActionButton('encerrar');
         });
         
