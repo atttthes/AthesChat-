@@ -55,7 +55,6 @@
         .online-counter { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
         .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
         #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
-        /* Garante que a área de chat tenha altura mesmo vazia */
         #chat:empty {
             min-height: 200px;
         }
@@ -178,8 +177,6 @@
                 <li id="play-pong-btn">🎮 Jogar Pong</li>
                 <li id="play-ttt-btn">❌ Jogo da Velha</li>
                 <li id="play-drawing-btn">🎨 Que Rabisco é esse?</li>
-                <li style="border-top: 1px solid #444; margin-top: 10px;"></li>
-                <li id="admin-login-btn" style="color: #e94560;">🔐 Login Admin</li>
             </ul>
         </div>
         <div id="chat-header">
@@ -333,7 +330,6 @@
         const playPongBtn = document.getElementById('play-pong-btn');
         const playTttBtn = document.getElementById('play-ttt-btn');
         const playDrawingBtn = document.getElementById('play-drawing-btn');
-        const adminLoginBtn = document.getElementById('admin-login-btn');
         const reportUserBtn = document.getElementById('report-user-btn');
         
         // Elementos do Pong
@@ -790,11 +786,6 @@
         socket.on('system_message', (data) => { addSystemMessage(data.message); });
         socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
         socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
-
-        // ================= LOGIN ADMIN =================
-        adminLoginBtn.addEventListener('click', () => {
-            window.location.href = '/admin';
-        });
 
         // ================= MENU =================
         menuBtn.addEventListener('click', () => {
