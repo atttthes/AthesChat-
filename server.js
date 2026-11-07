@@ -318,6 +318,46 @@ const activeTicTacToeGames = new Map();
 const activeDrawingGames = new Map();
 const adminSessions = new Set();
 
+// ================= ANTI-SPAM (RATE LIMIT) =================
+const RATE_LIMIT_WINDOW_MS = 10000;   // Janela de 10 segundos
+const RATE_LIMIT_MAX_MESSAGES = 25;   // Máximo de 25 mensagens na janela
+const RATE_LIMIT_BLOCK_MS = 5000;     // Bloqueio de 5 segundos
+const messageRateLimit = new Map();   // socketId -> { timestamps: [], blockedUntil: 0 }
+
+function verificarRateLimit(socketId) {
+    const now = Date.now();
+    let rateData = messageRateLimit.get(socketId);
+    
+    if (!rateData) {
+        rateData = { timestamps: [], blockedUntil: 0 };
+        messageRateLimit.set(socketId, rateData);
+    }
+    
+    // Ainda bloqueado?
+    if (rateData.blockedUntil > now) {
+        return {
+            allowed: false,
+            remainingSeconds: Math.ceil((rateData.blockedUntil - now) / 1000)
+        };
+    }
+    
+    // Limpa timestamps fora da janela
+    rateData.timestamps = rateData.timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+    rateData.timestamps.push(now);
+    
+    // Excedeu o limite?
+    if (rateData.timestamps.length > RATE_LIMIT_MAX_MESSAGES) {
+        rateData.blockedUntil = now + RATE_LIMIT_BLOCK_MS;
+        rateData.timestamps = [];
+        return {
+            allowed: false,
+            remainingSeconds: Math.ceil(RATE_LIMIT_BLOCK_MS / 1000)
+        };
+    }
+    
+    return { allowed: true };
+}
+
 // ================= BOT =================
 const botConversationLogic = {
     greetings: ["Olá!", "E aí, tudo bem?", "Oi, como vai?", "Opa, tudo certo?"],
@@ -757,6 +797,19 @@ io.on('connection', (socket) => {
         if (adminSessions.has(socket.id)) return;
         const senderData = connectedUsers.get(socket.id);
         if (!senderData?.partnerId) return;
+
+        // ================= ANTI-SPAM =================
+        const rateCheck = verificarRateLimit(socket.id);
+        if (!rateCheck.allowed) {
+            if (rateCheck.remainingSeconds >= Math.ceil(RATE_LIMIT_BLOCK_MS / 1000)) {
+                socket.emit('system_message', { message: `⚠️ Calma aí! Você está enviando mensagens muito rápido. Aguarde ${rateCheck.remainingSeconds} segundos.` });
+            } else {
+                socket.emit('system_message', { message: `⏳ Espere ${rateCheck.remainingSeconds}s antes de enviar outra mensagem.` });
+            }
+            return;
+        }
+        // =============================================
+
         const partnerId = senderData.partnerId;
         
         const userBan = bans.find(b => b.userIP === senderData.ip);
@@ -872,6 +925,7 @@ io.on('connection', (socket) => {
             }
         }
         connectedUsers.delete(socket.id);
+        messageRateLimit.delete(socket.id);
         console.log(`Usuário desconectado: ${socket.id}`);
     });
 
