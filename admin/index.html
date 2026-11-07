@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Painel Admin - AthesChat</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -269,17 +268,6 @@
             font-size: 32px;
             font-weight: bold;
             color: #e94560;
-        }
-
-        .chart-container {
-            background: #16213e;
-            border-radius: 20px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .chart-container canvas {
-            max-height: 300px;
         }
 
         .reports-list, .bans-list, .logs-list, .broadcast-history-list {
@@ -634,9 +622,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="activityChartCanvas"></canvas>
-                </div>
             </div>
 
             <!-- DENÚNCIAS -->
@@ -747,7 +732,6 @@
     <script>
         const socket = io();
         let adminToken = null;
-        let activityChart = null;
 
         // Elementos
         const loginContainer = document.getElementById('loginContainer');
@@ -781,7 +765,7 @@
                     loginContainer.style.display = 'none';
                     adminContainer.style.display = 'flex';
                     socket.emit('admin_register', adminToken);
-                    iniciarDashboard();
+                    atualizarStats();
                     carregarDenuncias();
                     carregarBanidos();
                     carregarLogs();
@@ -826,44 +810,7 @@
             });
         });
 
-        // ================= DASHBOARD COM GRÁFICO =================
-        function iniciarDashboard() {
-            const ctx = document.getElementById('activityChartCanvas').getContext('2d');
-            activityChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['00h', '03h', '06h', '09h', '12h', '15h', '18h', '21h'],
-                    datasets: [{
-                        label: 'Mensagens por hora',
-                        data: [0, 0, 0, 0, 0, 0, 0, 0],
-                        borderColor: '#e94560',
-                        backgroundColor: 'rgba(233, 69, 96, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#e0e0e0' }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            grid: { color: '#2d2d3a' },
-                            ticks: { color: '#e0e0e0' }
-                        },
-                        x: {
-                            ticks: { color: '#e0e0e0' }
-                        }
-                    }
-                }
-            });
-            atualizarStats();
-        }
-
+        // ================= DASHBOARD =================
         async function atualizarStats() {
             if (!adminToken) return;
             
@@ -881,12 +828,6 @@
                 document.getElementById('totalBanned').textContent = stats.totalBanned || 0;
                 document.getElementById('peakUsers').textContent = stats.peakUsers || 0;
                 document.getElementById('reportsBadge').textContent = stats.pendingReports || 0;
-                
-                if (activityChart && stats.messagesToday > 0) {
-                    const newData = activityChart.data.datasets[0].data.map(() => Math.floor(Math.random() * (stats.messagesToday || 50)));
-                    activityChart.data.datasets[0].data = newData;
-                    activityChart.update();
-                }
             } catch (error) {
                 console.error('Erro ao carregar dashboard:', error);
             }
@@ -1186,7 +1127,7 @@
             loginContainer.style.display = 'none';
             adminContainer.style.display = 'flex';
             socket.emit('admin_register', adminToken);
-            iniciarDashboard();
+            atualizarStats();
             carregarDenuncias();
             carregarBanidos();
             carregarLogs();
