@@ -16,6 +16,11 @@
             --special-accent: #8a2be2;
             --success-color: #4CAF50;
             --error-color: #ff4d4d;
+            /* Variáveis dinâmicas controladas pelo JS */
+            --chat-font-size: 16px;
+            --received-bg: #333333;
+            --received-text: #e0e0e0;
+            --show-location: block;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
         html { height: 100%; }
@@ -28,31 +33,10 @@
         #chat-container { display: none; height: 100vh; height: 100dvh; flex-direction: column; background-color: var(--secondary-bg); position: relative; overflow: hidden; }
         
         /* LETREIRO */
-        .marquee-container {
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
-            height: 46px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 0 20px;
-            flex-shrink: 0;
-        }
-        .marquee-text {
-            display: inline-block;
-            white-space: nowrap;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-        @keyframes marquee {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; height: 46px; display: none; align-items: center; justify-content: center; padding: 0 20px; flex-shrink: 0; }
+        .marquee-text { display: inline-block; white-space: nowrap; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; padding-top: calc(15px + env(safe-area-inset-top)); font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .header-controls { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 15px; }
@@ -61,10 +45,10 @@
         #mute-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; color: var(--text-color); padding: 5px; display: flex; align-items: center; justify-content: center; }
         
         #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
-        .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; }
+        .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; font-size: var(--chat-font-size, 16px); }
         .message.active { background-color: rgba(255, 255, 255, 0.1); }
         .message.swiping { transition: none; }
-        .received { background: #333; align-self: flex-start; }
+        .received { background: var(--received-bg, #333); color: var(--received-text, #e0e0e0); align-self: flex-start; }
         .sent { background: var(--accent-color); color: white; align-self: flex-end; }
         .system { background: var(--tertiary-bg); text-align: center; margin: 15px auto; padding: 8px; border-radius: 5px; font-size: 0.9em; color: var(--text-muted); max-width: 90%; align-self: center; }
         .message.offensive { background-color: #4d2020; border: 2px solid var(--error-color); color: #f0f0f0; cursor: not-allowed; }
@@ -77,7 +61,7 @@
         #send-btn:hover { background: var(--accent-hover); }
         .sender-info { font-size: 0.7em; margin-bottom: 3px; display: flex; justify-content: space-between; }
         .sender-name { font-weight: bold; }
-        .sender-location { opacity: 0.7; font-style: italic; }
+        .sender-location { opacity: 0.7; font-style: italic; display: var(--show-location, block); }
         #action-btn { background: var(--special-accent); color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; margin: 0 auto 10px auto; display: none; transition: all 0.3s; position: relative; width: fit-content; }
         #action-btn:hover { background: #7b1fa2; transform: scale(1.05); }
         .typing-indicator { display: inline-block; padding: 10px 15px; background: #333; border-radius: 18px; margin-bottom: 15px; max-width: 80%; align-self: flex-start; color: var(--text-muted); font-size: 0.9em; }
@@ -101,7 +85,7 @@
         #sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100vh; height: 100dvh; background: var(--tertiary-bg); z-index: 1100; transition: left 0.3s ease-in-out; padding-top: calc(80px + env(safe-area-inset-top)); overflow-y: auto; }
         #sidebar.open { left: 0; }
         #sidebar ul { list-style: none; padding: 0; }
-        #sidebar ul li { padding: 15px 20px; color: var(--text-color); cursor: pointer; border-bottom: 1px solid #444; }
+        #sidebar ul li { padding: 15px 20px; color: var(--text-color); cursor: pointer; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 10px; }
         #sidebar ul li:hover { background: #444; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1200; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
@@ -111,6 +95,16 @@
         .accept-btn { background: var(--success-color); color: white; }
         .decline-btn { background: var(--error-color); color: white; }
 
+        /* CONFIGURAÇÕES */
+        .settings-group { margin-bottom: 15px; text-align: left; background: var(--secondary-bg); padding: 15px; border-radius: 10px; }
+        .settings-group h4 { margin-bottom: 15px; font-size: 0.9em; color: var(--text-muted); border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .settings-item:last-child { margin-bottom: 0; }
+        .settings-item label { font-size: 0.9em; flex: 1; }
+        .settings-item input[type="color"] { width: 40px; height: 40px; border: none; border-radius: 5px; cursor: pointer; padding: 0; background: transparent; }
+        .settings-item input[type="range"] { flex: 1.5; margin-left: 15px; }
+        .settings-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        
         /* JOGO PONG */
         #pong-game-container, #ttt-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
         #pong-canvas { background: #000; border: 2px solid var(--text-muted); }
@@ -145,6 +139,7 @@
                 <li id="report-user-btn">🚨 Denunciar Usuário</li>
                 <li id="play-pong-btn">🎮 Jogar Pong</li>
                 <li id="play-ttt-btn">❌ Jogo da Velha</li>
+                <li id="settings-btn" style="border-top: 1px solid #555; margin-top: 10px;">⚙️ Configurações</li>
             </ul>
         </div>
         <div id="chat-header">
@@ -169,7 +164,6 @@
             <button id="send-btn">Enviar</button>
         </div>
     </div>
-    
     <!-- MODAL DE DENÚNCIA -->
     <div id="reportModal" class="modal-overlay">
         <div class="modal-content">
@@ -185,6 +179,53 @@
             <div class="modal-actions" style="margin-top: 20px;">
                 <button id="confirmReportBtn" class="accept-btn">Denunciar</button>
                 <button id="cancelReportBtn" class="decline-btn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIGURAÇÕES -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content" style="width: 360px;">
+            <h3 style="margin-bottom: 15px;">⚙️ Configurações</h3>
+            
+            <div class="settings-group">
+                <h4>🔊 Áudio e Feedback</h4>
+                <div class="settings-item">
+                    <label>Volume dos Sons</label>
+                    <input type="range" id="setting-volume" min="0" max="100" value="50">
+                </div>
+                <div class="settings-item">
+                    <label>Modo Silencioso<br><span style="font-size:0.8em; color:#888;">(Silencia ao sair do app)</span></label>
+                    <input type="checkbox" id="setting-silent">
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h4>💬 Aparência do Chat</h4>
+                <div class="settings-item">
+                    <label>Tamanho da Fonte</label>
+                    <input type="range" id="setting-font-size" min="12" max="24" value="16">
+                </div>
+                <div class="settings-item">
+                    <label>Fundo (Recebidas)</label>
+                    <input type="color" id="setting-received-bg" value="#333333">
+                </div>
+                <div class="settings-item">
+                    <label>Texto (Recebidas)</label>
+                    <input type="color" id="setting-received-text" value="#e0e0e0">
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h4>👁️ Privacidade</h4>
+                <div class="settings-item">
+                    <label>Mostrar Localização (Estado)</label>
+                    <input type="checkbox" id="setting-location" checked>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button id="closeSettingsBtn" class="accept-btn" style="width: 100%;">Fechar</button>
             </div>
         </div>
     </div>
@@ -239,24 +280,86 @@
     <script>
         const socket = io();
         
-        // ================= SISTEMA DE ÁUDIO E VIBRAÇÃO =================
-        let soundEnabled = localStorage.getItem('atheschat_sound') !== 'false';
+        // ================= SISTEMA DE CONFIGURAÇÕES =================
+        const defaultSettings = {
+            soundEnabled: true,
+            volume: 50,
+            silentMode: false,
+            fontSize: 16,
+            receivedBg: '#333333',
+            receivedText: '#e0e0e0',
+            showLocation: true
+        };
+
+        let settings = JSON.parse(localStorage.getItem('atheschat_settings')) || defaultSettings;
+
+        // Garante que se o usuário tinha uma versão antiga salva, os novos campos sejam criados
+        settings = { ...defaultSettings, ...settings };
+
+        function applySettings() {
+            // Aplica Volume e Mute
+            if(audioCache) {
+                Object.values(audioCache).forEach(audio => audio.volume = settings.volume / 100);
+            }
+            document.getElementById('mute-btn').textContent = settings.soundEnabled ? '🔔' : '🔕';
+            document.getElementById('mute-btn').style.opacity = settings.soundEnabled ? '1' : '0.5';
+
+            // Aplica Cores e Fonte
+            document.documentElement.style.setProperty('--chat-font-size', settings.fontSize + 'px');
+            document.documentElement.style.setProperty('--received-bg', settings.receivedBg);
+            document.documentElement.style.setProperty('--received-text', settings.receivedText);
+            
+            // Aplica Localização
+            document.documentElement.style.setProperty('--show-location', settings.showLocation ? 'block' : 'none');
+
+            // Atualiza os inputs do modal
+            document.getElementById('setting-volume').value = settings.volume;
+            document.getElementById('setting-silent').checked = settings.silentMode;
+            document.getElementById('setting-font-size').value = settings.fontSize;
+            document.getElementById('setting-received-bg').value = settings.receivedBg;
+            document.getElementById('setting-received-text').value = settings.receivedText;
+            document.getElementById('setting-location').checked = settings.showLocation;
+        }
+
+        function saveSettings() {
+            localStorage.setItem('atheschat_settings', JSON.stringify(settings));
+            applySettings();
+        }
+
+        // Event listeners dos inputs
+        document.getElementById('setting-volume').addEventListener('input', (e) => { settings.volume = e.target.value; saveSettings(); });
+        document.getElementById('setting-font-size').addEventListener('input', (e) => { settings.fontSize = e.target.value; saveSettings(); });
+        document.getElementById('setting-received-bg').addEventListener('input', (e) => { settings.receivedBg = e.target.value; saveSettings(); });
+        document.getElementById('setting-received-text').addEventListener('input', (e) => { settings.receivedText = e.target.value; saveSettings(); });
+        document.getElementById('setting-location').addEventListener('change', (e) => { settings.showLocation = e.target.checked; saveSettings(); });
+        document.getElementById('setting-silent').addEventListener('change', (e) => { settings.silentMode = e.target.checked; saveSettings(); });
+
+        // Botão de Mute rápido no header
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            settings.soundEnabled = !settings.soundEnabled;
+            saveSettings();
+            if (settings.soundEnabled) playSound('chat-receive');
+        });
+        // ===============================================================
+
         const audioCache = {};
-        // Os caminhos agora apontam direto para a pasta public, onde você subiu os arquivos
         const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
 
         function initAudio() {
             soundsToLoad.forEach(name => {
                 const audio = new Audio(`/${name}.mp3`);
                 audio.preload = 'auto';
-                audio.volume = 0.5; 
+                audio.volume = settings.volume / 100;
                 audioCache[name] = audio;
             });
-            updateMuteButton();
+            applySettings();
         }
 
         function playSound(name) {
-            if (!soundEnabled || !audioCache[name]) return;
+            if (!settings.soundEnabled || !audioCache[name]) return;
+            // Se o Modo Silencioso estiver ativo e a aba estiver em segundo plano, não toca
+            if (settings.silentMode && document.hidden) return;
+            
             try {
                 audioCache[name].currentTime = 0;
                 audioCache[name].play().catch(e => console.log('Áudio bloqueado até interação.'));
@@ -264,25 +367,14 @@
         }
 
         function vibrate(pattern) {
-            if (!soundEnabled) return;
+            if (!settings.soundEnabled) return;
+            // Se o Modo Silencioso estiver ativo e a aba estiver em segundo plano, não vibra
+            if (settings.silentMode && document.hidden) return;
+            
             if ('vibrate' in navigator) {
                 try { navigator.vibrate(pattern); } catch (e) {}
             }
         }
-
-        function updateMuteButton() {
-            const btn = document.getElementById('mute-btn');
-            btn.textContent = soundEnabled ? '🔔' : '🔕';
-            btn.style.opacity = soundEnabled ? '1' : '0.5';
-        }
-
-        document.getElementById('mute-btn').addEventListener('click', () => {
-            soundEnabled = !soundEnabled;
-            localStorage.setItem('atheschat_sound', soundEnabled);
-            updateMuteButton();
-            if (soundEnabled) playSound('chat-receive'); // Toca um som para confirmar que ativou
-        });
-        // ===============================================================
 
         // Elementos do Chat
         const chatDiv = document.getElementById('chat');
@@ -300,6 +392,7 @@
         const playPongBtn = document.getElementById('play-pong-btn');
         const playTttBtn = document.getElementById('play-ttt-btn');
         const reportUserBtn = document.getElementById('report-user-btn');
+        const settingsBtn = document.getElementById('settings-btn');
         
         // Elementos do Pong
         const pongInviteModal = document.getElementById('pong-invite-modal');
@@ -329,10 +422,12 @@
         const marqueeContainer = document.getElementById('marqueeContainer');
         const marqueeText = document.getElementById('marqueeText');
         
-        // Modal de Denúncia
+        // Modal de Denúncia e Configurações
         const reportModal = document.getElementById('reportModal');
         const confirmReportBtn = document.getElementById('confirmReportBtn');
         const cancelReportBtn = document.getElementById('cancelReportBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
         
         // Variáveis de Estado do Chat
         let myLocation = "Desconhecido";
@@ -370,7 +465,6 @@
                 const data = await response.json();
                 if (data && data.region) myLocation = data.region;
             } catch (error) {
-                console.error("Falha ao buscar localização:", error);
                 myLocation = "Desconhecido";
             }
         }
@@ -379,12 +473,9 @@
             try {
                 let response = await fetch('/palavras_proibidas.json');
                 if (!response.ok) response = await fetch('../palavras_proibidas.json');
-                if (!response.ok) throw new Error('Falha ao carregar lista de palavras.');
+                if (!response.ok) throw new Error('Falha');
                 palavrasOfensivas = await response.json();
-            } catch (error) {
-                console.error(error);
-                addSystemMessage("⚠️ Não foi possível carregar o filtro de palavras.");
-            }
+            } catch (error) {}
         }
         
         function contemPalavraOfensiva(texto) {
@@ -638,13 +729,15 @@
             }, data.duration * 1000);
         });
 
-        // ================= DENÚNCIA =================
+        // ================= DENÚNCIA E CONFIGURAÇÕES =================
         reportUserBtn.addEventListener('click', () => {
             if (!currentPartnerId) {
                 alert('⚠️ Você precisa estar conectado a um parceiro para denunciar.');
                 return;
             }
             reportModal.style.display = 'flex';
+            menuBtn.classList.remove('open');
+            sidebar.classList.remove('open');
         });
 
         confirmReportBtn.addEventListener('click', () => {
@@ -667,9 +760,15 @@
             playSound('chat-receive');
         });
 
-        cancelReportBtn.addEventListener('click', () => {
-            reportModal.style.display = 'none';
+        cancelReportBtn.addEventListener('click', () => { reportModal.style.display = 'none'; });
+
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.style.display = 'flex';
+            menuBtn.classList.remove('open');
+            sidebar.classList.remove('open');
         });
+
+        closeSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'none'; });
 
         socket.on('report_thanks', (data) => { addSystemMessage(data.message); });
 
@@ -739,7 +838,6 @@
         
         socket.on('system_message', (data) => { 
             addSystemMessage(data.message); 
-            // Se for mensagem de anti-spam ou aviso, vibra e toca som de erro
             if (data.message.includes('Calma') || data.message.includes('Espere') || data.message.includes('AVISO DO ADMIN')) {
                 playSound('error-buzz');
                 vibrate([60, 40, 60]);
@@ -794,16 +892,12 @@
             pongScoreYouElem.textContent = `Você: ${state.you.score}`;
             pongScoreOpponentElem.textContent = `Anônimo: ${state.opponent.score}`;
             
-            // Lógica de vibração do Pong (Parede e Raquete)
             if (state.ball && state.ball.x) { 
-                // Vibração de colisão
                 if (prevBall) {
-                    // Bateu na parede lateral
                     if ((prevBall.x > PONG_CONFIG.BALL_RADIUS && state.ball.x <= PONG_CONFIG.BALL_RADIUS) || 
                         (prevBall.x < pongCanvas.width - PONG_CONFIG.BALL_RADIUS && state.ball.x >= pongCanvas.width - PONG_CONFIG.BALL_RADIUS)) {
                         vibrate(20);
                     }
-                    // Bateu na raquete do jogador (parte inferior da tela)
                     if (prevBall.y < pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS && 
                         state.ball.y >= pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS &&
                         state.ball.x >= localPlayerPaddleX && state.ball.x <= localPlayerPaddleX + PONG_CONFIG.PADDLE_WIDTH) {
@@ -811,7 +905,6 @@
                     }
                 }
                 prevBall = { x: state.ball.x, y: state.ball.y };
-                
                 ball1Trail.unshift({ x: state.ball.x, y: state.ball.y }); 
                 if (ball1Trail.length > TRAIL_LENGTH) ball1Trail.pop(); 
             }
