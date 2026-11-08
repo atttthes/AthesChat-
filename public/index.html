@@ -55,12 +55,12 @@
         }
         
         #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; padding-top: calc(15px + env(safe-area-inset-top)); font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .online-counter { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+        .header-controls { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 15px; }
+        .online-counter { font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
         .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
+        #mute-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; color: var(--text-color); padding: 5px; display: flex; align-items: center; justify-content: center; }
+        
         #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
-        #chat:empty {
-            min-height: 200px;
-        }
         .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; }
         .message.active { background-color: rgba(255, 255, 255, 0.1); }
         .message.swiping { transition: none; }
@@ -112,12 +112,12 @@
         .decline-btn { background: var(--error-color); color: white; }
 
         /* JOGO PONG */
-        #pong-game-container, #ttt-game-container, #drawing-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
+        #pong-game-container, #ttt-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
         #pong-canvas { background: #000; border: 2px solid var(--text-muted); }
         #pong-info { display: flex; justify-content: space-around; width: 300px; color: var(--text-color); margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
         #pong-controls { display: flex; justify-content: space-between; width: 200px; margin-top: 20px; }
         .pong-btn { padding: 15px 30px; font-size: 1.5em; background: var(--tertiary-bg); color: var(--text-color); border: 2px solid #555; border-radius: 10px; cursor: pointer; }
-        #pong-leave-btn, #ttt-leave-btn, #drawing-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #pong-leave-btn, #ttt-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         #pong-countdown { position: absolute; font-size: 8em; font-weight: bold; color: rgba(255, 255, 255, 0.8); z-index: 10; display: none; text-shadow: 2px 2px 10px #000; }
 
         /* JOGO DA VELHA */
@@ -126,40 +126,6 @@
         .ttt-cell.X { color: #ff6b6b; }
         .ttt-cell.O { color: #4ecdc4; }
         #ttt-turn { font-size: 1.3rem; margin-bottom: 10px; text-align: center; }
-
-        /* JOGO DE DESENHO */
-        .drawing-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px; max-width: 1000px; width: 100%; margin: 0 auto; }
-        .drawing-canvas-area { flex: 2; min-width: 280px; text-align: center; }
-        .drawing-chat-area { flex: 1; min-width: 220px; max-width: 280px; background: var(--tertiary-bg); border-radius: 20px; display: flex; flex-direction: column; height: auto; max-height: 450px; }
-        .drawing-canvas { background: white; border-radius: 20px; border: 3px solid #533483; cursor: crosshair; width: 100%; max-width: 500px; height: auto; aspect-ratio: 5 / 4; touch-action: none; }
-        .drawing-tools { background: #533483; padding: 10px; border-radius: 50px; margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .drawing-tool-btn { background: #1a1a2e; border: none; padding: 8px 16px; border-radius: 40px; color: white; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
-        .drawing-tool-btn.active { background: #e94560; transform: scale(1.05); }
-        .drawing-color-picker { background: linear-gradient(135deg, red, orange, yellow, green, blue, indigo, violet); width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; cursor: pointer; }
-        .drawing-chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; max-height: 250px; min-height: 150px; }
-        .drawing-chat-message { padding: 6px 10px; border-radius: 12px; font-size: 0.8rem; word-wrap: break-word; }
-        .drawing-chat-guess { background: #1e1e1e; color: #ffd966; }
-        .drawing-chat-error { background: #4d2020; color: #ffaaaa; }
-        .drawing-chat-correct { background: #1a4d1a; color: #aaffaa; font-weight: bold; }
-        .drawing-guess-area { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #444; }
-        .drawing-guess-input { flex: 1; padding: 10px; border-radius: 50px; border: none; outline: none; font-size: 0.9rem; }
-        .drawing-guess-btn { background: #e94560; border: none; padding: 10px 18px; border-radius: 50px; color: white; cursor: pointer; font-weight: bold; }
-        .drawing-status { background: #533483; padding: 10px 20px; border-radius: 50px; margin-bottom: 15px; text-align: center; font-weight: bold; font-size: 0.9rem; }
-        .drawing-word-display { background: #1a1a2e; padding: 8px 16px; border-radius: 50px; margin-bottom: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: #ffd966; }
-        .drawing-timer { background: #1a1a2e; padding: 6px 16px; border-radius: 50px; text-align: center; font-size: 1rem; font-weight: bold; margin-top: 10px; }
-        .waiting-message { background: #533483; padding: 15px; border-radius: 20px; text-align: center; font-size: 1.1rem; margin: 20px auto; max-width: 300px; }
-        .result-screen { text-align: center; background: var(--tertiary-bg); padding: 30px; border-radius: 30px; }
-        .result-screen h2 { font-size: 1.5rem; margin-bottom: 20px; }
-        .result-screen .word-reveal { font-size: 1.3rem; font-weight: bold; color: #ffd966; margin: 20px 0; }
-        .btn-back { background: var(--success-color); border: none; padding: 10px 25px; border-radius: 50px; color: white; cursor: pointer; margin-top: 20px; }
-        .tutorial-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
-        .tutorial-card { background: #0f3460; border-radius: 40px; padding: 25px; max-width: 350px; width: 90%; text-align: center; color: white; border: 2px solid #e94560; }
-        .tutorial-card h2 { color: #e94560; margin-bottom: 15px; }
-        .tutorial-card p { text-align: left; margin: 10px 0; font-size: 0.9rem; }
-        .tutorial-card .role-box { background: #533483; padding: 10px; border-radius: 20px; margin: 10px 0; }
-        .tutorial-card button { background: #e94560; border: none; padding: 12px 30px; border-radius: 50px; font-weight: bold; color: white; margin-top: 15px; cursor: pointer; }
-        
-        select, input, button { font-family: inherit; }
     </style>
 </head>
 <body>
@@ -179,7 +145,6 @@
                 <li id="report-user-btn">🚨 Denunciar Usuário</li>
                 <li id="play-pong-btn">🎮 Jogar Pong</li>
                 <li id="play-ttt-btn">❌ Jogo da Velha</li>
-                <li id="play-drawing-btn">🎨 Que Rabisco é esse?</li>
             </ul>
         </div>
         <div id="chat-header">
@@ -189,9 +154,12 @@
                 <span class="bar bar3"></span>
             </button>
             <span>AthesChat!</span>
-            <div class="online-counter">
-                <span class="online-dot"></span>
-                <span id="online-count">0 online</span>
+            <div class="header-controls">
+                <div class="online-counter">
+                    <span class="online-dot"></span>
+                    <span id="online-count">0 online</span>
+                </div>
+                <button id="mute-btn" title="Ativar/Desativar Sons">🔔</button>
             </div>
         </div>
         <div id="chat"></div>
@@ -244,18 +212,6 @@
             </div>
         </div>
     </div>
-
-    <!-- MODAL DE CONVITE DESENHO -->
-    <div id="drawing-invite-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>🎨 Desafio: Que Rabisco é esse?</h3>
-            <p>Um desenha, o outro adivinha! Quem acertar vence!</p>
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button id="drawing-accept" class="accept-btn">Aceitar</button>
-                <button id="drawing-decline" class="decline-btn">Recusar</button>
-            </div>
-        </div>
-    </div>
     
     <!-- TELA DO JOGO PONG -->
     <div id="pong-game-container">
@@ -280,43 +236,54 @@
         <button id="ttt-leave-btn">Sair do Jogo</button>
     </div>
 
-    <!-- TELA DO JOGO DE DESENHO -->
-    <div id="drawing-game-container">
-        <div id="drawing-game-content">
-            <div class="drawing-status" id="drawing-status">🎨 Aguardando...</div>
-            <div class="waiting-message" id="drawing-waiting" style="display: none;">⏳ Aguardando oponente ler o tutorial...</div>
-            <div id="drawing-game-area" style="display: none;">
-                <div class="drawing-wrapper">
-                    <div class="drawing-canvas-area">
-                        <div id="drawing-word-display" class="drawing-word-display"></div>
-                        <canvas id="draw-canvas" class="drawing-canvas" width="500" height="400"></canvas>
-                        <div class="drawing-tools" id="drawing-tools">
-                            <button class="drawing-tool-btn" id="draw-pencil">✏️ Lápis</button>
-                            <button class="drawing-tool-btn" id="draw-eraser">🧽 Borracha</button>
-                            <button class="drawing-tool-btn" id="draw-clear">🗑️ Limpar</button>
-                            <div class="drawing-color-picker" id="draw-color-picker"></div>
-                            <input type="range" id="draw-size" min="2" max="30" value="5" style="width:80px">
-                        </div>
-                        <div class="drawing-timer" id="drawing-timer-display">⏱️ Tempo: 60s</div>
-                    </div>
-                    <div class="drawing-chat-area">
-                        <div class="drawing-chat-messages" id="drawing-chat-messages">
-                            <div style="color:#aaa; margin-bottom:5px;">💬 HISTÓRICO DE PALPITES:</div>
-                        </div>
-                        <div class="drawing-guess-area">
-                            <input type="text" id="draw-guess-input" class="drawing-guess-input" placeholder="Digite seu palpite...">
-                            <button id="draw-guess-btn" class="drawing-guess-btn">Chutar</button>
-                        </div>
-                    </div>
-                </div>
-                <button id="drawing-leave-btn">Sair do Jogo</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         const socket = io();
         
+        // ================= SISTEMA DE ÁUDIO E VIBRAÇÃO =================
+        let soundEnabled = localStorage.getItem('atheschat_sound') !== 'false';
+        const audioCache = {};
+        // Os caminhos agora apontam direto para a pasta public, onde você subiu os arquivos
+        const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
+
+        function initAudio() {
+            soundsToLoad.forEach(name => {
+                const audio = new Audio(`/${name}.mp3`);
+                audio.preload = 'auto';
+                audio.volume = 0.5; 
+                audioCache[name] = audio;
+            });
+            updateMuteButton();
+        }
+
+        function playSound(name) {
+            if (!soundEnabled || !audioCache[name]) return;
+            try {
+                audioCache[name].currentTime = 0;
+                audioCache[name].play().catch(e => console.log('Áudio bloqueado até interação.'));
+            } catch (error) {}
+        }
+
+        function vibrate(pattern) {
+            if (!soundEnabled) return;
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate(pattern); } catch (e) {}
+            }
+        }
+
+        function updateMuteButton() {
+            const btn = document.getElementById('mute-btn');
+            btn.textContent = soundEnabled ? '🔔' : '🔕';
+            btn.style.opacity = soundEnabled ? '1' : '0.5';
+        }
+
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('atheschat_sound', soundEnabled);
+            updateMuteButton();
+            if (soundEnabled) playSound('chat-receive'); // Toca um som para confirmar que ativou
+        });
+        // ===============================================================
+
         // Elementos do Chat
         const chatDiv = document.getElementById('chat');
         const messageInput = document.getElementById('message');
@@ -332,7 +299,6 @@
         const sidebar = document.getElementById('sidebar');
         const playPongBtn = document.getElementById('play-pong-btn');
         const playTttBtn = document.getElementById('play-ttt-btn');
-        const playDrawingBtn = document.getElementById('play-drawing-btn');
         const reportUserBtn = document.getElementById('report-user-btn');
         
         // Elementos do Pong
@@ -359,22 +325,6 @@
         const tttTurnElem = document.getElementById('ttt-turn');
         const tttLeaveBtn = document.getElementById('ttt-leave-btn');
         
-        // Elementos do Desenho
-        const drawingInviteModal = document.getElementById('drawing-invite-modal');
-        const drawingAcceptBtn = document.getElementById('drawing-accept');
-        const drawingDeclineBtn = document.getElementById('drawing-decline');
-        const drawingGameContainer = document.getElementById('drawing-game-container');
-        const drawingGameArea = document.getElementById('drawing-game-area');
-        const drawingWaitingMsg = document.getElementById('drawing-waiting');
-        const drawingStatusElem = document.getElementById('drawing-status');
-        const drawCanvas = document.getElementById('draw-canvas');
-        const drawingWordDisplayElem = document.getElementById('drawing-word-display');
-        const drawingTimerDisplay = document.getElementById('drawing-timer-display');
-        const drawingGuessInput = document.getElementById('draw-guess-input');
-        const drawingGuessBtn = document.getElementById('draw-guess-btn');
-        const drawingLeaveBtn = document.getElementById('drawing-leave-btn');
-        const drawingChatMessagesDiv = document.getElementById('drawing-chat-messages');
-        
         // Elementos do Letreiro
         const marqueeContainer = document.getElementById('marqueeContainer');
         const marqueeText = document.getElementById('marqueeText');
@@ -398,6 +348,7 @@
         // Variáveis do Pong
         let pongGameActive = false;
         let pongGameState = null;
+        let prevBall = null; 
         let pongAnimationId = null;
         const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
         let pongInputState = { left: false, right: false };
@@ -411,17 +362,6 @@
         let tttBoardState = Array(9).fill(null);
         let tttMySymbol = null;
         let tttCurrentTurn = null;
-        
-        // Variáveis do Desenho
-        let drawingGameActive = false;
-        let drawingRole = null;
-        let drawingWord = null;
-        let drawingCtx = null;
-        let isDrawing = false;
-        let drawingTool = 'pencil';
-        let drawingColor = '#000000';
-        let drawingSize = 5;
-        let drawingChatMessages = [];
 
         // ================= FUNÇÕES DO CHAT =================
         async function fetchMyLocation() {
@@ -522,6 +462,8 @@
             msgElement.appendChild(reasonText);
             chatDiv.appendChild(msgElement);
             scrollToBottom();
+            playSound('error-buzz');
+            vibrate([60, 40, 60]);
         }
 
         function scrollToBottom() { chatDiv.scrollTop = chatDiv.scrollHeight; }
@@ -664,7 +606,8 @@
             showActionButton('iniciar');
             if (pongGameActive) endPongGame('partner_disconnected');
             if (tttGameActive) tttGameContainer.style.display = 'none';
-            if (drawingGameActive) drawingGameContainer.style.display = 'none';
+            playSound('error-buzz');
+            vibrate(150);
         }
 
         // ================= LETREIRO =================
@@ -721,6 +664,7 @@
             
             reportModal.style.display = 'none';
             addSystemMessage('✅ Denúncia enviada! Obrigado por ajudar a manter a comunidade segura.');
+            playSound('chat-receive');
         });
 
         cancelReportBtn.addEventListener('click', () => {
@@ -731,6 +675,9 @@
 
         // ================= EVENTOS SOCKET =================
         startBtn.addEventListener('click', () => {
+            // Inicializa o áudio no primeiro clique para burlar a política de autoplay dos navegadores
+            if (Object.keys(audioCache).length === 0) initAudio();
+            
             startScreen.style.display = 'none';
             chatContainer.style.display = 'flex';
             socket.emit('join', { location: myLocation });
@@ -768,11 +715,15 @@
             addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
             addSystemMessage('💡 Dica: Deslize uma mensagem para a direita para respondê-la!');
             showActionButton('encerrar');
+            playSound('chat-join');
+            vibrate(40);
         });
         
         socket.on('message', (data) => {
             if (data.senderId !== socket.id) {
                 addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
+                playSound('chat-receive');
+                vibrate(40);
             }
         });
         
@@ -786,7 +737,14 @@
             onPartnerLeft();
         });
         
-        socket.on('system_message', (data) => { addSystemMessage(data.message); });
+        socket.on('system_message', (data) => { 
+            addSystemMessage(data.message); 
+            // Se for mensagem de anti-spam ou aviso, vibra e toca som de erro
+            if (data.message.includes('Calma') || data.message.includes('Espere') || data.message.includes('AVISO DO ADMIN')) {
+                playSound('error-buzz');
+                vibrate([60, 40, 60]);
+            }
+        });
         socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
         socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
 
@@ -809,13 +767,6 @@
             menuBtn.classList.remove('open');
             sidebar.classList.remove('open');
         });
-        
-        playDrawingBtn.addEventListener('click', () => {
-            if (isConnected) socket.emit('drawing_invite');
-            else addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
-            menuBtn.classList.remove('open');
-            sidebar.classList.remove('open');
-        });
 
         // ================= JOGO PONG =================
         socket.on('pong_invite_received', () => { pongInviteModal.style.display = 'flex'; });
@@ -825,6 +776,7 @@
         socket.on('pong_start', () => {
             pongGameActive = true;
             pongGameState = null;
+            prevBall = null;
             ball1Trail = [];
             ball2Trail = [];
             pongGameContainer.style.display = 'flex';
@@ -841,8 +793,32 @@
             pongGameState = state;
             pongScoreYouElem.textContent = `Você: ${state.you.score}`;
             pongScoreOpponentElem.textContent = `Anônimo: ${state.opponent.score}`;
-            if (state.ball && state.ball.x) { ball1Trail.unshift({ x: state.ball.x, y: state.ball.y }); if (ball1Trail.length > TRAIL_LENGTH) ball1Trail.pop(); }
-            if (state.ball2 && state.ball2.x) { ball2Trail.unshift({ x: state.ball2.x, y: state.ball2.y }); if (ball2Trail.length > TRAIL_LENGTH) ball2Trail.pop(); }
+            
+            // Lógica de vibração do Pong (Parede e Raquete)
+            if (state.ball && state.ball.x) { 
+                // Vibração de colisão
+                if (prevBall) {
+                    // Bateu na parede lateral
+                    if ((prevBall.x > PONG_CONFIG.BALL_RADIUS && state.ball.x <= PONG_CONFIG.BALL_RADIUS) || 
+                        (prevBall.x < pongCanvas.width - PONG_CONFIG.BALL_RADIUS && state.ball.x >= pongCanvas.width - PONG_CONFIG.BALL_RADIUS)) {
+                        vibrate(20);
+                    }
+                    // Bateu na raquete do jogador (parte inferior da tela)
+                    if (prevBall.y < pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS && 
+                        state.ball.y >= pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS &&
+                        state.ball.x >= localPlayerPaddleX && state.ball.x <= localPlayerPaddleX + PONG_CONFIG.PADDLE_WIDTH) {
+                        vibrate(40);
+                    }
+                }
+                prevBall = { x: state.ball.x, y: state.ball.y };
+                
+                ball1Trail.unshift({ x: state.ball.x, y: state.ball.y }); 
+                if (ball1Trail.length > TRAIL_LENGTH) ball1Trail.pop(); 
+            }
+            if (state.ball2 && state.ball2.x) { 
+                ball2Trail.unshift({ x: state.ball2.x, y: state.ball2.y }); 
+                if (ball2Trail.length > TRAIL_LENGTH) ball2Trail.pop(); 
+            }
         });
         
         socket.on('pong_countdown_start', () => {
@@ -875,6 +851,15 @@
             if(reason === 'player_left' || reason === 'partner_disconnected' || reason === 'chat_ended') message = "O oponente saiu do jogo.";
             else if (result) message = `Placar final: Você ${result.yourScore} x ${result.opponentScore} Anônimo.`;
             addSystemMessage(`🏆 ${message}`);
+            
+            if (result && result.yourScore > result.opponentScore) {
+                playSound('win-fanfare');
+                vibrate([100, 50, 100]);
+            } else {
+                playSound('error-buzz');
+                vibrate(100);
+            }
+
             setTimeout(() => { pongGameContainer.style.display = 'none'; }, 3000);
         }
         
@@ -981,8 +966,20 @@
 
         socket.on('tictactoe_game_over', (data) => {
             tttGameActive = false;
-            if (data.isDraw) tttTurnElem.innerHTML = '🤝 EMPATE!';
-            else tttTurnElem.innerHTML = `🏆 Jogador ${data.winnerSymbol} venceu!`;
+            if (data.isDraw) {
+                tttTurnElem.innerHTML = '🤝 EMPATE!';
+                playSound('error-buzz');
+                vibrate(100);
+            } else {
+                tttTurnElem.innerHTML = `🏆 Jogador ${data.winnerSymbol} venceu!`;
+                if (data.winnerSymbol === tttMySymbol) {
+                    playSound('win-fanfare');
+                    vibrate([100, 50, 100]);
+                } else {
+                    playSound('error-buzz');
+                    vibrate(100);
+                }
+            }
             setTimeout(() => { tttGameContainer.style.display = 'none'; }, 3000);
         });
 
@@ -997,258 +994,15 @@
                 else if (tttBoardState[i] === 'O') { cell.textContent = '◯'; cell.classList.add('O'); }
                 if (tttGameActive && tttCurrentTurn === tttMySymbol && tttBoardState[i] === null) {
                     cell.style.cursor = 'pointer';
-                    cell.onclick = () => socket.emit('tictactoe_move', { position: i });
+                    cell.onclick = () => {
+                        socket.emit('tictactoe_move', { position: i });
+                        vibrate(30);
+                    };
                 }
                 tttBoardDiv.appendChild(cell);
             }
         }
         tttLeaveBtn.onclick = () => { socket.emit('tictactoe_leave'); tttGameContainer.style.display = 'none'; };
-
-        // ================= JOGO DE DESENHO =================
-        function updateToolHighlight() {
-            document.querySelectorAll('.drawing-tool-btn').forEach(btn => {
-                if (btn.id === 'draw-pencil' && drawingTool === 'pencil') btn.classList.add('active');
-                else if (btn.id === 'draw-eraser' && drawingTool === 'eraser') btn.classList.add('active');
-                else btn.classList.remove('active');
-            });
-        }
-        
-        document.getElementById('draw-color-picker').onclick = () => {
-            const input = document.createElement('input');
-            input.type = 'color';
-            input.value = drawingColor;
-            input.onchange = (e) => { drawingColor = e.target.value; };
-            input.click();
-        };
-        
-        socket.on('drawing_invite_received', () => { drawingInviteModal.style.display = 'flex'; });
-        drawingAcceptBtn.onclick = () => { socket.emit('drawing_accept'); drawingInviteModal.style.display = 'none'; };
-        drawingDeclineBtn.onclick = () => { socket.emit('drawing_decline'); drawingInviteModal.style.display = 'none'; };
-        
-        function showTutorial(gameName, rules, onComplete) {
-            const div = document.createElement('div');
-            div.className = 'tutorial-overlay';
-            div.innerHTML = `<div class="tutorial-card"><h2>🎮 ${gameName}</h2>${rules.map(r => `<div class="role-box"><strong>${r.title}</strong><p>${r.content}</p></div>`).join('')}<button id="tutorial-ok">✅ ENTENDI, VAMOS JOGAR!</button></div>`;
-            document.body.appendChild(div);
-            document.getElementById('tutorial-ok').onclick = () => { div.remove(); onComplete(); };
-        }
-        
-        socket.on('drawing_tutorial_required', () => {
-            showTutorial('Que Rabisco é esse?', [
-                { title: '🎨 DESENHISTA', content: 'Você receberá uma palavra secreta. Desenhe sem usar letras ou números! Use as ferramentas abaixo.' },
-                { title: '🕵️ ADIVINHADOR', content: 'Olhe o desenho e digite seu palpite. Acertando, você vence! Você tem 60 segundos.' }
-            ], () => { socket.emit('drawing_tutorial_ready'); });
-        });
-        
-        socket.on('drawing_waiting', (data) => {
-            drawingStatusElem.style.display = 'block';
-            drawingWaitingMsg.style.display = 'block';
-            drawingGameArea.style.display = 'none';
-            drawingStatusElem.innerHTML = `⏳ Aguardando ${data.player} ler o tutorial...`;
-        });
-        
-        socket.on('drawing_start', (data) => {
-            drawingGameActive = true;
-            drawingRole = data.role;
-            drawingGameContainer.style.display = 'flex';
-            drawingWaitingMsg.style.display = 'none';
-            drawingGameArea.style.display = 'block';
-            drawingStatusElem.style.display = 'none';
-            drawingChatMessages = [];
-            updateDrawingChat();
-            
-            if (data.role === 'drawer') {
-                drawingWord = data.word;
-                drawingWordDisplayElem.style.display = 'block';
-                drawingWordDisplayElem.innerHTML = `📝 DESENHE: <span style="color:#ffd966; font-size:1.2rem;">${data.word.toUpperCase()}</span>`;
-                drawingGuessInput.disabled = true;
-                drawingGuessBtn.disabled = true;
-                initDrawingCanvas();
-                enableDrawingTools(true);
-            } else {
-                drawingWordDisplayElem.style.display = 'none';
-                drawingGuessInput.disabled = false;
-                drawingGuessBtn.disabled = false;
-                drawingGuessInput.focus();
-                enableDrawingTools(false);
-                initDrawingCanvasViewer();
-            }
-        });
-        
-        socket.on('drawing_chat_update', (data) => {
-            drawingChatMessages = data.history;
-            updateDrawingChat();
-        });
-        
-        socket.on('drawing_wrong_guess', (data) => {
-            addDrawingChatMessage(`❌ "${data.guess}" está errado!`, 'error');
-        });
-        
-        socket.on('drawing_timer', (data) => { drawingTimerDisplay.innerHTML = `⏱️ Tempo: ${data.timeLeft}s`; });
-        
-        socket.on('drawing_game_over', (data) => {
-            drawingGameActive = false;
-            drawingGameArea.style.display = 'none';
-            drawingStatusElem.style.display = 'block';
-            drawingStatusElem.innerHTML = `<div class="result-screen"><h2>${data.winnerRole === "Desenhista" ? "🎨 DESENHISTA VENCEU!" : (data.winnerRole === "Adivinhador" ? "🕵️ ADIVINHADOR VENCEU!" : "⏰ TEMPO ESGOTADO!")}</h2><div class="word-reveal">📝 Palavra: <span style="color:#ffd966">${data.word.toUpperCase()}</span></div><div style="margin:10px 0; font-size:0.8rem;">${data.message}</div><button class="btn-back" id="drawing-back-btn">🔙 Voltar ao Chat</button></div>`;
-            const backBtn = document.getElementById('drawing-back-btn');
-            if (backBtn) backBtn.onclick = () => { drawingGameContainer.style.display = 'none'; drawingGameArea.style.display = 'block'; drawingStatusElem.style.display = 'none'; };
-            addSystemMessage(`🏆 ${data.winnerRole} venceu o Que Rabisco é esse! Palavra era: ${data.word.toUpperCase()}`);
-        });
-        
-        function updateDrawingChat() {
-            drawingChatMessagesDiv.innerHTML = '<div style="color:#aaa; margin-bottom:8px;">💬 HISTÓRICO DE PALPITES:</div>';
-            drawingChatMessages.slice(-12).forEach(msg => {
-                const div = document.createElement('div');
-                if (msg.isCorrect) { div.className = 'drawing-chat-message drawing-chat-correct'; div.innerHTML = `✅ ${msg.guess} - ACERTOU!`; }
-                else { div.className = 'drawing-chat-message drawing-chat-guess'; div.innerHTML = `🕵️ Adivinhador: ${msg.guess}`; }
-                drawingChatMessagesDiv.appendChild(div);
-            });
-            drawingChatMessagesDiv.scrollTop = drawingChatMessagesDiv.scrollHeight;
-        }
-        
-        function addDrawingChatMessage(text, type) {
-            const div = document.createElement('div');
-            div.className = 'drawing-chat-message drawing-chat-error';
-            div.innerHTML = text;
-            drawingChatMessagesDiv.appendChild(div);
-            drawingChatMessagesDiv.scrollTop = drawingChatMessagesDiv.scrollHeight;
-            setTimeout(() => { if(div.parentNode) div.remove(); }, 3000);
-        }
-        
-        function enableDrawingTools(enabled) {
-            const btns = document.querySelectorAll('.drawing-tool-btn');
-            btns.forEach(btn => btn.disabled = !enabled);
-            document.getElementById('draw-size').disabled = !enabled;
-            document.getElementById('draw-color-picker').style.opacity = enabled ? '1' : '0.5';
-            document.getElementById('draw-color-picker').style.pointerEvents = enabled ? 'auto' : 'none';
-        }
-        
-        function initDrawingCanvas() {
-            drawingCtx = drawCanvas.getContext('2d');
-            drawingCtx.fillStyle = 'white';
-            drawingCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
-            drawingCtx.lineCap = 'round';
-            drawingCtx.lineJoin = 'round';
-            drawingCtx.strokeStyle = drawingColor;
-            drawingCtx.lineWidth = drawingSize;
-            
-            let lastX = null, lastY = null;
-            
-            const startDraw = (e) => {
-                if (drawingRole !== 'drawer' || !drawingGameActive) return;
-                e.preventDefault();
-                isDrawing = true;
-                const pos = getCoords(e);
-                lastX = pos.x;
-                lastY = pos.y;
-                drawingCtx.beginPath();
-                drawingCtx.moveTo(pos.x, pos.y);
-            };
-            
-            const moveDraw = (e) => {
-                if (!isDrawing || drawingRole !== 'drawer' || !drawingGameActive) return;
-                e.preventDefault();
-                const pos = getCoords(e);
-                
-                if (drawingTool === 'eraser') {
-                    drawingCtx.strokeStyle = 'white';
-                } else {
-                    drawingCtx.strokeStyle = drawingColor;
-                }
-                drawingCtx.lineWidth = drawingSize;
-                
-                drawingCtx.lineTo(pos.x, pos.y);
-                drawingCtx.stroke();
-                drawingCtx.beginPath();
-                drawingCtx.moveTo(pos.x, pos.y);
-                
-                lastX = pos.x;
-                lastY = pos.y;
-                
-                sendDrawing();
-            };
-            
-            const endDraw = () => { 
-                isDrawing = false; 
-                drawingCtx.beginPath();
-                sendDrawing();
-            };
-            
-            drawCanvas.removeEventListener('mousedown', startDraw);
-            drawCanvas.removeEventListener('mousemove', moveDraw);
-            drawCanvas.removeEventListener('mouseup', endDraw);
-            drawCanvas.addEventListener('mousedown', startDraw);
-            drawCanvas.addEventListener('mousemove', moveDraw);
-            drawCanvas.addEventListener('mouseup', endDraw);
-            
-            drawCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
-            drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); moveDraw(e.touches[0]); });
-            drawCanvas.addEventListener('touchend', endDraw);
-            
-            function getCoords(e) {
-                const rect = drawCanvas.getBoundingClientRect();
-                const scaleX = drawCanvas.width / rect.width;
-                const scaleY = drawCanvas.height / rect.height;
-                let cx = e.clientX, cy = e.clientY;
-                if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
-                let x = (cx - rect.left) * scaleX;
-                let y = (cy - rect.top) * scaleY;
-                x = Math.max(0, Math.min(drawCanvas.width, x));
-                y = Math.max(0, Math.min(drawCanvas.height, y));
-                return { x: x, y: y };
-            }
-            
-            function sendDrawing() {
-                const imgData = drawCanvas.toDataURL();
-                socket.emit('drawing_make_draw', { imageData: imgData });
-            }
-        }
-        
-        function initDrawingCanvasViewer() {
-            drawingCtx = drawCanvas.getContext('2d');
-            drawingCtx.fillStyle = 'white';
-            drawingCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
-        }
-        
-        socket.on('drawing_update', (data) => {
-            if (drawingRole === 'guesser' && drawingCtx && data.imageData) {
-                const img = new Image();
-                img.onload = () => {
-                    drawingCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-                    drawingCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
-                };
-                img.onerror = (err) => {
-                    console.error('Erro ao carregar imagem do desenho:', err);
-                };
-                img.src = data.imageData;
-            }
-        });
-        
-        drawingGuessBtn.onclick = () => {
-            const guess = drawingGuessInput.value.trim();
-            if (guess && drawingGameActive && drawingRole === 'guesser') {
-                socket.emit('drawing_make_guess', { guess: guess });
-                drawingGuessInput.value = '';
-            }
-        };
-        drawingGuessInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') drawingGuessBtn.click(); });
-        
-        document.getElementById('draw-clear').onclick = () => {
-            if (drawingCtx && drawingRole === 'drawer') {
-                drawingCtx.fillStyle = 'white';
-                drawingCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
-                sendDrawing();
-            }
-        };
-        
-        document.getElementById('draw-pencil').onclick = () => { drawingTool = 'pencil'; updateToolHighlight(); };
-        document.getElementById('draw-eraser').onclick = () => { drawingTool = 'eraser'; updateToolHighlight(); };
-        document.getElementById('draw-size').onchange = (e) => { drawingSize = parseInt(e.target.value); };
-        
-        drawingLeaveBtn.onclick = () => { socket.emit('drawing_leave'); drawingGameContainer.style.display = 'none'; };
-        
-        updateToolHighlight();
     </script>
 </body>
 </html>
