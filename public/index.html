@@ -164,6 +164,7 @@
             <button id="send-btn">Enviar</button>
         </div>
     </div>
+    
     <!-- MODAL DE DENÚNCIA -->
     <div id="reportModal" class="modal-overlay">
         <div class="modal-content">
@@ -292,27 +293,20 @@
         };
 
         let settings = JSON.parse(localStorage.getItem('atheschat_settings')) || defaultSettings;
-
-        // Garante que se o usuário tinha uma versão antiga salva, os novos campos sejam criados
         settings = { ...defaultSettings, ...settings };
 
         function applySettings() {
-            // Aplica Volume e Mute
             if(audioCache) {
                 Object.values(audioCache).forEach(audio => audio.volume = settings.volume / 100);
             }
             document.getElementById('mute-btn').textContent = settings.soundEnabled ? '🔔' : '🔕';
             document.getElementById('mute-btn').style.opacity = settings.soundEnabled ? '1' : '0.5';
 
-            // Aplica Cores e Fonte
             document.documentElement.style.setProperty('--chat-font-size', settings.fontSize + 'px');
             document.documentElement.style.setProperty('--received-bg', settings.receivedBg);
             document.documentElement.style.setProperty('--received-text', settings.receivedText);
-            
-            // Aplica Localização
             document.documentElement.style.setProperty('--show-location', settings.showLocation ? 'block' : 'none');
 
-            // Atualiza os inputs do modal
             document.getElementById('setting-volume').value = settings.volume;
             document.getElementById('setting-silent').checked = settings.silentMode;
             document.getElementById('setting-font-size').value = settings.fontSize;
@@ -326,7 +320,6 @@
             applySettings();
         }
 
-        // Event listeners dos inputs
         document.getElementById('setting-volume').addEventListener('input', (e) => { settings.volume = e.target.value; saveSettings(); });
         document.getElementById('setting-font-size').addEventListener('input', (e) => { settings.fontSize = e.target.value; saveSettings(); });
         document.getElementById('setting-received-bg').addEventListener('input', (e) => { settings.receivedBg = e.target.value; saveSettings(); });
@@ -334,7 +327,6 @@
         document.getElementById('setting-location').addEventListener('change', (e) => { settings.showLocation = e.target.checked; saveSettings(); });
         document.getElementById('setting-silent').addEventListener('change', (e) => { settings.silentMode = e.target.checked; saveSettings(); });
 
-        // Botão de Mute rápido no header
         document.getElementById('mute-btn').addEventListener('click', () => {
             settings.soundEnabled = !settings.soundEnabled;
             saveSettings();
@@ -357,9 +349,7 @@
 
         function playSound(name) {
             if (!settings.soundEnabled || !audioCache[name]) return;
-            // Se o Modo Silencioso estiver ativo e a aba estiver em segundo plano, não toca
             if (settings.silentMode && document.hidden) return;
-            
             try {
                 audioCache[name].currentTime = 0;
                 audioCache[name].play().catch(e => console.log('Áudio bloqueado até interação.'));
@@ -368,9 +358,7 @@
 
         function vibrate(pattern) {
             if (!settings.soundEnabled) return;
-            // Se o Modo Silencioso estiver ativo e a aba estiver em segundo plano, não vibra
             if (settings.silentMode && document.hidden) return;
-            
             if ('vibrate' in navigator) {
                 try { navigator.vibrate(pattern); } catch (e) {}
             }
@@ -838,9 +826,24 @@
         
         socket.on('system_message', (data) => { 
             addSystemMessage(data.message); 
+            // Se for mensagem de anti-spam ou aviso, vibra, toca som e bloqueia o input
             if (data.message.includes('Calma') || data.message.includes('Espere') || data.message.includes('AVISO DO ADMIN')) {
                 playSound('error-buzz');
                 vibrate([60, 40, 60]);
+                
+                // Trava visual de 5 segundos no input
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+                sendBtn.style.opacity = '0.5';
+                messageInput.placeholder = "Aguarde 5 segundos...";
+                
+                setTimeout(() => {
+                    messageInput.disabled = false;
+                    sendBtn.disabled = false;
+                    sendBtn.style.opacity = '1';
+                    messageInput.placeholder = "Digite sua mensagem...";
+                    messageInput.focus();
+                }, 5000);
             }
         });
         socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
