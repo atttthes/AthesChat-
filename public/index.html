@@ -26,10 +26,21 @@
         html { height: 100%; }
         body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color: var(--text-color); touch-action: pan-y; overflow: hidden; }
 
-        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background-color: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-        #start-btn { background-color: var(--success-color); color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: all 0.3s; }
-        #start-btn:hover { background-color: #45a049; transform: scale(1.05); }
-        #start-btn:disabled { background-color: #555; cursor: not-allowed; transform: none; }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background-color: var(--primary-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 20px env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+        
+        .terms-container { background: var(--secondary-bg); padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; margin-top: 20px; border: 1px solid #333; text-align: left; }
+        .terms-container p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+        .terms-links { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .terms-links a { color: var(--accent-color); text-decoration: none; font-size: 14px; font-weight: bold; }
+        .terms-links a:hover { text-decoration: underline; }
+        
+        .terms-checkbox-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px; }
+        .terms-checkbox-label input { margin-top: 3px; width: 18px; height: 18px; cursor: pointer; }
+        .terms-checkbox-label span { font-size: 13px; color: var(--text-color); line-height: 1.4; }
+
+        #start-btn { background-color: #555; color: #aaa; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: not-allowed; font-weight: bold; width: 100%; max-width: 400px; transition: all 0.3s; }
+        #start-btn.enabled { background-color: var(--success-color); color: white; cursor: pointer; }
+        #start-btn.enabled:hover { background-color: #45a049; transform: scale(1.02); }
 
         #chat-container { display: none; height: 100vh; height: 100dvh; flex-direction: column; background-color: var(--secondary-bg); position: relative; overflow: hidden; }
         
@@ -106,6 +117,8 @@
         .settings-item input[type="color"] { width: 40px; height: 40px; border: none; border-radius: 5px; cursor: pointer; padding: 0; background: transparent; }
         .settings-item input[type="range"] { flex: 1.5; margin-left: 15px; }
         .settings-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .settings-link { color: var(--accent-color); text-decoration: none; font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 10px; }
+        .settings-link:hover { text-decoration: underline; }
         
         /* JOGO PONG */
         #pong-game-container, #ttt-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
@@ -126,33 +139,22 @@
 </head>
 <body>
     <div id="start-screen">
-        <h1 style="color: white; margin-bottom: 20px;">AthesChat!</h1>
-        <p style="color: #aaa; margin-bottom: 20px; text-align: center;">O chat anônimo que conecta o Brasil!</p>
-        <button id="start-btn" disabled>Comece a Conversar!</button>
-    </div>
-
-    <!-- MODAL DE TERMOS (APARECE NA PRIMEIRA VEZ) -->
-    <div id="termsModal" class="modal-overlay" style="display: flex; z-index: 3000;">
-        <div class="modal-content" style="max-width: 400px; text-align: left; border: 1px solid var(--accent-color);">
-            <h3 style="text-align: center; margin-bottom: 15px;">📜 Bem-vindo ao AthesChat!</h3>
-            <p style="font-size: 13px; line-height: 1.5; color: #aaa; margin-bottom: 15px;">
-                Antes de começar a conversar, você precisa saber que este é um ambiente anônimo e que precisamos das suas regras de segurança.
-            </p>
-            
-            <div style="background: #1e1e1e; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
-                <a href="/termos.html" target="_blank" style="color: var(--accent-color); display: block; margin-bottom: 8px; text-decoration: none; font-weight: bold;">📄 Ler os Termos de Uso</a>
-                <a href="/privacidade.html" target="_blank" style="color: var(--accent-color); display: block; text-decoration: none; font-weight: bold;">🛡️ Ler a Política de Privacidade</a>
+        <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">AthesChat!</h1>
+        <p style="color: #aaa; margin-bottom: 20px; text-align: center; font-size: 15px;">O chat anônimo que conecta o Brasil!</p>
+        
+        <div class="terms-container" id="termsContainer">
+            <p>Antes de começar, leia e aceite nossas regras. É rápido e seguro.</p>
+            <div class="terms-links">
+                <a href="/termos.html" target="_blank">Ler os Termos de Uso</a>
+                <a href="/privacidade.html" target="_blank">Ler a Política de Privacidade</a>
             </div>
-
-            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px;">
-                <input type="checkbox" id="termsCheckbox" style="margin-top: 3px; width: 18px; height: 18px;">
-                <span style="font-size: 13px; color: #e0e0e0;">Declaro ter no mínimo 18 anos e concordo com os Termos de Uso e a Política de Privacidade.</span>
+            <label class="terms-checkbox-label">
+                <input type="checkbox" id="termsCheckbox">
+                <span>Declaro ter no mínimo 18 anos e concordo com os Termos de Uso e a Política de Privacidade.</span>
             </label>
-
-            <button id="acceptTermsBtn" class="accept-btn" style="width: 100%; padding: 12px; opacity: 0.5; cursor: not-allowed;" disabled>Entrar no Chat</button>
+            <button id="start-btn" disabled>Comece a Conversar!</button>
         </div>
     </div>
-
     <div id="chat-container">
         <div id="marqueeContainer" class="marquee-container" style="display: none;">
             <div id="marqueeText" class="marquee-text"></div>
@@ -160,10 +162,10 @@
         
         <div id="sidebar">
              <ul>
-                <li id="report-user-btn">🚨 Denunciar Usuário</li>
-                <li id="play-pong-btn">🎮 Jogar Pong</li>
-                <li id="play-ttt-btn">❌ Jogo da Velha</li>
-                <li id="settings-btn" style="border-top: 1px solid #555; margin-top: 10px;">⚙️ Configurações</li>
+                <li id="report-user-btn">Denunciar Usuário</li>
+                <li id="play-pong-btn">Jogar Pong</li>
+                <li id="play-ttt-btn">Jogo da Velha</li>
+                <li id="settings-btn" style="border-top: 1px solid #555; margin-top: 10px;">Configurações</li>
             </ul>
         </div>
         <div id="chat-header">
@@ -191,7 +193,7 @@
     <!-- MODAL DE DENÚNCIA -->
     <div id="reportModal" class="modal-overlay">
         <div class="modal-content">
-            <h3>🚨 Denunciar Usuário</h3>
+            <h3>Denunciar Usuário</h3>
             <p style="margin-bottom: 10px; font-size: 14px; color: #aaa;">Você está denunciando seu parceiro atual.</p>
             <select id="reportReason" style="width:100%; padding:10px; margin:10px 0; background:#1e1e1e; color:white; border-radius:8px;">
                 <option value="ofensivo">Mensagem ofensiva</option>
@@ -210,10 +212,10 @@
     <!-- MODAL DE CONFIGURAÇÕES -->
     <div id="settingsModal" class="modal-overlay">
         <div class="modal-content" style="width: 360px;">
-            <h3 style="margin-bottom: 15px;">⚙️ Configurações</h3>
+            <h3 style="margin-bottom: 15px;">Configurações</h3>
             
             <div class="settings-group">
-                <h4>🔊 Áudio e Feedback</h4>
+                <h4>Áudio e Feedback</h4>
                 <div class="settings-item">
                     <label>Ativar Sons e Vibrações</label>
                     <input type="checkbox" id="setting-sound" checked>
@@ -229,7 +231,7 @@
             </div>
 
             <div class="settings-group">
-                <h4>💬 Aparência do Chat</h4>
+                <h4>Aparência do Chat</h4>
                 <div class="settings-item">
                     <label>Tamanho da Fonte</label>
                     <input type="range" id="setting-font-size" min="12" max="24" value="16">
@@ -245,11 +247,17 @@
             </div>
 
             <div class="settings-group">
-                <h4>👁️ Privacidade</h4>
+                <h4>Privacidade</h4>
                 <div class="settings-item">
                     <label>Mostrar Localização (Estado)</label>
                     <input type="checkbox" id="setting-location" checked>
                 </div>
+            </div>
+
+            <div class="settings-group">
+                <h4>Legal</h4>
+                <a href="/termos.html" target="_blank" class="settings-link">Termos de Uso</a>
+                <a href="/privacidade.html" target="_blank" class="settings-link">Política de Privacidade</a>
             </div>
 
             <div class="modal-actions" style="margin-top: 20px;">
@@ -309,41 +317,44 @@
         const socket = io();
         
         // ================= SISTEMA DE TERMOS =================
-        const termsModal = document.getElementById('termsModal');
         const termsCheckbox = document.getElementById('termsCheckbox');
-        const acceptTermsBtn = document.getElementById('acceptTermsBtn');
         const startBtn = document.getElementById('start-btn');
+        const startScreen = document.getElementById('start-screen');
+        const termsContainer = document.getElementById('termsContainer');
 
         // Verifica se já aceitou antes
         if (localStorage.getItem('atheschat_terms_accepted') === 'true') {
-            termsModal.style.display = 'none';
+            termsContainer.style.display = 'none';
             startBtn.disabled = false;
+            startBtn.classList.add('enabled');
         }
 
         termsCheckbox.addEventListener('change', () => {
             if (termsCheckbox.checked) {
-                acceptTermsBtn.disabled = false;
-                acceptTermsBtn.style.opacity = '1';
-                acceptTermsBtn.style.cursor = 'pointer';
+                startBtn.disabled = false;
+                startBtn.classList.add('enabled');
             } else {
-                acceptTermsBtn.disabled = true;
-                acceptTermsBtn.style.opacity = '0.5';
-                acceptTermsBtn.style.cursor = 'not-allowed';
+                startBtn.disabled = true;
+                startBtn.classList.remove('enabled');
             }
         });
 
-        acceptTermsBtn.addEventListener('click', () => {
-            localStorage.setItem('atheschat_terms_accepted', 'true');
-            termsModal.style.display = 'none';
-            startBtn.disabled = false;
-            startBtn.focus();
+        startBtn.addEventListener('click', () => {
+            if (!startBtn.disabled) {
+                localStorage.setItem('atheschat_terms_accepted', 'true');
+                if (Object.keys(audioCache).length === 0) initAudio();
+                startScreen.style.display = 'none';
+                chatContainer.style.display = 'flex';
+                socket.emit('join', { location: myLocation });
+                messageInput.focus();
+            }
         });
         // ========================================================
 
         // ================= SISTEMA DE CONFIGURAÇÕES =================
         const defaultSettings = {
             soundEnabled: true,
-            volume: 70, // Aumentado para 70%
+            volume: 70,
             silentMode: false,
             fontSize: 16,
             receivedBg: '#333333',
@@ -356,9 +367,8 @@
 
         function applySettings() {
             if(audioCache) {
-                Object.values(audioCache).forEach(audio => audio.volume = (settings.volume / 100) * 1.2); // 20% de aumento extra
+                Object.values(audioCache).forEach(audio => audio.volume = (settings.volume / 100) * 1.2);
             }
-
             document.documentElement.style.setProperty('--chat-font-size', settings.fontSize + 'px');
             document.documentElement.style.setProperty('--received-bg', settings.receivedBg);
             document.documentElement.style.setProperty('--received-text', settings.receivedText);
@@ -421,7 +431,6 @@
         const chatDiv = document.getElementById('chat');
         const messageInput = document.getElementById('message');
         const sendBtn = document.getElementById('send-btn');
-        const startScreen = document.getElementById('start-screen');
         const chatContainer = document.getElementById('chat-container');
         const actionBtn = document.getElementById('action-btn');
         const onlineCountElement = document.getElementById('online-count');
@@ -717,7 +726,7 @@
                 }
                 socket.emit('message', messageData);
                 addMessage(message, 'Você', true, replyingTo, myLocation);
-                playSound('chat-receive'); // SOM AO ENVIAR
+                playSound('chat-receive');
                 messageInput.value = '';
                 if (replyingTo) cancelReply();
                 if (isTyping) {
@@ -814,14 +823,6 @@
         socket.on('report_thanks', (data) => { addSystemMessage(data.message); });
 
         // ================= EVENTOS SOCKET =================
-        startBtn.addEventListener('click', () => {
-            if (Object.keys(audioCache).length === 0) initAudio();
-            startScreen.style.display = 'none';
-            chatContainer.style.display = 'flex';
-            socket.emit('join', { location: myLocation });
-            messageInput.focus();
-        });
-
         socket.on('connect', async () => {
             addSystemMessage('Conectando ao servidor...');
             await fetchMyLocation();
@@ -860,7 +861,7 @@
         socket.on('message', (data) => {
             if (data.senderId !== socket.id) {
                 addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
-                playSound('chat-receive'); // SOM AO RECEBER
+                playSound('chat-receive');
                 vibrate(40);
             }
         });
