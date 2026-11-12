@@ -171,10 +171,8 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
     <h1>AthesChat!</h1>
     <p>O chat anônimo que conecta o Brasil!</p>
     
-    <!-- BOTÃO PRIMEIRO -->
     <button id="start-btn" disabled>Comece a Conversar!</button>
 
-    <!-- TERMOS EMBAIXO E DISCRETOS -->
     <div class="terms-container" id="termsContainer">
         <p>Leia e aceite nossas regras para continuar.</p>
         <div class="terms-links">
@@ -356,16 +354,6 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
 // ================= UTIL =================
 const $ = (id) => document.getElementById(id);
 
-function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 const safeStorage = {
     get(key) { try { return localStorage.getItem(key); } catch (e) { return this._mem ? this._mem[key] : null; } },
     set(key, val) { try { localStorage.setItem(key, val); } catch (e) { this._mem = this._mem || {}; this._mem[key] = val; } },
@@ -400,7 +388,6 @@ if (safeStorage.get(TERMS_KEY) === 'true') {
     termsCheckbox.checked = true;
     startBtn.disabled = false;
     startBtn.classList.add('enabled');
-    // Deixa a caixinha mais discreta ainda se já aceitou
     termsContainer.style.opacity = '0.5';
 } else {
     startBtn.disabled = true;
@@ -423,6 +410,10 @@ termsCheckbox.addEventListener('change', () => {
 startBtn.addEventListener('click', () => {
     if (startBtn.disabled) return;
     safeStorage.set(TERMS_KEY, 'true');
+    
+    // Desbloqueia áudio no celular
+    unlockAudio();
+
     if (Object.keys(audioCache).length === 0) initAudio();
     startScreen.style.display = 'none';
     chatContainer.style.display = 'flex';
@@ -492,14 +483,32 @@ function initAudio() {
     });
     applySettings();
 }
+
+function unlockAudio() {
+    // Toca todos os áudios com volume 0 para desbloquear a permissão
+    soundsToLoad.forEach(name => {
+        try {
+            const a = new Audio('/' + name + '.mp3');
+            a.volume = 0;
+            a.play().then(() => {
+                a.pause();
+                a.currentTime = 0;
+            }).catch(() => {});
+        } catch(e) {}
+    });
+}
+
 function playSound(name) {
     if (!settings.soundEnabled || !audioCache[name]) return;
     if (settings.silentMode && document.hidden) return;
     try {
         audioCache[name].currentTime = 0;
-        audioCache[name].play().catch(() => {});
+        audioCache[name].play().catch((e) => {
+            console.warn('Áudio bloqueado pelo navegador:', e);
+        });
     } catch (e) {}
 }
+
 function vibrate(pattern) {
     if (!settings.soundEnabled) return;
     if (settings.silentMode && document.hidden) return;
