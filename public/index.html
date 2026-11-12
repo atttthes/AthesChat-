@@ -32,17 +32,21 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
 #start-screen { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; background-color: var(--primary-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 20px env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
 #start-screen h1 { color: #fff; margin-bottom: 10px; font-size: 32px; }
 #start-screen > p { color: #aaa; margin-bottom: 20px; text-align: center; font-size: 15px; }
-.terms-container { background: var(--secondary-bg); padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; margin-top: 20px; border: 1px solid #333; text-align: left; }
-.terms-container p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
-.terms-links { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-.terms-links a { color: var(--accent-color); text-decoration: none; font-size: 14px; font-weight: bold; }
-.terms-links a:hover { text-decoration: underline; }
-.terms-checkbox-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px; }
-.terms-checkbox-label input { margin-top: 3px; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
-.terms-checkbox-label span { font-size: 13px; color: var(--text-color); line-height: 1.4; }
-#start-btn { background-color: #555; color: #aaa; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: not-allowed; font-weight: bold; width: 100%; max-width: 400px; transition: all 0.3s; }
+
+#start-btn { background-color: #555; color: #aaa; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: not-allowed; font-weight: bold; width: 100%; max-width: 400px; transition: all 0.3s; margin-bottom: 15px; }
 #start-btn.enabled { background-color: var(--success-color); color: white; cursor: pointer; }
 #start-btn.enabled:hover { background-color: #45a049; transform: scale(1.02); }
+
+/* TERMOS DISCRETOS */
+.terms-container { background: var(--secondary-bg); padding: 12px 15px; border-radius: 10px; max-width: 400px; width: 100%; border: 1px solid #333; text-align: center; opacity: 0.85; transition: opacity 0.3s; }
+.terms-container:hover { opacity: 1; }
+.terms-container p { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; line-height: 1.3; }
+.terms-links { display: flex; justify-content: center; gap: 15px; margin-bottom: 8px; }
+.terms-links a { color: var(--accent-color); text-decoration: none; font-size: 11px; font-weight: bold; }
+.terms-links a:hover { text-decoration: underline; }
+.terms-checkbox-label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; justify-content: center; text-align: left; }
+.terms-checkbox-label input { margin-top: 2px; width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; accent-color: var(--success-color); }
+.terms-checkbox-label span { font-size: 11px; color: var(--text-color); line-height: 1.3; }
 
 /* CHAT */
 #chat-container { display: none; height: 100vh; height: 100dvh; flex-direction: column; background-color: var(--secondary-bg); position: relative; overflow: hidden; }
@@ -166,17 +170,21 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
 <div id="start-screen">
     <h1>AthesChat!</h1>
     <p>O chat anônimo que conecta o Brasil!</p>
+    
+    <!-- BOTÃO PRIMEIRO -->
+    <button id="start-btn" disabled>Comece a Conversar!</button>
+
+    <!-- TERMOS EMBAIXO E DISCRETOS -->
     <div class="terms-container" id="termsContainer">
-        <p>Antes de começar, leia e aceite nossas regras. É rápido e seguro.</p>
+        <p>Leia e aceite nossas regras para continuar.</p>
         <div class="terms-links">
-            <a href="/termos" target="_blank" rel="noopener">Ler os Termos de Uso</a>
-            <a href="/privacidade" target="_blank" rel="noopener">Ler a Política de Privacidade</a>
+            <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a>
+            <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a>
         </div>
         <label class="terms-checkbox-label">
             <input type="checkbox" id="termsCheckbox">
-            <span>Declaro ter no mínimo 18 anos e concordo com os Termos de Uso e a Política de Privacidade.</span>
+            <span>Declaro ter no mínimo 18 anos e concordo com os Termos e a Privacidade.</span>
         </label>
-        <button id="start-btn" disabled>Comece a Conversar!</button>
     </div>
 </div>
 
@@ -348,7 +356,6 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
 // ================= UTIL =================
 const $ = (id) => document.getElementById(id);
 
-// escape para evitar XSS em qualquer innerHTML/textContent
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -359,20 +366,10 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-// localStorage seguro (fallback para modo privado)
 const safeStorage = {
-    get(key) {
-        try { return localStorage.getItem(key); }
-        catch (e) { return this._mem ? this._mem[key] : null; }
-    },
-    set(key, val) {
-        try { localStorage.setItem(key, val); }
-        catch (e) { this._mem = this._mem || {}; this._mem[key] = val; }
-    },
-    remove(key) {
-        try { localStorage.removeItem(key); }
-        catch (e) { if (this._mem) delete this._mem[key]; }
-    }
+    get(key) { try { return localStorage.getItem(key); } catch (e) { return this._mem ? this._mem[key] : null; } },
+    set(key, val) { try { localStorage.setItem(key, val); } catch (e) { this._mem = this._mem || {}; this._mem[key] = val; } },
+    remove(key) { try { localStorage.removeItem(key); } catch (e) { if (this._mem) delete this._mem[key]; } }
 };
 
 // ================= SOCKET =================
@@ -400,15 +397,27 @@ const chatContainer = $('chat-container');
 
 const TERMS_KEY = 'atheschat_terms_accepted';
 if (safeStorage.get(TERMS_KEY) === 'true') {
-    termsContainer.style.display = 'none';
+    termsCheckbox.checked = true;
     startBtn.disabled = false;
     startBtn.classList.add('enabled');
+    // Deixa a caixinha mais discreta ainda se já aceitou
+    termsContainer.style.opacity = '0.5';
+} else {
+    startBtn.disabled = true;
+    startBtn.classList.remove('enabled');
 }
 
 termsCheckbox.addEventListener('change', () => {
     const on = termsCheckbox.checked;
     startBtn.disabled = !on;
     startBtn.classList.toggle('enabled', on);
+    if(on) {
+        safeStorage.set(TERMS_KEY, 'true');
+        termsContainer.style.opacity = '0.5';
+    } else {
+        safeStorage.remove(TERMS_KEY);
+        termsContainer.style.opacity = '1';
+    }
 });
 
 startBtn.addEventListener('click', () => {
@@ -660,7 +669,7 @@ function addMessage(msg, sender, isMe, replyTo = null, location = null) {
     }
 
     const textEl = document.createElement('div');
-    textEl.textContent = msg; // textContent = seguro contra XSS
+    textEl.textContent = msg;
     el.appendChild(textEl);
 
     chatDiv.appendChild(el);
@@ -994,7 +1003,6 @@ socket.on('system_message', (data) => {
     if (!msg) return;
     addSystemMessage(msg);
     if (data && typeof data.remainingSeconds === 'number' && data.remainingSeconds > 0) {
-        // CORREÇÃO: usa remainingSeconds real do servidor
         messageInput.disabled = true;
         sendBtn.disabled = true;
         const original = messageInput.placeholder;
@@ -1072,10 +1080,8 @@ socket.on('pong_update', (state) => {
     if (state.you) pongScoreYouElem.textContent = 'Você: ' + state.you.score;
     if (state.opponent) pongScoreOpponentElem.textContent = 'Anônimo: ' + state.opponent.score;
 
-    // CORREÇÃO: usa !== undefined para não falhar quando x === 0
     if (state.ball && state.ball.x !== undefined && state.ball.y !== undefined) {
         if (prevBall) {
-            // vibração em rebote
             const hitWall = (prevBall.x > PONG_CONFIG.BALL_RADIUS && state.ball.x <= PONG_CONFIG.BALL_RADIUS) ||
                             (prevBall.x < pongCanvas.width - PONG_CONFIG.BALL_RADIUS && state.ball.x >= pongCanvas.width - PONG_CONFIG.BALL_RADIUS);
             if (hitWall) vibrate(20);
@@ -1137,7 +1143,6 @@ function drawPong() {
     if (!pongGameActive) return;
     pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
 
-    // linha central
     pongCtx.strokeStyle = '#333';
     pongCtx.beginPath();
     pongCtx.setLineDash([5, 15]);
@@ -1146,7 +1151,6 @@ function drawPong() {
     pongCtx.stroke();
     pongCtx.setLineDash([]);
 
-    // trail
     pongCtx.save();
     ballTrail.forEach((p, i) => {
         pongCtx.globalAlpha = (1 - (i / ballTrail.length)) * 0.4;
@@ -1294,13 +1298,6 @@ messageInput.addEventListener('input', () => {
 // fecha modais clicando fora
 [pongInviteModal, tttInviteModal, reportModal, settingsModal].forEach(m => {
     m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('visible'); });
-});
-
-// pausa silencioso
-document.addEventListener('visibilitychange', () => {
-    if (settings.silentMode && document.hidden) {
-        // nada; sons já checam document.hidden
-    }
 });
 
 console.log('✅ AthesChat cliente carregado');
