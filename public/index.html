@@ -16,7 +16,7 @@
             --special-accent: #8a2be2;
             --success-color: #4CAF50;
             --error-color: #ff4d4d;
-            /* Variáveis dinâmicas controladas pelo JS */
+            /* Variáveis dinâmicas */
             --chat-font-size: 16px;
             --received-bg: #333333;
             --received-text: #e0e0e0;
@@ -29,6 +29,7 @@
         #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background-color: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
         #start-btn { background-color: var(--success-color); color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-top: 20px; transition: all 0.3s; }
         #start-btn:hover { background-color: #45a049; transform: scale(1.05); }
+        #start-btn:disabled { background-color: #555; cursor: not-allowed; transform: none; }
 
         #chat-container { display: none; height: 100vh; height: 100dvh; flex-direction: column; background-color: var(--secondary-bg); position: relative; overflow: hidden; }
         
@@ -42,7 +43,6 @@
         .header-controls { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 15px; }
         .online-counter { font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
         .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
-        #mute-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; color: var(--text-color); padding: 5px; display: flex; align-items: center; justify-content: center; }
         
         #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
         .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; font-size: var(--chat-font-size, 16px); }
@@ -57,8 +57,10 @@
         .reason.visible { display: block; }
         #input-area { display: flex; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); background: var(--tertiary-bg); border-top: 1px solid #333; position: relative; flex-wrap: wrap; flex-shrink: 0; }
         #message { flex-grow: 1; padding: 12px 15px; border: 1px solid #444; border-radius: 25px; outline: none; font-size: 16px; background-color: #333; color: var(--text-color); }
+        #message:disabled { opacity: 0.5; cursor: not-allowed; }
         #send-btn { background: var(--accent-color); color: white; border: none; border-radius: 25px; padding: 0 20px; margin-left: 10px; cursor: pointer; font-weight: bold; }
         #send-btn:hover { background: var(--accent-hover); }
+        #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .sender-info { font-size: 0.7em; margin-bottom: 3px; display: flex; justify-content: space-between; }
         .sender-name { font-weight: bold; }
         .sender-location { opacity: 0.7; font-style: italic; display: var(--show-location, block); }
@@ -126,7 +128,29 @@
     <div id="start-screen">
         <h1 style="color: white; margin-bottom: 20px;">AthesChat!</h1>
         <p style="color: #aaa; margin-bottom: 20px; text-align: center;">O chat anônimo que conecta o Brasil!</p>
-        <button id="start-btn">Comece a Conversar!</button>
+        <button id="start-btn" disabled>Comece a Conversar!</button>
+    </div>
+
+    <!-- MODAL DE TERMOS (APARECE NA PRIMEIRA VEZ) -->
+    <div id="termsModal" class="modal-overlay" style="display: flex; z-index: 3000;">
+        <div class="modal-content" style="max-width: 400px; text-align: left; border: 1px solid var(--accent-color);">
+            <h3 style="text-align: center; margin-bottom: 15px;">📜 Bem-vindo ao AthesChat!</h3>
+            <p style="font-size: 13px; line-height: 1.5; color: #aaa; margin-bottom: 15px;">
+                Antes de começar a conversar, você precisa saber que este é um ambiente anônimo e que precisamos das suas regras de segurança.
+            </p>
+            
+            <div style="background: #1e1e1e; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
+                <a href="/termos.html" target="_blank" style="color: var(--accent-color); display: block; margin-bottom: 8px; text-decoration: none; font-weight: bold;">📄 Ler os Termos de Uso</a>
+                <a href="/privacidade.html" target="_blank" style="color: var(--accent-color); display: block; text-decoration: none; font-weight: bold;">🛡️ Ler a Política de Privacidade</a>
+            </div>
+
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px;">
+                <input type="checkbox" id="termsCheckbox" style="margin-top: 3px; width: 18px; height: 18px;">
+                <span style="font-size: 13px; color: #e0e0e0;">Declaro ter no mínimo 18 anos e concordo com os Termos de Uso e a Política de Privacidade.</span>
+            </label>
+
+            <button id="acceptTermsBtn" class="accept-btn" style="width: 100%; padding: 12px; opacity: 0.5; cursor: not-allowed;" disabled>Entrar no Chat</button>
+        </div>
     </div>
 
     <div id="chat-container">
@@ -154,7 +178,6 @@
                     <span class="online-dot"></span>
                     <span id="online-count">0 online</span>
                 </div>
-                <button id="mute-btn" title="Ativar/Desativar Sons">🔔</button>
             </div>
         </div>
         <div id="chat"></div>
@@ -192,8 +215,12 @@
             <div class="settings-group">
                 <h4>🔊 Áudio e Feedback</h4>
                 <div class="settings-item">
+                    <label>Ativar Sons e Vibrações</label>
+                    <input type="checkbox" id="setting-sound" checked>
+                </div>
+                <div class="settings-item">
                     <label>Volume dos Sons</label>
-                    <input type="range" id="setting-volume" min="0" max="100" value="50">
+                    <input type="range" id="setting-volume" min="0" max="100" value="70">
                 </div>
                 <div class="settings-item">
                     <label>Modo Silencioso<br><span style="font-size:0.8em; color:#888;">(Silencia ao sair do app)</span></label>
@@ -281,10 +308,42 @@
     <script>
         const socket = io();
         
+        // ================= SISTEMA DE TERMOS =================
+        const termsModal = document.getElementById('termsModal');
+        const termsCheckbox = document.getElementById('termsCheckbox');
+        const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+        const startBtn = document.getElementById('start-btn');
+
+        // Verifica se já aceitou antes
+        if (localStorage.getItem('atheschat_terms_accepted') === 'true') {
+            termsModal.style.display = 'none';
+            startBtn.disabled = false;
+        }
+
+        termsCheckbox.addEventListener('change', () => {
+            if (termsCheckbox.checked) {
+                acceptTermsBtn.disabled = false;
+                acceptTermsBtn.style.opacity = '1';
+                acceptTermsBtn.style.cursor = 'pointer';
+            } else {
+                acceptTermsBtn.disabled = true;
+                acceptTermsBtn.style.opacity = '0.5';
+                acceptTermsBtn.style.cursor = 'not-allowed';
+            }
+        });
+
+        acceptTermsBtn.addEventListener('click', () => {
+            localStorage.setItem('atheschat_terms_accepted', 'true');
+            termsModal.style.display = 'none';
+            startBtn.disabled = false;
+            startBtn.focus();
+        });
+        // ========================================================
+
         // ================= SISTEMA DE CONFIGURAÇÕES =================
         const defaultSettings = {
             soundEnabled: true,
-            volume: 50,
+            volume: 70, // Aumentado para 70%
             silentMode: false,
             fontSize: 16,
             receivedBg: '#333333',
@@ -297,16 +356,15 @@
 
         function applySettings() {
             if(audioCache) {
-                Object.values(audioCache).forEach(audio => audio.volume = settings.volume / 100);
+                Object.values(audioCache).forEach(audio => audio.volume = (settings.volume / 100) * 1.2); // 20% de aumento extra
             }
-            document.getElementById('mute-btn').textContent = settings.soundEnabled ? '🔔' : '🔕';
-            document.getElementById('mute-btn').style.opacity = settings.soundEnabled ? '1' : '0.5';
 
             document.documentElement.style.setProperty('--chat-font-size', settings.fontSize + 'px');
             document.documentElement.style.setProperty('--received-bg', settings.receivedBg);
             document.documentElement.style.setProperty('--received-text', settings.receivedText);
             document.documentElement.style.setProperty('--show-location', settings.showLocation ? 'block' : 'none');
 
+            document.getElementById('setting-sound').checked = settings.soundEnabled;
             document.getElementById('setting-volume').value = settings.volume;
             document.getElementById('setting-silent').checked = settings.silentMode;
             document.getElementById('setting-font-size').value = settings.fontSize;
@@ -320,18 +378,13 @@
             applySettings();
         }
 
+        document.getElementById('setting-sound').addEventListener('change', (e) => { settings.soundEnabled = e.target.checked; saveSettings(); });
         document.getElementById('setting-volume').addEventListener('input', (e) => { settings.volume = e.target.value; saveSettings(); });
         document.getElementById('setting-font-size').addEventListener('input', (e) => { settings.fontSize = e.target.value; saveSettings(); });
         document.getElementById('setting-received-bg').addEventListener('input', (e) => { settings.receivedBg = e.target.value; saveSettings(); });
         document.getElementById('setting-received-text').addEventListener('input', (e) => { settings.receivedText = e.target.value; saveSettings(); });
         document.getElementById('setting-location').addEventListener('change', (e) => { settings.showLocation = e.target.checked; saveSettings(); });
         document.getElementById('setting-silent').addEventListener('change', (e) => { settings.silentMode = e.target.checked; saveSettings(); });
-
-        document.getElementById('mute-btn').addEventListener('click', () => {
-            settings.soundEnabled = !settings.soundEnabled;
-            saveSettings();
-            if (settings.soundEnabled) playSound('chat-receive');
-        });
         // ===============================================================
 
         const audioCache = {};
@@ -341,7 +394,7 @@
             soundsToLoad.forEach(name => {
                 const audio = new Audio(`/${name}.mp3`);
                 audio.preload = 'auto';
-                audio.volume = settings.volume / 100;
+                audio.volume = (settings.volume / 100) * 1.2;
                 audioCache[name] = audio;
             });
             applySettings();
@@ -352,7 +405,7 @@
             if (settings.silentMode && document.hidden) return;
             try {
                 audioCache[name].currentTime = 0;
-                audioCache[name].play().catch(e => console.log('Áudio bloqueado até interação.'));
+                audioCache[name].play().catch(e => console.log('Áudio bloqueado.'));
             } catch (error) {}
         }
 
@@ -370,7 +423,6 @@
         const sendBtn = document.getElementById('send-btn');
         const startScreen = document.getElementById('start-screen');
         const chatContainer = document.getElementById('chat-container');
-        const startBtn = document.getElementById('start-btn');
         const actionBtn = document.getElementById('action-btn');
         const onlineCountElement = document.getElementById('online-count');
         
@@ -665,6 +717,7 @@
                 }
                 socket.emit('message', messageData);
                 addMessage(message, 'Você', true, replyingTo, myLocation);
+                playSound('chat-receive'); // SOM AO ENVIAR
                 messageInput.value = '';
                 if (replyingTo) cancelReply();
                 if (isTyping) {
@@ -762,9 +815,7 @@
 
         // ================= EVENTOS SOCKET =================
         startBtn.addEventListener('click', () => {
-            // Inicializa o áudio no primeiro clique para burlar a política de autoplay dos navegadores
             if (Object.keys(audioCache).length === 0) initAudio();
-            
             startScreen.style.display = 'none';
             chatContainer.style.display = 'flex';
             socket.emit('join', { location: myLocation });
@@ -809,7 +860,7 @@
         socket.on('message', (data) => {
             if (data.senderId !== socket.id) {
                 addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
-                playSound('chat-receive');
+                playSound('chat-receive'); // SOM AO RECEBER
                 vibrate(40);
             }
         });
@@ -826,21 +877,17 @@
         
         socket.on('system_message', (data) => { 
             addSystemMessage(data.message); 
-            // Se for mensagem de anti-spam ou aviso, vibra, toca som e bloqueia o input
             if (data.message.includes('Calma') || data.message.includes('Espere') || data.message.includes('AVISO DO ADMIN')) {
                 playSound('error-buzz');
                 vibrate([60, 40, 60]);
                 
-                // Trava visual de 5 segundos no input
                 messageInput.disabled = true;
                 sendBtn.disabled = true;
-                sendBtn.style.opacity = '0.5';
                 messageInput.placeholder = "Aguarde 5 segundos...";
                 
                 setTimeout(() => {
                     messageInput.disabled = false;
                     sendBtn.disabled = false;
-                    sendBtn.style.opacity = '1';
                     messageInput.placeholder = "Digite sua mensagem...";
                     messageInput.focus();
                 }, 5000);
@@ -871,6 +918,11 @@
 
         // ================= JOGO PONG =================
         socket.on('pong_invite_received', () => { pongInviteModal.style.display = 'flex'; });
+        socket.on('bot_pong_invite', () => { 
+            addSystemMessage("O bot te desafiou para jogar Pong!");
+            pongInviteModal.style.display = 'flex'; 
+        });
+        
         pongAcceptBtn.addEventListener('click', () => { socket.emit('pong_accept'); pongInviteModal.style.display = 'none'; });
         pongDeclineBtn.addEventListener('click', () => { socket.emit('pong_decline'); pongInviteModal.style.display = 'none'; });
 
