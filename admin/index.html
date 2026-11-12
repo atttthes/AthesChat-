@@ -85,7 +85,7 @@ body { font-family: 'Segoe UI', 'Arial', sans-serif; background: #0a0a0f; color:
 .broadcast-form { background: #16213e; border-radius: 20px; padding: 25px; margin-bottom: 25px; }
 .broadcast-input, .broadcast-textarea, .broadcast-select { width: 100%; padding: 12px 15px; margin-bottom: 15px; border: 1px solid #2d2d3a; border-radius: 12px; background: #1a1a2e; color: white; font-size: 14px; }
 .broadcast-input:focus, .broadcast-textarea:focus, .broadcast-select:focus { outline: none; border-color: #e94560; }
-.broadcast-textarea { resize: vertical; min-height: 60px; }
+.broadcast-textarea { resize: vertical; min-height: 60px; font-family: monospace; }
 .broadcast-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
 .broadcast-settings label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #888; }
 .broadcast-settings input, .broadcast-settings select { padding: 8px; border-radius: 8px; border: 1px solid #2d2d3a; background: #1a1a2e; color: white; }
@@ -107,6 +107,35 @@ body { font-family: 'Segoe UI', 'Arial', sans-serif; background: #0a0a0f; color:
 .accept-btn { background: #4CAF50; color: white; padding: 10px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
 .decline-btn { background: #ff4d4d; color: white; padding: 10px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
 
+/* NOVOS ESTILOS - CONFIG GAMES */
+.config-panel { background: #16213e; border-radius: 20px; padding: 25px; margin-bottom: 20px; }
+.config-panel h3 { color: #e94560; margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+.config-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.config-row label { color: #aaa; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+.config-row input[type="text"], .config-row input[type="number"], .config-row textarea, .config-row select { width: 100%; padding: 12px 15px; border: 1px solid #2d2d3a; border-radius: 10px; background: #1a1a2e; color: white; font-size: 14px; }
+.config-row input:focus, .config-row textarea:focus, .config-row select:focus { outline: none; border-color: #e94560; }
+.config-row textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: 12px; }
+
+.toggle-switch { position: relative; display: inline-block; width: 60px; height: 32px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #333; border-radius: 32px; transition: 0.3s; }
+.toggle-slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: 0.3s; }
+.toggle-switch input:checked + .toggle-slider { background: #4CAF50; }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(28px); }
+
+.toggle-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px; padding: 15px; background: #0f0f1a; border-radius: 12px; }
+.toggle-row-info { flex: 1; }
+.toggle-row-info strong { display: block; color: white; margin-bottom: 4px; }
+.toggle-row-info small { color: #888; font-size: 12px; }
+
+.game-status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+.game-status-badge.on { background: #4CAF50; color: white; }
+.game-status-badge.off { background: #ff4d4d; color: white; }
+
+.save-bar { position: sticky; bottom: 0; background: #0f0f1a; padding: 20px; margin: 30px -30px -30px -30px; border-top: 1px solid #1a1a2e; display: flex; gap: 15px; justify-content: flex-end; align-items: center; z-index: 10; }
+.save-bar .status-text { flex: 1; color: #888; font-size: 13px; }
+.save-bar .status-text.saved { color: #4CAF50; }
+
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0f0f1a; }
@@ -123,6 +152,7 @@ body { font-family: 'Segoe UI', 'Arial', sans-serif; background: #0a0a0f; color:
     .stat-info span { font-size: 24px; }
     .broadcast-settings { grid-template-columns: 1fr; }
     .modal-content { padding: 20px; min-width: auto; width: 100%; }
+    .save-bar { margin: 20px -15px -15px -15px; }
 }
 </style>
 </head>
@@ -172,6 +202,14 @@ body { font-family: 'Segoe UI', 'Arial', sans-serif; background: #0a0a0f; color:
             <div class="nav-item" data-module="broadcast">
                 <span class="nav-icon">📢</span>
                 <span class="nav-text">Mensagem Global</span>
+            </div>
+            <div class="nav-item" data-module="games">
+                <span class="nav-icon">🎮</span>
+                <span class="nav-text">Controle de Jogos</span>
+            </div>
+            <div class="nav-item" data-module="ads">
+                <span class="nav-icon">💰</span>
+                <span class="nav-text">Anúncios e VIP</span>
             </div>
             <div class="nav-item" data-module="logs">
                 <span class="nav-icon">📜</span>
@@ -266,6 +304,125 @@ body { font-family: 'Segoe UI', 'Arial', sans-serif; background: #0a0a0f; color:
             <div class="broadcast-history-list">
                 <h3 style="margin-bottom: 15px; font-size: 16px;">📜 Últimas mensagens enviadas (sessão):</h3>
                 <div id="broadcastHistory"></div>
+            </div>
+        </div>
+
+        <!-- CONTROLE DE JOGOS (NOVO) -->
+        <div id="games" class="module">
+            <div class="module-header">
+                <h1>🎮 Controle de Jogos</h1>
+                <p>Ative, desative e configure mensagens para cada jogo do chat</p>
+            </div>
+
+            <!-- PONG -->
+            <div class="config-panel">
+                <h3>🏓 Pong <span class="game-status-badge" id="pongStatusBadge">OFF</span></h3>
+
+                <div class="toggle-row">
+                    <div class="toggle-row-info">
+                        <strong>Jogo Ativo</strong>
+                        <small>Se desativado, os usuários verão "Em breve" ao tentar jogar</small>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="pongActive">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="config-row">
+                    <label>Mensagem exibida quando desativado</label>
+                    <input type="text" id="pongMessage" placeholder="Ex: Em breve" maxlength="200">
+                </div>
+
+                <div class="config-row">
+                    <label>Dias restantes para liberar (deixe vazio para não mostrar contagem)</label>
+                    <input type="number" id="pongDays" placeholder="Ex: 5" min="0" max="999">
+                </div>
+            </div>
+
+            <!-- TICTACTOE -->
+            <div class="config-panel">
+                <h3>⭕ Jogo da Velha <span class="game-status-badge" id="tttStatusBadge">OFF</span></h3>
+
+                <div class="toggle-row">
+                    <div class="toggle-row-info">
+                        <strong>Jogo Ativo</strong>
+                        <small>Se desativado, os usuários verão "Em breve" ao tentar jogar</small>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="tttActive">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="config-row">
+                    <label>Mensagem exibida quando desativado</label>
+                    <input type="text" id="tttMessage" placeholder="Ex: Em breve" maxlength="200">
+                </div>
+
+                <div class="config-row">
+                    <label>Dias restantes para liberar (deixe vazio para não mostrar contagem)</label>
+                    <input type="number" id="tttDays" placeholder="Ex: 5" min="0" max="999">
+                </div>
+            </div>
+
+            <div class="save-bar">
+                <span class="status-text" id="gamesStatusText"></span>
+                <button id="saveGamesBtn" class="btn-primary">💾 Salvar Configurações dos Jogos</button>
+            </div>
+        </div>
+
+        <!-- ANÚNCIOS E VIP (NOVO) -->
+        <div id="ads" class="module">
+            <div class="module-header">
+                <h1>💰 Anúncios e VIP</h1>
+                <p>Configure o sistema de anúncios e recompensa VIP</p>
+            </div>
+
+            <div class="config-panel">
+                <h3>📢 Anúncios Globais</h3>
+
+                <div class="toggle-row">
+                    <div class="toggle-row-info">
+                        <strong>Ativar Anúncios</strong>
+                        <small>Se desativado, nenhum anúncio é exibido no chat (mesmo para não-VIP)</small>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="adsEnabled">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="config-row">
+                    <label>Código do Google AdSense (cole o <ins> completo)</label>
+                    <textarea id="adsenseCode" placeholder="<ins class='adsbygoogle' style='display:block' data-ad-client='ca-pub-XXXX' data-ad-slot='YYYY' data-ad-format='auto' data-full-width-responsive='true'></ins>"></textarea>
+                    <small style="color:#888; font-size:12px;">Enquanto estiver vazio, o chat mostra um placeholder "Espaço Publicitário (Em breve)"</small>
+                </div>
+            </div>
+
+            <div class="config-panel">
+                <h3>👑 Sistema VIP</h3>
+
+                <div class="config-row">
+                    <label>Quantidade de anúncios para virar VIP</label>
+                    <input type="number" id="adsPerVip" placeholder="15" min="1" max="100">
+                </div>
+
+                <div class="config-row">
+                    <label>Duração do VIP (em horas)</label>
+                    <input type="number" id="vipDurationHours" placeholder="24" min="1" max="720">
+                </div>
+
+                <div class="config-row">
+                    <label>Cor padrão do nome VIP</label>
+                    <input type="color" id="vipDefaultColor" value="#ffd700" style="height: 50px; padding: 5px;">
+                    <small style="color:#888; font-size:12px;">O usuário poderá escolher outra cor na hora de virar VIP</small>
+                </div>
+            </div>
+
+            <div class="save-bar">
+                <span class="status-text" id="adsStatusText"></span>
+                <button id="saveAdsBtn" class="btn-primary">💾 Salvar Configurações de Anúncios</button>
             </div>
         </div>
 
@@ -380,16 +537,15 @@ async function doLogin() {
 function enterPanel() {
     loginContainer.style.display = 'none';
     adminContainer.style.display = 'flex';
-    // CORREÇÃO: envia o token no admin_register (antes ia vazio)
     socket.emit('admin_register', adminToken);
     adminStatus.textContent = '👑 Admin Online';
     adminStatus.classList.remove('offline');
-    // carrega tudo
     atualizarStats();
     carregarDenuncias();
     carregarBanidos();
     carregarLogs();
-    iniciarMonitorChat();
+    carregarGamesConfig();
+    carregarAdsConfig();
     if (window._statsInterval) clearInterval(window._statsInterval);
     window._statsInterval = setInterval(atualizarStats, 10000);
 }
@@ -403,13 +559,11 @@ function logout() {
     $('adminPassword').value = '';
     loginError.textContent = '';
     if (window._statsInterval) clearInterval(window._statsInterval);
-    // desconecta socket admin (o servidor limpa adminSessions no disconnect)
     socket.disconnect();
     socket.connect();
 }
 
 function handleUnauthorized() {
-    // token expirou ou inválido → volta pro login
     adminStatus.textContent = '⚠️ Sessão expirada';
     adminStatus.classList.add('offline');
     logout();
@@ -446,7 +600,6 @@ socket.on('admin_register_failed', (data) => {
     logout();
 });
 
-// monitor de chat em tempo real
 socket.on('chat_message', (msg) => {
     if (!msg) return;
     const feed = $('liveChatFeed');
@@ -482,6 +635,8 @@ document.querySelectorAll('.nav-item').forEach(link => {
         if (moduleId === 'reports') carregarDenuncias();
         if (moduleId === 'banned') carregarBanidos();
         if (moduleId === 'logs') carregarLogs();
+        if (moduleId === 'games') carregarGamesConfig();
+        if (moduleId === 'ads') carregarAdsConfig();
     });
 });
 
@@ -518,8 +673,6 @@ async function carregarDenuncias() {
             container.innerHTML = '<div class="empty-state">📭 Nenhuma denúncia pendente</div>';
             return;
         }
-
-        // monta DOM de forma segura (sem innerHTML com dados do usuário)
         container.innerHTML = '';
         pending.forEach(report => {
             const card = document.createElement('div');
@@ -666,7 +819,6 @@ async function carregarBanidos() {
 async function desbanirIP(userIP) {
     if (!userIP) return;
     if (!confirm('Deseja desbanir o IP ' + userIP + '?')) return;
-    // CORREÇÃO: encodeURIComponent no path
     const resp = await apiFetch('/admin/api/bans/' + encodeURIComponent(userIP), { method: 'DELETE' });
     if (!resp) return;
     carregarBanidos();
@@ -674,7 +826,6 @@ async function desbanirIP(userIP) {
     carregarLogs();
 }
 
-// ban manual
 $('manualBanBtn').addEventListener('click', () => $('banModal').classList.add('visible'));
 $('cancelBanBtn').addEventListener('click', () => $('banModal').classList.remove('visible'));
 
@@ -705,18 +856,9 @@ $('confirmBanBtn').addEventListener('click', async () => {
     }
 });
 
-// fecha modal clicando fora
 $('banModal').addEventListener('click', (e) => {
     if (e.target.id === 'banModal') $('banModal').classList.remove('visible');
 });
-
-// ================= LIVE CHAT =================
-function iniciarMonitorChat() {
-    // O handler de socket.on('chat_message') já está registrado acima
-    // Aqui só garantimos que o feed existe
-    const feed = $('liveChatFeed');
-    if (!feed) return;
-}
 
 // ================= BROADCAST =================
 function previewLetreiro() {
@@ -794,6 +936,131 @@ $('sendBroadcastBtn').addEventListener('click', async () => {
     }
 });
 
+// ================= CONTROLE DE JOGOS (NOVO) =================
+async function carregarGamesConfig() {
+    if (!adminToken) return;
+    const resp = await apiFetch('/admin/api/games-config');
+    if (!resp) return;
+    try {
+        const config = await resp.json();
+        if (config.pong) {
+            $('pongActive').checked = !!config.pong.active;
+            $('pongMessage').value = config.pong.message || 'Em breve';
+            $('pongDays').value = config.pong.daysRemaining !== null && config.pong.daysRemaining !== undefined ? config.pong.daysRemaining : '';
+            atualizarBadgePong(config.pong.active);
+        }
+        if (config.tictactoe) {
+            $('tttActive').checked = !!config.tictactoe.active;
+            $('tttMessage').value = config.tictactoe.message || 'Em breve';
+            $('tttDays').value = config.tictactoe.daysRemaining !== null && config.tictactoe.daysRemaining !== undefined ? config.tictactoe.daysRemaining : '';
+            atualizarBadgeTtt(config.tictactoe.active);
+        }
+    } catch (e) { console.error('games config parse', e); }
+}
+
+function atualizarBadgePong(active) {
+    const b = $('pongStatusBadge');
+    if (active) { b.textContent = 'ON'; b.className = 'game-status-badge on'; }
+    else { b.textContent = 'OFF'; b.className = 'game-status-badge off'; }
+}
+function atualizarBadgeTtt(active) {
+    const b = $('tttStatusBadge');
+    if (active) { b.textContent = 'ON'; b.className = 'game-status-badge on'; }
+    else { b.textContent = 'OFF'; b.className = 'game-status-badge off'; }
+}
+
+$('pongActive').addEventListener('change', e => atualizarBadgePong(e.target.checked));
+$('tttActive').addEventListener('change', e => atualizarBadgeTtt(e.target.checked));
+
+$('saveGamesBtn').addEventListener('click', async () => {
+    const statusEl = $('gamesStatusText');
+    statusEl.textContent = 'Salvando...';
+    statusEl.classList.remove('saved');
+
+    const pongDays = $('pongDays').value;
+    const tttDays = $('tttDays').value;
+
+    const body = {
+        pong: {
+            active: $('pongActive').checked,
+            message: $('pongMessage').value.trim() || 'Em breve',
+            daysRemaining: pongDays === '' ? null : Number(pongDays)
+        },
+        tictactoe: {
+            active: $('tttActive').checked,
+            message: $('tttMessage').value.trim() || 'Em breve',
+            daysRemaining: tttDays === '' ? null : Number(tttDays)
+        }
+    };
+
+    const resp = await apiFetch('/admin/api/games-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!resp) {
+        statusEl.textContent = 'Erro ao salvar';
+        return;
+    }
+    const data = await resp.json().catch(() => ({}));
+    if (data.success) {
+        statusEl.textContent = '✅ Configurações salvas! Os usuários verão em tempo real.';
+        statusEl.classList.add('saved');
+        setTimeout(() => { statusEl.textContent = ''; }, 4000);
+        carregarLogs();
+    } else {
+        statusEl.textContent = 'Erro: ' + (data.error || 'falha ao salvar');
+    }
+});
+
+// ================= ANÚNCIOS E VIP (NOVO) =================
+async function carregarAdsConfig() {
+    if (!adminToken) return;
+    const resp = await apiFetch('/admin/api/ads-config');
+    if (!resp) return;
+    try {
+        const config = await resp.json();
+        $('adsEnabled').checked = !!config.adsEnabled;
+        $('adsenseCode').value = config.adsenseCode || '';
+        $('adsPerVip').value = config.adsPerVip || 15;
+        $('vipDurationHours').value = config.vipDurationHours || 24;
+        $('vipDefaultColor').value = config.vipDefaultColor || '#ffd700';
+    } catch (e) { console.error('ads config parse', e); }
+}
+
+$('saveAdsBtn').addEventListener('click', async () => {
+    const statusEl = $('adsStatusText');
+    statusEl.textContent = 'Salvando...';
+    statusEl.classList.remove('saved');
+
+    const body = {
+        adsEnabled: $('adsEnabled').checked,
+        adsenseCode: $('adsenseCode').value.trim(),
+        adsPerVip: Number($('adsPerVip').value) || 15,
+        vipDurationHours: Number($('vipDurationHours').value) || 24,
+        vipDefaultColor: $('vipDefaultColor').value || '#ffd700'
+    };
+
+    const resp = await apiFetch('/admin/api/ads-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!resp) {
+        statusEl.textContent = 'Erro ao salvar';
+        return;
+    }
+    const data = await resp.json().catch(() => ({}));
+    if (data.success) {
+        statusEl.textContent = '✅ Configurações de anúncios salvas!';
+        statusEl.classList.add('saved');
+        setTimeout(() => { statusEl.textContent = ''; }, 4000);
+        carregarLogs();
+    } else {
+        statusEl.textContent = 'Erro: ' + (data.error || 'falha ao salvar');
+    }
+});
+
 // ================= LOGS =================
 async function carregarLogs() {
     if (!adminToken) return;
@@ -824,7 +1091,6 @@ async function carregarLogs() {
 const saved = safeStorage.get('adminToken');
 if (saved) {
     adminToken = saved;
-    // valida o token consultando o servidor (barato e evita ficar em estado fantasma)
     (async () => {
         const resp = await fetch('/admin/api/stats', { headers: { 'Authorization': adminToken } });
         if (resp.status === 200) {
