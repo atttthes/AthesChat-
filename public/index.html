@@ -257,7 +257,8 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
             </div>
             <div class="settings-item">
                 <label for="setting-volume">Volume dos Sons</label>
-                <input type="range" id="setting-volume" min="0" max="100" value="70">
+                <!-- Aumentado para ir até 200% -->
+                <input type="range" id="setting-volume" min="0" max="200" value="100">
             </div>
             <div class="settings-item">
                 <label for="setting-silent">Modo Silencioso<br><span style="font-size:0.8em; color:#888;">(Silencia ao sair do app)</span></label>
@@ -423,7 +424,7 @@ startBtn.addEventListener('click', () => {
 // ================= SETTINGS =================
 const defaultSettings = {
     soundEnabled: true,
-    volume: 70,
+    volume: 100, // Aumentado padrão para 100%
     silentMode: false,
     fontSize: 16,
     receivedBg: '#333333',
@@ -464,7 +465,7 @@ $('setting-received-text').addEventListener('input', e => { settings.receivedTex
 $('setting-location').addEventListener('change', e => { settings.showLocation = e.target.checked; saveSettings(); });
 $('setting-silent').addEventListener('change', e => { settings.silentMode = e.target.checked; saveSettings(); });
 
-// ================= ÁUDIO (SISTEMA BLINDADO) =================
+// ================= ÁUDIO (SISTEMA BLINDADO COM GANHO ALTO) =================
 const audioCache = {};
 let audioCtx = null;
 const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
@@ -521,7 +522,11 @@ function playSound(name) {
             const source = audioCtx.createBufferSource();
             source.buffer = audioCache[name];
             const gain = audioCtx.createGain();
-            gain.gain.value = (settings.volume / 100) * 1.2;
+            
+            // Multiplicador de 2.2x para garantir som alto
+            // settings.volume agora vai de 0 a 200 (mas o limite seguro é aplicar 2.2)
+            gain.gain.value = (settings.volume / 100) * 2.2; 
+            
             source.connect(gain);
             gain.connect(audioCtx.destination);
             source.start(0);
@@ -533,7 +538,8 @@ function playSound(name) {
     if (audioCache[name] instanceof Audio) {
         try {
             audioCache[name].currentTime = 0;
-            audioCache[name].volume = (settings.volume / 100) * 1.2;
+            // Fallback não permite passar de 1.0 (100%) sem distorcer, então limitamos
+            audioCache[name].volume = Math.min((settings.volume / 100) * 2.2, 1.0);
             audioCache[name].play().catch(() => {});
         } catch(e) {}
     }
