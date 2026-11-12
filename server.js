@@ -11,19 +11,17 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    maxHttpBufferSize: 1e5 // 100KB por mensagem, evita payload gigante
+    maxHttpBufferSize: 1e5
 });
 
-app.set('trust proxy', true); // confia em X-Forwarded-For (Render/Heroku)
+app.set('trust proxy', true);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '200kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ================= CONFIG =================
-// SEGURANÇA: sem fallback hardcoded. Se não definir env vars, gera senha aleatória
-// e imprime no log (apenas para dev). Em produção, SEMPRE defina ADMIN_USER e ADMIN_PASS.
+// ================= CONFIG SEGURA =================
 const ADMIN_USERNAME = process.env.ADMIN_USER || "admin";
 const ADMIN_PASS = process.env.ADMIN_PASS || (() => {
     const p = crypto.randomBytes(12).toString('base64url');
@@ -31,7 +29,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || (() => {
     return p;
 })();
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
-if (!process.env.JWT_SECRET) console.log('⚠️  JWT_SECRET não definido. Tokens serão invalidados ao reiniciar.');
+if (!process.env.JWT_SECRET) console.log('⚠️  JWT_SECRET não definido. Tokens invalidam ao reiniciar.');
 
 // ================= ROTAS BÁSICAS =================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -45,7 +43,6 @@ app.use('/admin', express.static(adminPath));
 
 app.post('/admin/login', (req, res) => {
     const { username, password } = req.body || {};
-    // comparação em tempo constante para evitar timing attack
     const safeEqual = (a, b) => {
         const ba = Buffer.from(String(a));
         const bb = Buffer.from(String(b));
@@ -85,7 +82,6 @@ function lerArquivo(nome, padrao = {}) {
 }
 function escreverArquivo(nome, dados) {
     try {
-        // escrita atômica: grava em .tmp e renomeia
         const p = path.join(dataDir, nome);
         const tmp = p + '.tmp';
         fs.writeFileSync(tmp, JSON.stringify(dados, null, 2), 'utf8');
@@ -93,14 +89,13 @@ function escreverArquivo(nome, dados) {
     } catch (e) { console.error('Erro ao escrever', nome, e); }
 }
 
-// Schema unificado (compatível com o antigo, mas com nomes corretos)
+// ================= STATS =================
 let stats = lerArquivo('stats.json', {
     totalMessages: 0,
     dailyMessages: {},
     peakUsers: 0,
     gamesPlayed: { pong: 0, tictactoe: 0 }
 });
-// migração suave de schema antigo
 if (stats.totalMensagens !== undefined && stats.totalMessages === 0) {
     stats.totalMessages = stats.totalMensagens || 0;
     stats.dailyMessages = stats.mensagensPorDia || {};
@@ -114,16 +109,43 @@ if (stats.totalMensagens !== undefined && stats.totalMessages === 0) {
 
 let bans = lerArquivo('bans.json', []);
 let reports = lerArquivo('reports.json', []);
-// CORREÇÃO: nome consistente (era admins_log.json no projeto, código lia admin_logs.json)
 let adminLogs = lerArquivo('admin_logs.json', []);
 
-// Filtro de palavras no servidor (carregado uma vez)
+// ================= NOVAS CONFIGS =================
+// games_config.json: controle de disponibilidade dos jogos
+// ads_config.json: controle de anúncios e sistema VIP
+const defaultGamesConfig = {
+    pong: { active: false, message: "Em breve", daysRemaining: null },
+    tictactoe: { active: false, message: "Em breve", daysRemaining: null }
+};
+const defaultAdsConfig = {
+    adsEnabled: false,          // Se o admin liberou anúncios no chat
+    adsenseCode: "",            // Código <ins> completo do Google AdSense
+    adsPerVip: 15,              // Quantidade de anúncios para virar VIP
+    vipDurationHours: 24,       // Duração do VIP
+    vipDefaultColor: "#ffd700"  // Cor padrão do nome VIP (dourado)
+};
+
+let gamesConfig = lerArquivo('games_config.json', defaultGamesConfig);
+let adsConfig = lerArquivo('ads_config.json', defaultAdsConfig);
+
+// merge de segurança (caso o JSON esteja faltando chaves)
+gamesConfig = { ...defaultGamesConfig, ...gamesConfig };
+adsConfig = { ...defaultAdsConfig, ...adsConfig };
+
+// Função que calcula quando o jogo volta baseado em daysRemaining
+function calcularVoltaEm(daysRemaining) {
+    if (!daysRemaining || daysRemaining <= 0) return null;
+    const ms = Number(daysRemaining) * 24 * 60 * 60 * 1000;
+    return new Date(Date.now() + ms).toISOString();
+}
+
+// Palavras proibidas
 let palavrasProibidas = [];
 try {
     const p = path.join(__dirname, 'public', 'palavras_proibidas.json');
     if (fs.existsSync(p)) palavrasProibidas = JSON.parse(fs.readFileSync(p, 'utf8'));
 } catch (e) {
-    // tenta na raiz, fallback
     try {
         const p2 = path.join(__dirname, 'palavras_proibidas.json');
         if (fs.existsSync(p2)) palavrasProibidas = JSON.parse(fs.readFileSync(p2, 'utf8'));
@@ -134,7 +156,6 @@ function contemPalavraOfensiva(texto) {
     const t = String(texto).toLowerCase();
     return palavrasProibidas.some(palavra => {
         const escaped = palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // \b não funciona com espaços; usa lookaround de fronteira de palavra OU espaço
         const regex = new RegExp(`(?:^|[^a-zà-ú])${escaped}(?:$|[^a-zà-ú])`, 'i');
         return regex.test(t);
     });
@@ -146,11 +167,11 @@ function registrarLog(mensagem) {
     escreverArquivo('admin_logs.json', adminLogs);
 }
 
-// ================= ESTADO GLOBAL (MOVIDO PARA CIMA) =================
+// ================= ESTADO GLOBAL =================
 const connectedUsers = new Map();
 const activeBots = new Map();
 const activePongGames = new Map();
-const activeTttGames = new Map(); // NOVO: Jogo da Velha
+const activeTttGames = new Map();
 const adminSessions = new Set();
 const messageRateLimit = new Map();
 const RATE_WINDOW = 10000;
@@ -166,7 +187,6 @@ app.get('/admin/api/stats', verificarToken, (req, res) => {
         activeBots: activeBots.size,
         messagesToday: stats.dailyMessages[hoje] || 0,
         pendingReports: reports.filter(r => r.status === 'pending').length,
-        // CORREÇÃO: contar partidas reais (dividir por 2 pois cada partida registra 2 sockets)
         activeGames: Math.floor(activePongGames.size / 2) + Math.floor(activeTttGames.size / 2),
         totalBanned: bans.length,
         peakUsers: stats.peakUsers || 0
@@ -189,7 +209,6 @@ app.post('/admin/api/reports/:id/action', express.json(), verificarToken, (req, 
     } else if (action === 'warning') {
         report.status = 'reviewed';
         report.actionTaken = 'warning';
-        // avisa o usuário se ainda estiver conectado
         for (const [sid, ud] of connectedUsers) {
             if (ud.ip === report.reportedIP) {
                 const s = io.sockets.sockets.get(sid);
@@ -212,7 +231,6 @@ app.post('/admin/api/reports/:id/action', express.json(), verificarToken, (req, 
             });
             escreverArquivo('bans.json', bans);
         }
-        // desconecta sockets ativos desse IP
         for (const [sid, ud] of connectedUsers) {
             if (ud.ip === report.reportedIP) {
                 const s = io.sockets.sockets.get(sid);
@@ -266,6 +284,60 @@ app.post('/admin/api/broadcast', express.json(), verificarToken, (req, res) => {
 
 app.get('/admin/api/logs', verificarToken, (req, res) => res.json(adminLogs.slice(0, 10)));
 
+// ============== NOVAS ROTAS ADMIN (JOGOS) ==============
+app.get('/admin/api/games-config', verificarToken, (req, res) => {
+    res.json(gamesConfig);
+});
+
+app.post('/admin/api/games-config', express.json(), verificarToken, (req, res) => {
+    const { pong, tictactoe } = req.body || {};
+    if (pong) {
+        gamesConfig.pong = {
+            active: !!pong.active,
+            message: String(pong.message || 'Em breve').slice(0, 200),
+            daysRemaining: pong.daysRemaining === null || pong.daysRemaining === '' ? null : Number(pong.daysRemaining)
+        };
+    }
+    if (tictactoe) {
+        gamesConfig.tictactoe = {
+            active: !!tictactoe.active,
+            message: String(tictactoe.message || 'Em breve').slice(0, 200),
+            daysRemaining: tictactoe.daysRemaining === null || tictactoe.daysRemaining === '' ? null : Number(tictactoe.daysRemaining)
+        };
+    }
+    escreverArquivo('games_config.json', gamesConfig);
+
+    // Notifica todos os clientes para atualizarem a UI imediatamente
+    io.emit('games_config_update', {
+        pong: { ...gamesConfig.pong, returnAt: calcularVoltaEm(gamesConfig.pong.daysRemaining) },
+        tictactoe: { ...gamesConfig.tictactoe, returnAt: calcularVoltaEm(gamesConfig.tictactoe.daysRemaining) }
+    });
+
+    registrarLog(`Jogos atualizados: Pong ${gamesConfig.pong.active ? 'ON' : 'OFF'} | Velha ${gamesConfig.tictactoe.active ? 'ON' : 'OFF'}`);
+    res.json({ success: true, gamesConfig });
+});
+
+// ============== NOVAS ROTAS ADMIN (ADS/VIP) ==============
+app.get('/admin/api/ads-config', verificarToken, (req, res) => {
+    res.json(adsConfig);
+});
+
+app.post('/admin/api/ads-config', express.json(), verificarToken, (req, res) => {
+    const { adsEnabled, adsenseCode, adsPerVip, vipDurationHours, vipDefaultColor } = req.body || {};
+    if (typeof adsEnabled !== 'undefined') adsConfig.adsEnabled = !!adsEnabled;
+    if (typeof adsenseCode === 'string') adsConfig.adsenseCode = adsenseCode.slice(0, 5000);
+    if (typeof adsPerVip !== 'undefined') adsConfig.adsPerVip = Math.max(1, Math.min(100, Number(adsPerVip) || 15));
+    if (typeof vipDurationHours !== 'undefined') adsConfig.vipDurationHours = Math.max(1, Math.min(720, Number(vipDurationHours) || 24));
+    if (typeof vipDefaultColor === 'string') adsConfig.vipDefaultColor = vipDefaultColor.slice(0, 20);
+    escreverArquivo('ads_config.json', adsConfig);
+
+    // Notifica todos os clientes
+    io.emit('ads_config_update', adsConfig);
+
+    registrarLog(`Anúncios: ${adsConfig.adsEnabled ? 'ON' : 'OFF'} | Meta VIP: ${adsConfig.adsPerVip} | Duração: ${adsConfig.vipDurationHours}h`);
+    res.json({ success: true, adsConfig });
+});
+
 // ================= RATE LIMIT =================
 function verificarRateLimit(id) {
     const now = Date.now();
@@ -282,7 +354,7 @@ function verificarRateLimit(id) {
     return { allowed: true };
 }
 
-// ================= BOT INTELIGENTE =================
+// ================= BOT =================
 const botLogic = {
     greetings: ["Olá!", "E aí, tudo bem?", "Oi, como vai?", "Opa, tudo certo?"],
     questions: ["O que você gosta de fazer?", "Qual seu filme favorito?", "Ouve que tipo de música?", "De onde você fala?"],
@@ -311,14 +383,15 @@ class Bot {
     }
     start() {
         const userData = connectedUsers.get(this.userId);
-        if (!userData) return; // usuário saiu antes de virar bot
+        if (!userData) return;
         userData.partnerId = this.id;
         this.socket.emit('chat_start', { partnerId: this.id });
         setTimeout(() => {
             if (activeBots.has(this.id)) this.sendMsg(botLogic.greetings[Math.floor(Math.random() * botLogic.greetings.length)]);
         }, 1500);
 
-        if (Math.random() < 0.3) {
+        // Só convida pra jogar se o jogo estiver ativo
+        if (Math.random() < 0.3 && gamesConfig.pong.active) {
             this.playInviteTimeout = setTimeout(() => {
                 if (!this.inGame && activeBots.has(this.id)) {
                     this.sendMsg("Tô meio entediado aqui... quer jogar um Pong?");
@@ -333,7 +406,7 @@ class Bot {
         setTimeout(() => {
             if (!activeBots.has(this.id)) return;
             const l = String(text || '').toLowerCase();
-            if (l.includes('jogar') || l.includes('pong')) {
+            if ((l.includes('jogar') || l.includes('pong')) && gamesConfig.pong.active) {
                 this.socket.emit('bot_pong_invite');
                 this.sendMsg("Bora! Te mandei o convite.");
                 return;
@@ -378,7 +451,7 @@ class Bot {
     }
 }
 
-// ================= JOGO PONG =================
+// ================= PONG =================
 const PONG = { W: 300, H: 400, PW: 60, PH: 10, BR: 5, SX: 2.5, SY: 2.5, MAX_G: 3, TIME: 180000, INT: 1000 / 60 };
 
 class PongGame {
@@ -415,7 +488,7 @@ class PongGame {
         this.broadcastState();
         this.broadcast('pong_countdown_start');
         setTimeout(() => {
-            if (!activePongGames.has(this.p1.id) && !activePongGames.has(this.p2.id)) return; // jogo já acabou
+            if (!activePongGames.has(this.p1.id) && !activePongGames.has(this.p2.id)) return;
             this.ball = {
                 x: 150, y: 200,
                 vx: (Math.random() > 0.5 ? 1 : -1) * PONG.SX,
@@ -498,7 +571,6 @@ class PongGame {
         }
     }
     end(r) {
-        // CORREÇÃO: reentrância - evita chamar end duas vezes (ex: time_up + desconexão)
         if (this._ended) return;
         this._ended = true;
         clearInterval(this.loop);
@@ -509,7 +581,6 @@ class PongGame {
             this.suddenDeath = true;
             this.time = 30000;
             this.broadcast('system_message', { message: 'Empate! Morte súbita por 30s!' });
-            // CORREÇÃO: reinicia timer para a morte súbita funcionar
             this.timer = setInterval(() => this.tick(), 1000);
             this.broadcast('pong_time_update', { time: this.time });
             this._ended = false;
@@ -526,14 +597,14 @@ class PongGame {
     }
 }
 
-// ================= JOGO DA VELHA (NOVO) =================
+// ================= TTT =================
 class TicTacToeGame {
     constructor(p1, p2) {
         this.p1 = p1;
         this.p2 = p2;
         this.board = Array(9).fill(null);
         this.symbols = { [p1]: 'X', [p2]: 'O' };
-        this.turn = p1; // p1 começa
+        this.turn = p1;
         this.over = false;
         activeTttGames.set(p1, this);
         activeTttGames.set(p2, this);
@@ -587,7 +658,6 @@ class TicTacToeGame {
     cleanup() {
         activeTttGames.delete(this.p1);
         activeTttGames.delete(this.p2);
-        // limpa convites pendentes
         pendingTttInvites.delete(this.p1);
         pendingTttInvites.delete(this.p2);
     }
@@ -600,15 +670,14 @@ class TicTacToeGame {
     }
 }
 
-const pendingTttInvites = new Map(); // fromId -> toId
-const pendingPongInvites = new Map(); // fromId -> toId
+const pendingTttInvites = new Map();
+const pendingPongInvites = new Map();
 
 // ================= SOCKET.IO =================
 io.on('connection', (socket) => {
     const rawIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address || 'Desconhecido';
     const ip = String(rawIp).split(',')[0].trim();
 
-    // SEGURANÇA: bloqueia IP banido já na conexão (respeita expiração)
     const ban = bans.find(b => b.userIP === ip);
     if (ban) {
         const expired = ban.expiresAt && new Date(ban.expiresAt) < new Date();
@@ -617,7 +686,6 @@ io.on('connection', (socket) => {
             socket.disconnect(true);
             return;
         } else {
-            // limpa bans expirados
             bans = bans.filter(b => b !== ban);
             escreverArquivo('bans.json', bans);
         }
@@ -627,7 +695,13 @@ io.on('connection', (socket) => {
         id: socket.id, partnerId: null, location: 'Desconhecido', isAdmin: false, ip
     });
 
-    // admin_register precisa do token JWT
+    // Envia as configs atuais para o cliente assim que conecta
+    socket.emit('games_config_update', {
+        pong: { ...gamesConfig.pong, returnAt: calcularVoltaEm(gamesConfig.pong.daysRemaining) },
+        tictactoe: { ...gamesConfig.tictactoe, returnAt: calcularVoltaEm(gamesConfig.tictactoe.daysRemaining) }
+    });
+    socket.emit('ads_config_update', adsConfig);
+
     socket.on('admin_register', (token) => {
         try {
             const payload = jwt.verify(String(token || ''), JWT_SECRET);
@@ -646,7 +720,6 @@ io.on('connection', (socket) => {
         if (!u || u.partnerId) return;
         if (data && typeof data.location === 'string') u.location = data.location.slice(0, 60);
 
-        // procura parceiro real
         let realP = null;
         for (const [uid, ud] of connectedUsers) {
             if (uid !== socket.id && !ud.partnerId && !adminSessions.has(uid)) {
@@ -679,7 +752,6 @@ io.on('connection', (socket) => {
 
         const rate = verificarRateLimit(socket.id);
         if (!rate.allowed) {
-            // CORREÇÃO: envia remainingSeconds para o cliente ajustar o cooldown
             socket.emit('system_message', {
                 message: `⏳ Aguarde ${rate.remainingSeconds}s antes de enviar outra mensagem.`,
                 remainingSeconds: rate.remainingSeconds
@@ -687,7 +759,6 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // SEGURANÇA: filtro no servidor também
         if (contemPalavraOfensiva(text)) {
             socket.emit('message_blocked', {
                 reason: 'Sua mensagem contém linguagem que viola as diretrizes da comunidade.'
@@ -695,12 +766,16 @@ io.on('connection', (socket) => {
             return;
         }
 
+        // Repassa o perfil VIP para o parceiro (cor + status)
+        const isVip = !!(data && data.isVip);
+        const vipColor = (data && typeof data.vipColor === 'string') ? data.vipColor.slice(0, 20) : '#ffd700';
+
         const replyTo = data && data.replyTo ? data.replyTo : undefined;
         if (activeBots.has(u.partnerId)) {
             activeBots.get(u.partnerId).handleMsg(text);
         } else {
             const p = io.sockets.sockets.get(u.partnerId);
-            if (p) p.emit('message', { text, senderId: socket.id, location: u.location, replyTo });
+            if (p) p.emit('message', { text, senderId: socket.id, location: u.location, replyTo, isVip, vipColor });
         }
 
         stats.totalMessages = (stats.totalMessages || 0) + 1;
@@ -709,17 +784,15 @@ io.on('connection', (socket) => {
         escreverArquivo('stats.json', stats);
     });
 
-    // RELAY de digitação
     socket.on('typing', (data) => {
         if (adminSessions.has(socket.id)) return;
         const u = connectedUsers.get(socket.id);
         if (!u || !u.partnerId) return;
-        if (activeBots.has(u.partnerId)) return; // bot não "digita" via relay
+        if (activeBots.has(u.partnerId)) return;
         const p = io.sockets.sockets.get(u.partnerId);
         if (p) p.emit('typing', { isTyping: !!(data && data.isTyping) });
     });
 
-    // DENÚNCIA
     socket.on('report_user', (data) => {
         if (adminSessions.has(socket.id)) return;
         const u = connectedUsers.get(socket.id);
@@ -728,14 +801,12 @@ io.on('connection', (socket) => {
         if (!reportedUserId) return;
 
         let reportedIp = 'Desconhecido';
-        let reportedMsg = '';
-        if (activeBots.has(reportedUserId)) {
-            reportedIp = 'BOT';
-        } else {
+        if (activeBots.has(reportedUserId)) reportedIp = 'BOT';
+        else {
             const ru = connectedUsers.get(reportedUserId);
             if (ru) reportedIp = ru.ip;
         }
-        if (data && typeof data.reportedMessage === 'string') reportedMsg = data.reportedMessage.slice(0, 1000);
+        const reportedMsg = (data && typeof data.reportedMessage === 'string') ? data.reportedMessage.slice(0, 1000) : '';
 
         const report = {
             reportId: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -775,15 +846,21 @@ io.on('connection', (socket) => {
         socket.emit('chat_ended');
     });
 
-    // ============ PONG ============
+    // ============ PONG (com verificação de disponibilidade) ============
     socket.on('pong_invite', () => {
+        if (!gamesConfig.pong.active) {
+            socket.emit('game_unavailable', {
+                game: 'pong',
+                message: gamesConfig.pong.message || 'Em breve',
+                returnAt: calcularVoltaEm(gamesConfig.pong.daysRemaining)
+            });
+            return;
+        }
         const u = connectedUsers.get(socket.id);
         if (!u || !u.partnerId) return;
-        // permite convidar bot também
         if (activeBots.has(u.partnerId)) {
             const bot = activeBots.get(u.partnerId);
             if (bot.inGame) { socket.emit('system_message', { message: 'O bot já está em jogo.' }); return; }
-            // bot aceita automaticamente após pequeno delay
             socket.emit('system_message', { message: 'Convite aceito pelo bot! Iniciando...' });
             setTimeout(() => {
                 if (!activePongGames.has(socket.id) && connectedUsers.get(socket.id)?.partnerId === bot.id) {
@@ -801,10 +878,17 @@ io.on('connection', (socket) => {
     });
 
     socket.on('pong_accept', () => {
+        if (!gamesConfig.pong.active) {
+            socket.emit('game_unavailable', {
+                game: 'pong',
+                message: gamesConfig.pong.message || 'Em breve',
+                returnAt: calcularVoltaEm(gamesConfig.pong.daysRemaining)
+            });
+            return;
+        }
         const u = connectedUsers.get(socket.id);
         if (!u || !u.partnerId) return;
         if (activePongGames.has(socket.id)) return;
-        // encontra quem convidou (parceiro)
         pendingPongInvites.delete(u.partnerId);
         const isBot = activeBots.has(u.partnerId);
         new PongGame(socket.id, u.partnerId, isBot).start();
@@ -813,7 +897,6 @@ io.on('connection', (socket) => {
     socket.on('pong_decline', () => {
         const u = connectedUsers.get(socket.id);
         if (!u) return;
-        // avisa quem convidou
         for (const [fromId, toId] of pendingPongInvites) {
             if (toId === socket.id) {
                 const s = io.sockets.sockets.get(fromId);
@@ -833,8 +916,16 @@ io.on('connection', (socket) => {
         if (g) g.end('leave');
     });
 
-    // ============ JOGO DA VELHA ============
+    // ============ TTT (com verificação de disponibilidade) ============
     socket.on('tictactoe_invite', () => {
+        if (!gamesConfig.tictactoe.active) {
+            socket.emit('game_unavailable', {
+                game: 'tictactoe',
+                message: gamesConfig.tictactoe.message || 'Em breve',
+                returnAt: calcularVoltaEm(gamesConfig.tictactoe.daysRemaining)
+            });
+            return;
+        }
         const u = connectedUsers.get(socket.id);
         if (!u || !u.partnerId) return;
         if (activeBots.has(u.partnerId)) {
@@ -850,6 +941,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('tictactoe_accept', () => {
+        if (!gamesConfig.tictactoe.active) {
+            socket.emit('game_unavailable', {
+                game: 'tictactoe',
+                message: gamesConfig.tictactoe.message || 'Em breve',
+                returnAt: calcularVoltaEm(gamesConfig.tictactoe.daysRemaining)
+            });
+            return;
+        }
         const u = connectedUsers.get(socket.id);
         if (!u || !u.partnerId) return;
         if (activeTttGames.has(socket.id)) return;
@@ -879,7 +978,6 @@ io.on('connection', (socket) => {
         const g = activeTttGames.get(socket.id);
         if (g) g.leave(socket.id);
         else {
-            // pode estar saindo de um convite pendente
             pendingTttInvites.delete(socket.id);
             for (const [fromId, toId] of pendingTttInvites) {
                 if (toId === socket.id) pendingTttInvites.delete(fromId);
@@ -887,7 +985,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ============ DISCONNECT ============
     socket.on('disconnect', () => {
         try {
             if (activePongGames.has(socket.id)) activePongGames.get(socket.id).end('disconnected');
@@ -925,7 +1022,6 @@ setInterval(() => {
     const r = Array.from(connectedUsers.values()).filter(u => !u.isAdmin).length;
     let t = fakeOnlineBase + r + (Math.floor(Math.random() * 12) - 4);
     if (t < r) t = r;
-    // CORREÇÃO: atualiza peakUsers
     if (t > (stats.peakUsers || 0)) {
         stats.peakUsers = t;
         escreverArquivo('stats.json', stats);
@@ -933,12 +1029,12 @@ setInterval(() => {
     io.emit('users_online', t);
 }, 4500);
 
-// limpeza periódica de bans expirados
+// limpeza de bans expirados
 setInterval(() => {
     const now = Date.now();
     const before = bans.length;
     bans = bans.filter(b => !b.expiresAt || new Date(b.expiresAt).getTime() > now);
     if (bans.length !== before) escreverArquivo('bans.json', bans);
-}, 60 * 60 * 1000); // a cada hora
+}, 60 * 60 * 1000);
 
 server.listen(PORT, () => console.log(`🚀 AthesChat rodando na porta ${PORT}`));
