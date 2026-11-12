@@ -1,1157 +1,1309 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>AthesChat! - Chat Brasileiro Anônimo</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <style>
-        :root {
-            --primary-bg: #121212;
-            --secondary-bg: #1e1e1e;
-            --tertiary-bg: #2d2d2d;
-            --text-color: #e0e0e0;
-            --text-muted: #aaa;
-            --accent-color: #0062cc;
-            --accent-hover: #0052b3;
-            --special-accent: #8a2be2;
-            --success-color: #4CAF50;
-            --error-color: #ff4d4d;
-            /* Variáveis dinâmicas */
-            --chat-font-size: 16px;
-            --received-bg: #333333;
-            --received-text: #e0e0e0;
-            --show-location: block;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        html { height: 100%; }
-        body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color: var(--text-color); touch-action: pan-y; overflow: hidden; }
+<meta charset="UTF-8">
+<title>AthesChat! - Chat Brasileiro Anônimo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<meta name="description" content="Chat anônimo brasileiro com jogos. Converse com desconhecidos em tempo real.">
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<style>
+:root {
+    --primary-bg: #121212;
+    --secondary-bg: #1e1e1e;
+    --tertiary-bg: #2d2d2d;
+    --text-color: #e0e0e0;
+    --text-muted: #aaa;
+    --accent-color: #0062cc;
+    --accent-hover: #0052b3;
+    --special-accent: #8a2be2;
+    --success-color: #4CAF50;
+    --error-color: #ff4d4d;
+    --chat-font-size: 16px;
+    --received-bg: #333333;
+    --received-text: #e0e0e0;
+    --show-location: block;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', 'Helvetica', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+html { height: 100%; }
+body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color: var(--text-color); touch-action: pan-y; overflow: hidden; }
 
-        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background-color: var(--primary-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 20px env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-        
-        .terms-container { background: var(--secondary-bg); padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; margin-top: 20px; border: 1px solid #333; text-align: left; }
-        .terms-container p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
-        .terms-links { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        .terms-links a { color: var(--accent-color); text-decoration: none; font-size: 14px; font-weight: bold; }
-        .terms-links a:hover { text-decoration: underline; }
-        
-        .terms-checkbox-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px; }
-        .terms-checkbox-label input { margin-top: 3px; width: 18px; height: 18px; cursor: pointer; }
-        .terms-checkbox-label span { font-size: 13px; color: var(--text-color); line-height: 1.4; }
+/* START SCREEN */
+#start-screen { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; background-color: var(--primary-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 20px env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
+#start-screen h1 { color: #fff; margin-bottom: 10px; font-size: 32px; }
+#start-screen > p { color: #aaa; margin-bottom: 20px; text-align: center; font-size: 15px; }
+.terms-container { background: var(--secondary-bg); padding: 20px; border-radius: 12px; max-width: 400px; width: 100%; margin-top: 20px; border: 1px solid #333; text-align: left; }
+.terms-container p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+.terms-links { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+.terms-links a { color: var(--accent-color); text-decoration: none; font-size: 14px; font-weight: bold; }
+.terms-links a:hover { text-decoration: underline; }
+.terms-checkbox-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px; }
+.terms-checkbox-label input { margin-top: 3px; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
+.terms-checkbox-label span { font-size: 13px; color: var(--text-color); line-height: 1.4; }
+#start-btn { background-color: #555; color: #aaa; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: not-allowed; font-weight: bold; width: 100%; max-width: 400px; transition: all 0.3s; }
+#start-btn.enabled { background-color: var(--success-color); color: white; cursor: pointer; }
+#start-btn.enabled:hover { background-color: #45a049; transform: scale(1.02); }
 
-        #start-btn { background-color: #555; color: #aaa; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: not-allowed; font-weight: bold; width: 100%; max-width: 400px; transition: all 0.3s; }
-        #start-btn.enabled { background-color: var(--success-color); color: white; cursor: pointer; }
-        #start-btn.enabled:hover { background-color: #45a049; transform: scale(1.02); }
+/* CHAT */
+#chat-container { display: none; height: 100vh; height: 100dvh; flex-direction: column; background-color: var(--secondary-bg); position: relative; overflow: hidden; }
 
-        #chat-container { display: none; height: 100vh; height: 100dvh; flex-direction: column; background-color: var(--secondary-bg); position: relative; overflow: hidden; }
-        
-        /* LETREIRO */
-        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; height: 46px; display: none; align-items: center; justify-content: center; padding: 0 20px; flex-shrink: 0; }
-        .marquee-text { display: inline-block; white-space: nowrap; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
-        #chat-header { background: var(--tertiary-bg); color: white; padding: 15px; padding-top: calc(15px + env(safe-area-inset-top)); font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .header-controls { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 15px; }
-        .online-counter { font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
-        .online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
-        
-        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; }
-        .message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; font-size: var(--chat-font-size, 16px); }
-        .message.active { background-color: rgba(255, 255, 255, 0.1); }
-        .message.swiping { transition: none; }
-        .received { background: var(--received-bg, #333); color: var(--received-text, #e0e0e0); align-self: flex-start; }
-        .sent { background: var(--accent-color); color: white; align-self: flex-end; }
-        .system { background: var(--tertiary-bg); text-align: center; margin: 15px auto; padding: 8px; border-radius: 5px; font-size: 0.9em; color: var(--text-muted); max-width: 90%; align-self: center; }
-        .message.offensive { background-color: #4d2020; border: 2px solid var(--error-color); color: #f0f0f0; cursor: not-allowed; }
-        .attention-icon { position: absolute; bottom: -8px; left: 8px; font-size: 18px; cursor: pointer; user-select: none; }
-        .reason { display: none; margin-top: 8px; padding: 8px; background-color: #ffdddd; border-radius: 6px; font-size: 12px; color: #d8000c; user-select: text; text-align: left; }
-        .reason.visible { display: block; }
-        #input-area { display: flex; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); background: var(--tertiary-bg); border-top: 1px solid #333; position: relative; flex-wrap: wrap; flex-shrink: 0; }
-        #message { flex-grow: 1; padding: 12px 15px; border: 1px solid #444; border-radius: 25px; outline: none; font-size: 16px; background-color: #333; color: var(--text-color); }
-        #message:disabled { opacity: 0.5; cursor: not-allowed; }
-        #send-btn { background: var(--accent-color); color: white; border: none; border-radius: 25px; padding: 0 20px; margin-left: 10px; cursor: pointer; font-weight: bold; }
-        #send-btn:hover { background: var(--accent-hover); }
-        #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .sender-info { font-size: 0.7em; margin-bottom: 3px; display: flex; justify-content: space-between; }
-        .sender-name { font-weight: bold; }
-        .sender-location { opacity: 0.7; font-style: italic; display: var(--show-location, block); }
-        #action-btn { background: var(--special-accent); color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; margin: 0 auto 10px auto; display: none; transition: all 0.3s; position: relative; width: fit-content; }
-        #action-btn:hover { background: #7b1fa2; transform: scale(1.05); }
-        .typing-indicator { display: inline-block; padding: 10px 15px; background: #333; border-radius: 18px; margin-bottom: 15px; max-width: 80%; align-self: flex-start; color: var(--text-muted); font-size: 0.9em; }
-        .typing-dots { display: inline-flex; align-items: center; }
-        .typing-dot { width: 6px; height: 6px; background-color: var(--text-muted); border-radius: 50%; margin: 0 2px; animation: typingAnimation 1.4s infinite ease-in-out; }
-        .typing-dot:nth-child(1) { animation-delay: 0s; } .typing-dot:nth-child(2) { animation-delay: 0.2s; } .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typingAnimation { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
-        .reply-area { background: rgba(0, 0, 0, 0.2); border-left: 3px solid var(--special-accent); padding: 8px 12px; margin-bottom: 8px; border-radius: 5px; display: flex; justify-content: space-between; width: 100%; text-align: left; }
-        .reply-text { font-size: 0.8em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
-        .reply-sender { font-weight: bold; color: var(--special-accent); margin-right: 5px; }
-        .close-reply { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 10px; font-size: 1.2em; line-height: 1; padding: 0; }
-        .close-reply:hover { color: #fff; }
+.marquee-container { overflow: hidden; white-space: nowrap; position: relative; height: 46px; display: none; align-items: center; justify-content: center; padding: 0 20px; flex-shrink: 0; }
+.marquee-text { display: inline-block; white-space: nowrap; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        /* ESTILOS MENU E JOGOS */
-        #menu-btn { background: none; border: none; color: white; font-size: 24px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 30px; height: 30px; display: flex; flex-direction: column; justify-content: space-around; z-index: 1101; }
-        #menu-btn .bar { display: block; width: 100%; height: 3px; background: white; border-radius: 2px; transition: all 0.3s ease-in-out; }
-        #menu-btn.open .bar1 { transform: rotate(45deg) translate(7px, 7px); }
-        #menu-btn.open .bar2 { opacity: 0; }
-        #menu-btn.open .bar3 { transform: rotate(-45deg) translate(7px, -7px); }
+#chat-header { background: var(--tertiary-bg); color: white; padding: 15px; padding-top: calc(15px + env(safe-area-inset-top)); font-weight: bold; text-align: center; border-bottom: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.header-controls { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 15px; }
+.online-counter { font-size: 0.8em; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+.online-dot { display: inline-block; width: 8px; height: 8px; background-color: var(--success-color); border-radius: 50%; }
 
-        #sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100vh; height: 100dvh; background: var(--tertiary-bg); z-index: 1100; transition: left 0.3s ease-in-out; padding-top: calc(80px + env(safe-area-inset-top)); overflow-y: auto; }
-        #sidebar.open { left: 0; }
-        #sidebar ul { list-style: none; padding: 0; }
-        #sidebar ul li { padding: 15px 20px; color: var(--text-color); cursor: pointer; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 10px; }
-        #sidebar ul li:hover { background: #444; }
-        
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1200; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-        .modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); min-width: 280px; max-width: 90%; }
-        .modal-content h3 { margin-bottom: 20px; }
-        .modal-actions button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 0 10px; }
-        .accept-btn { background: var(--success-color); color: white; }
-        .decline-btn { background: var(--error-color); color: white; }
+#chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; min-height: 0; -webkit-overflow-scrolling: touch; }
+.message { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; transition: transform 0.2s, background-color 0.2s; will-change: transform; word-wrap: break-word; overflow-wrap: break-word; font-size: var(--chat-font-size, 16px); }
+.message.active { background-color: rgba(255, 255, 255, 0.1); }
+.message.swiping { transition: none; }
+.received { background: var(--received-bg, #333); color: var(--received-text, #e0e0e0); align-self: flex-start; }
+.sent { background: var(--accent-color); color: white; align-self: flex-end; }
+.system { background: var(--tertiary-bg); text-align: center; margin: 15px auto; padding: 8px; border-radius: 5px; font-size: 0.9em; color: var(--text-muted); max-width: 90%; align-self: center; }
+.message.offensive { background-color: #4d2020; border: 2px solid var(--error-color); color: #f0f0f0; cursor: pointer; }
+.attention-icon { position: absolute; bottom: -8px; left: 8px; font-size: 18px; cursor: pointer; user-select: none; }
+.reason { display: none; margin-top: 8px; padding: 8px; background-color: #ffdddd; border-radius: 6px; font-size: 12px; color: #d8000c; user-select: text; text-align: left; }
+.reason.visible { display: block; }
 
-        /* CONFIGURAÇÕES */
-        .settings-group { margin-bottom: 15px; text-align: left; background: var(--secondary-bg); padding: 15px; border-radius: 10px; }
-        .settings-group h4 { margin-bottom: 15px; font-size: 0.9em; color: var(--text-muted); border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .settings-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .settings-item:last-child { margin-bottom: 0; }
-        .settings-item label { font-size: 0.9em; flex: 1; }
-        .settings-item input[type="color"] { width: 40px; height: 40px; border: none; border-radius: 5px; cursor: pointer; padding: 0; background: transparent; }
-        .settings-item input[type="range"] { flex: 1.5; margin-left: 15px; }
-        .settings-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-        .settings-link { color: var(--accent-color); text-decoration: none; font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 10px; }
-        .settings-link:hover { text-decoration: underline; }
-        
-        /* JOGO PONG */
-        #pong-game-container, #ttt-game-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
-        #pong-canvas { background: #000; border: 2px solid var(--text-muted); }
-        #pong-info { display: flex; justify-content: space-around; width: 300px; color: var(--text-color); margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
-        #pong-controls { display: flex; justify-content: space-between; width: 200px; margin-top: 20px; }
-        .pong-btn { padding: 15px 30px; font-size: 1.5em; background: var(--tertiary-bg); color: var(--text-color); border: 2px solid #555; border-radius: 10px; cursor: pointer; }
-        #pong-leave-btn, #ttt-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #pong-countdown { position: absolute; font-size: 8em; font-weight: bold; color: rgba(255, 255, 255, 0.8); z-index: 10; display: none; text-shadow: 2px 2px 10px #000; }
+#input-area { display: flex; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); background: var(--tertiary-bg); border-top: 1px solid #333; position: relative; flex-wrap: wrap; flex-shrink: 0; }
+#message { flex-grow: 1; padding: 12px 15px; border: 1px solid #444; border-radius: 25px; outline: none; font-size: 16px; background-color: #333; color: var(--text-color); min-width: 0; }
+#message:disabled { opacity: 0.5; cursor: not-allowed; }
+#send-btn { background: var(--accent-color); color: white; border: none; border-radius: 25px; padding: 0 20px; margin-left: 10px; cursor: pointer; font-weight: bold; min-height: 44px; }
+#send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+#send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* JOGO DA VELHA */
-        .ttt-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: var(--tertiary-bg); padding: 15px; border-radius: 20px; width: min(70vw, 70vh, 400px); height: min(70vw, 70vh, 400px); margin: 20px auto; }
-        .ttt-cell { background: var(--secondary-bg); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; cursor: pointer; transition: 0.1s; }
-        .ttt-cell.X { color: #ff6b6b; }
-        .ttt-cell.O { color: #4ecdc4; }
-        #ttt-turn { font-size: 1.3rem; margin-bottom: 10px; text-align: center; }
-    </style>
+.sender-info { font-size: 0.7em; margin-bottom: 3px; display: flex; justify-content: space-between; gap: 8px; }
+.sender-name { font-weight: bold; }
+.sender-location { opacity: 0.7; font-style: italic; display: var(--show-location, block); }
+#action-btn { background: var(--special-accent); color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; margin: 0 auto 10px auto; display: none; transition: all 0.3s; position: relative; width: fit-content; }
+#action-btn:hover { background: #7b1fa2; transform: scale(1.05); }
+
+.typing-indicator { display: inline-block; padding: 10px 15px; background: #333; border-radius: 18px; margin-bottom: 15px; max-width: 80%; align-self: flex-start; color: var(--text-muted); font-size: 0.9em; }
+.typing-dots { display: inline-flex; align-items: center; margin-left: 4px; }
+.typing-dot { width: 6px; height: 6px; background-color: var(--text-muted); border-radius: 50%; margin: 0 2px; animation: typingAnimation 1.4s infinite ease-in-out; }
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingAnimation { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+.reply-area { background: rgba(0, 0, 0, 0.2); border-left: 3px solid var(--special-accent); padding: 8px 12px; margin-bottom: 8px; border-radius: 5px; display: flex; justify-content: space-between; width: 100%; text-align: left; align-items: center; }
+.reply-text { font-size: 0.8em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; }
+.reply-sender { font-weight: bold; color: var(--special-accent); margin-right: 5px; }
+.close-reply { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 10px; font-size: 1.2em; line-height: 1; padding: 0; }
+.close-reply:hover { color: #fff; }
+
+/* MENU */
+#menu-btn { background: none; border: none; color: white; font-size: 24px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 30px; height: 30px; display: flex; flex-direction: column; justify-content: space-around; z-index: 1101; padding: 0; }
+#menu-btn .bar { display: block; width: 100%; height: 3px; background: white; border-radius: 2px; transition: all 0.3s ease-in-out; }
+#menu-btn.open .bar1 { transform: rotate(45deg) translate(7px, 7px); }
+#menu-btn.open .bar2 { opacity: 0; }
+#menu-btn.open .bar3 { transform: rotate(-45deg) translate(7px, -7px); }
+
+#sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100vh; height: 100dvh; background: var(--tertiary-bg); z-index: 1100; transition: left 0.3s ease-in-out; padding-top: calc(80px + env(safe-area-inset-top)); overflow-y: auto; }
+#sidebar.open { left: 0; }
+#sidebar ul { list-style: none; padding: 0; }
+#sidebar ul li { padding: 15px 20px; color: var(--text-color); cursor: pointer; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 10px; }
+#sidebar ul li:hover { background: #444; }
+
+/* MODAIS */
+.modal-overlay { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1200; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.modal-overlay.visible { display: flex; }
+.modal-content { background: var(--tertiary-bg); padding: 30px; border-radius: 10px; text-align: center; color: var(--text-color); min-width: 280px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+.modal-content h3 { margin-bottom: 20px; }
+.modal-actions button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 0 10px; min-width: 100px; }
+.accept-btn { background: var(--success-color); color: white; }
+.decline-btn { background: var(--error-color); color: white; }
+
+/* SETTINGS */
+.settings-group { margin-bottom: 15px; text-align: left; background: var(--secondary-bg); padding: 15px; border-radius: 10px; }
+.settings-group h4 { margin-bottom: 15px; font-size: 0.9em; color: var(--text-muted); border-bottom: 1px solid #444; padding-bottom: 5px; }
+.settings-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
+.settings-item:last-child { margin-bottom: 0; }
+.settings-item label { font-size: 0.9em; flex: 1; }
+.settings-item input[type="color"] { width: 40px; height: 40px; border: none; border-radius: 5px; cursor: pointer; padding: 0; background: transparent; flex-shrink: 0; }
+.settings-item input[type="range"] { flex: 1.5; margin-left: 15px; }
+.settings-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; }
+.settings-link { color: var(--accent-color); text-decoration: none; font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 10px; }
+.settings-link:hover { text-decoration: underline; }
+
+/* PONG */
+#pong-game-container, #ttt-game-container { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
+#pong-game-container.visible, #ttt-game-container.visible { display: flex; }
+#pong-canvas { background: #000; border: 2px solid var(--text-muted); max-width: 100%; height: auto; touch-action: none; }
+#pong-info { display: flex; justify-content: space-around; width: min(300px, 90vw); color: var(--text-color); margin-bottom: 10px; font-size: 1.1em; font-weight: bold; gap: 10px; }
+#pong-controls { display: flex; justify-content: space-between; width: min(300px, 90vw); margin-top: 20px; gap: 20px; }
+.pong-btn { padding: 15px 30px; font-size: 1.5em; background: var(--tertiary-bg); color: var(--text-color); border: 2px solid #555; border-radius: 10px; cursor: pointer; flex: 1; touch-action: none; user-select: none; }
+.pong-btn:active { background: #444; }
+#pong-leave-btn, #ttt-leave-btn { margin-top: 20px; padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+#pong-countdown { position: absolute; font-size: 8em; font-weight: bold; color: rgba(255, 255, 255, 0.8); z-index: 10; display: none; text-shadow: 2px 2px 10px #000; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+/* TTT */
+.ttt-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: var(--tertiary-bg); padding: 15px; border-radius: 20px; width: min(70vw, 70vh, 400px); height: min(70vw, 70vh, 400px); margin: 20px auto; }
+.ttt-cell { background: var(--secondary-bg); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; cursor: default; transition: 0.1s; user-select: none; }
+.ttt-cell.X { color: #ff6b6b; }
+.ttt-cell.O { color: #4ecdc4; }
+.ttt-cell.playable { cursor: pointer; }
+.ttt-cell.playable:hover { background: #2a2a2a; }
+#ttt-turn { font-size: 1.3rem; margin-bottom: 10px; text-align: center; padding: 0 10px; }
+
+/* BANNER DE BAN */
+#ban-banner { position: fixed; top: 0; left: 0; right: 0; background: var(--error-color); color: white; padding: 20px; text-align: center; z-index: 9999; display: none; font-weight: bold; }
+#ban-banner.visible { display: block; }
+</style>
 </head>
 <body>
-    <div id="start-screen">
-        <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">AthesChat!</h1>
-        <p style="color: #aaa; margin-bottom: 20px; text-align: center; font-size: 15px;">O chat anônimo que conecta o Brasil!</p>
-        
-        <div class="terms-container" id="termsContainer">
-            <p>Antes de começar, leia e aceite nossas regras. É rápido e seguro.</p>
-            <div class="terms-links">
-                <a href="/termos.html" target="_blank">Ler os Termos de Uso</a>
-                <a href="/privacidade.html" target="_blank">Ler a Política de Privacidade</a>
-            </div>
-            <label class="terms-checkbox-label">
-                <input type="checkbox" id="termsCheckbox">
-                <span>Declaro ter no mínimo 18 anos e concordo com os Termos de Uso e a Política de Privacidade.</span>
-            </label>
-            <button id="start-btn" disabled>Comece a Conversar!</button>
+
+<div id="ban-banner">
+    <div>🚫 Você foi banido deste chat.</div>
+    <div id="ban-reason" style="font-size:0.9em; margin-top:8px; opacity:0.9;"></div>
+</div>
+
+<!-- START SCREEN -->
+<div id="start-screen">
+    <h1>AthesChat!</h1>
+    <p>O chat anônimo que conecta o Brasil!</p>
+    <div class="terms-container" id="termsContainer">
+        <p>Antes de começar, leia e aceite nossas regras. É rápido e seguro.</p>
+        <div class="terms-links">
+            <a href="/termos" target="_blank" rel="noopener">Ler os Termos de Uso</a>
+            <a href="/privacidade" target="_blank" rel="noopener">Ler a Política de Privacidade</a>
         </div>
+        <label class="terms-checkbox-label">
+            <input type="checkbox" id="termsCheckbox">
+            <span>Declaro ter no mínimo 18 anos e concordo com os Termos de Uso e a Política de Privacidade.</span>
+        </label>
+        <button id="start-btn" disabled>Comece a Conversar!</button>
     </div>
-    <div id="chat-container">
-        <div id="marqueeContainer" class="marquee-container" style="display: none;">
-            <div id="marqueeText" class="marquee-text"></div>
-        </div>
-        
-        <div id="sidebar">
-             <ul>
-                <li id="report-user-btn">Denunciar Usuário</li>
-                <li id="play-pong-btn">Jogar Pong</li>
-                <li id="play-ttt-btn">Jogo da Velha</li>
-                <li id="settings-btn" style="border-top: 1px solid #555; margin-top: 10px;">Configurações</li>
-            </ul>
-        </div>
-        <div id="chat-header">
-            <button id="menu-btn">
-                <span class="bar bar1"></span>
-                <span class="bar bar2"></span>
-                <span class="bar bar3"></span>
-            </button>
-            <span>AthesChat!</span>
-            <div class="header-controls">
-                <div class="online-counter">
-                    <span class="online-dot"></span>
-                    <span id="online-count">0 online</span>
-                </div>
-            </div>
-        </div>
-        <div id="chat"></div>
-        <div id="input-area">
-            <button id="action-btn" style="display: none;"></button>
-            <input type="text" id="message" placeholder="Digite sua mensagem..." autocomplete="off">
-            <button id="send-btn">Enviar</button>
-        </div>
+</div>
+
+<!-- CHAT -->
+<div id="chat-container">
+    <div id="marqueeContainer" class="marquee-container">
+        <div id="marqueeText" class="marquee-text"></div>
     </div>
-    
-    <!-- MODAL DE DENÚNCIA -->
-    <div id="reportModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Denunciar Usuário</h3>
-            <p style="margin-bottom: 10px; font-size: 14px; color: #aaa;">Você está denunciando seu parceiro atual.</p>
-            <select id="reportReason" style="width:100%; padding:10px; margin:10px 0; background:#1e1e1e; color:white; border-radius:8px;">
-                <option value="ofensivo">Mensagem ofensiva</option>
-                <option value="spam">Spam</option>
-                <option value="assédio">Assédio</option>
-                <option value="conteúdo impróprio">Conteúdo impróprio</option>
-                <option value="outro">Outro</option>
-            </select>
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button id="confirmReportBtn" class="accept-btn">Denunciar</button>
-                <button id="cancelReportBtn" class="decline-btn">Cancelar</button>
+
+    <div id="sidebar" role="navigation">
+        <ul>
+            <li id="report-user-btn">🚨 Denunciar Usuário</li>
+            <li id="play-pong-btn">🏓 Jogar Pong</li>
+            <li id="play-ttt-btn">⭕ Jogo da Velha</li>
+            <li id="settings-btn" style="border-top: 1px solid #555; margin-top: 10px;">⚙️ Configurações</li>
+        </ul>
+    </div>
+
+    <div id="chat-header">
+        <button id="menu-btn" aria-label="Menu">
+            <span class="bar bar1"></span>
+            <span class="bar bar2"></span>
+            <span class="bar bar3"></span>
+        </button>
+        <span>AthesChat!</span>
+        <div class="header-controls">
+            <div class="online-counter">
+                <span class="online-dot"></span>
+                <span id="online-count">0 online</span>
             </div>
         </div>
     </div>
 
-    <!-- MODAL DE CONFIGURAÇÕES -->
-    <div id="settingsModal" class="modal-overlay">
-        <div class="modal-content" style="width: 360px;">
-            <h3 style="margin-bottom: 15px;">Configurações</h3>
-            
-            <div class="settings-group">
-                <h4>Áudio e Feedback</h4>
-                <div class="settings-item">
-                    <label>Ativar Sons e Vibrações</label>
-                    <input type="checkbox" id="setting-sound" checked>
-                </div>
-                <div class="settings-item">
-                    <label>Volume dos Sons</label>
-                    <input type="range" id="setting-volume" min="0" max="100" value="70">
-                </div>
-                <div class="settings-item">
-                    <label>Modo Silencioso<br><span style="font-size:0.8em; color:#888;">(Silencia ao sair do app)</span></label>
-                    <input type="checkbox" id="setting-silent">
-                </div>
-            </div>
+    <div id="chat" role="log" aria-live="polite"></div>
 
-            <div class="settings-group">
-                <h4>Aparência do Chat</h4>
-                <div class="settings-item">
-                    <label>Tamanho da Fonte</label>
-                    <input type="range" id="setting-font-size" min="12" max="24" value="16">
-                </div>
-                <div class="settings-item">
-                    <label>Fundo (Recebidas)</label>
-                    <input type="color" id="setting-received-bg" value="#333333">
-                </div>
-                <div class="settings-item">
-                    <label>Texto (Recebidas)</label>
-                    <input type="color" id="setting-received-text" value="#e0e0e0">
-                </div>
-            </div>
+    <div id="input-area">
+        <button id="action-btn" style="display: none;"></button>
+        <input type="text" id="message" placeholder="Digite sua mensagem..." autocomplete="off" maxlength="2000" aria-label="Mensagem">
+        <button id="send-btn" aria-label="Enviar">Enviar</button>
+    </div>
+</div>
 
-            <div class="settings-group">
-                <h4>Privacidade</h4>
-                <div class="settings-item">
-                    <label>Mostrar Localização (Estado)</label>
-                    <input type="checkbox" id="setting-location" checked>
-                </div>
-            </div>
-
-            <div class="settings-group">
-                <h4>Legal</h4>
-                <a href="/termos.html" target="_blank" class="settings-link">Termos de Uso</a>
-                <a href="/privacidade.html" target="_blank" class="settings-link">Política de Privacidade</a>
-            </div>
-
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button id="closeSettingsBtn" class="accept-btn" style="width: 100%;">Fechar</button>
-            </div>
+<!-- MODAL DENÚNCIA -->
+<div id="reportModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Denunciar Usuário</h3>
+        <p style="margin-bottom: 10px; font-size: 14px; color: #aaa;">Você está denunciando seu parceiro atual.</p>
+        <select id="reportReason" style="width:100%; padding:10px; margin:10px 0; background:#1e1e1e; color:white; border-radius:8px; border:1px solid #444;">
+            <option value="ofensivo">Mensagem ofensiva</option>
+            <option value="spam">Spam</option>
+            <option value="assédio">Assédio</option>
+            <option value="conteúdo impróprio">Conteúdo impróprio</option>
+            <option value="outro">Outro</option>
+        </select>
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button id="confirmReportBtn" class="accept-btn">Denunciar</button>
+            <button id="cancelReportBtn" class="decline-btn">Cancelar</button>
         </div>
     </div>
+</div>
 
-    <!-- MODAL DE CONVITE PONG -->
-    <div id="pong-invite-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Seu parceiro(a) te desafiou para uma partida de Pong!</h3>
-            <p>Quem fizer 3 gols ou tiver mais pontos em 3 minutos vence.</p>
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button id="pong-accept" class="accept-btn">Sim</button>
-                <button id="pong-decline" class="decline-btn">Não</button>
+<!-- MODAL CONFIGURAÇÕES -->
+<div id="settingsModal" class="modal-overlay">
+    <div class="modal-content" style="width: min(360px, 92vw);">
+        <h3 style="margin-bottom: 15px;">Configurações</h3>
+
+        <div class="settings-group">
+            <h4>Áudio e Feedback</h4>
+            <div class="settings-item">
+                <label for="setting-sound">Ativar Sons e Vibrações</label>
+                <input type="checkbox" id="setting-sound" checked>
+            </div>
+            <div class="settings-item">
+                <label for="setting-volume">Volume dos Sons</label>
+                <input type="range" id="setting-volume" min="0" max="100" value="70">
+            </div>
+            <div class="settings-item">
+                <label for="setting-silent">Modo Silencioso<br><span style="font-size:0.8em; color:#888;">(Silencia ao sair do app)</span></label>
+                <input type="checkbox" id="setting-silent">
             </div>
         </div>
-    </div>
 
-    <!-- MODAL DE CONVITE JOGO DA VELHA -->
-    <div id="ttt-invite-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Seu parceiro(a) te desafiou para um Jogo da Velha!</h3>
-            <p>Quem fizer uma linha, coluna ou diagonal vence!</p>
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button id="ttt-accept" class="accept-btn">Aceitar</button>
-                <button id="ttt-decline" class="decline-btn">Recusar</button>
+        <div class="settings-group">
+            <h4>Aparência do Chat</h4>
+            <div class="settings-item">
+                <label for="setting-font-size">Tamanho da Fonte</label>
+                <input type="range" id="setting-font-size" min="12" max="24" value="16">
+            </div>
+            <div class="settings-item">
+                <label for="setting-received-bg">Fundo (Recebidas)</label>
+                <input type="color" id="setting-received-bg" value="#333333">
+            </div>
+            <div class="settings-item">
+                <label for="setting-received-text">Texto (Recebidas)</label>
+                <input type="color" id="setting-received-text" value="#e0e0e0">
             </div>
         </div>
-    </div>
-    
-    <!-- TELA DO JOGO PONG -->
-    <div id="pong-game-container">
-        <div id="pong-countdown"></div>
-        <div id="pong-info">
-            <span id="pong-score-opponent">Anônimo: 0</span>
-            <span id="pong-timer">3:00</span>
-            <span id="pong-score-you">Você: 0</span>
+
+        <div class="settings-group">
+            <h4>Privacidade</h4>
+            <div class="settings-item">
+                <label for="setting-location">Mostrar Localização (Estado)</label>
+                <input type="checkbox" id="setting-location" checked>
+            </div>
         </div>
-        <canvas id="pong-canvas" width="300" height="400"></canvas>
-        <div id="pong-controls">
-            <button class="pong-btn" id="pong-left-btn">◀</button>
-            <button class="pong-btn" id="pong-right-btn">▶</button>
+
+        <div class="settings-group">
+            <h4>Legal</h4>
+            <a href="/termos" target="_blank" rel="noopener" class="settings-link">Termos de Uso</a>
+            <a href="/privacidade" target="_blank" rel="noopener" class="settings-link">Política de Privacidade</a>
         </div>
-        <button id="pong-leave-btn">Encerrar Jogo</button>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button id="closeSettingsBtn" class="accept-btn" style="width: 100%;">Fechar</button>
+        </div>
     </div>
+</div>
 
-    <!-- TELA DO JOGO DA VELHA -->
-    <div id="ttt-game-container">
-        <div id="ttt-turn">🎲 Aguardando...</div>
-        <div class="ttt-board" id="ttt-board"></div>
-        <button id="ttt-leave-btn">Sair do Jogo</button>
+<!-- MODAL CONVITE PONG -->
+<div id="pong-invite-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Seu parceiro(a) te desafiou para uma partida de Pong!</h3>
+        <p>Quem fizer 3 gols ou tiver mais pontos em 3 minutos vence.</p>
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button id="pong-accept" class="accept-btn">Sim</button>
+            <button id="pong-decline" class="decline-btn">Não</button>
+        </div>
     </div>
+</div>
 
-    <script>
-        const socket = io();
-        
-        // ================= SISTEMA DE TERMOS =================
-        const termsCheckbox = document.getElementById('termsCheckbox');
-        const startBtn = document.getElementById('start-btn');
-        const startScreen = document.getElementById('start-screen');
-        const termsContainer = document.getElementById('termsContainer');
+<!-- MODAL CONVITE TTT -->
+<div id="ttt-invite-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Seu parceiro(a) te desafiou para um Jogo da Velha!</h3>
+        <p>Quem fizer uma linha, coluna ou diagonal vence!</p>
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button id="ttt-accept" class="accept-btn">Aceitar</button>
+            <button id="ttt-decline" class="decline-btn">Recusar</button>
+        </div>
+    </div>
+</div>
 
-        // Verifica se já aceitou antes
-        if (localStorage.getItem('atheschat_terms_accepted') === 'true') {
-            termsContainer.style.display = 'none';
-            startBtn.disabled = false;
-            startBtn.classList.add('enabled');
-        }
+<!-- TELA PONG -->
+<div id="pong-game-container">
+    <div id="pong-countdown"></div>
+    <div id="pong-info">
+        <span id="pong-score-opponent">Anônimo: 0</span>
+        <span id="pong-timer">3:00</span>
+        <span id="pong-score-you">Você: 0</span>
+    </div>
+    <canvas id="pong-canvas" width="300" height="400"></canvas>
+    <div id="pong-controls">
+        <button class="pong-btn" id="pong-left-btn" aria-label="Esquerda">◀</button>
+        <button class="pong-btn" id="pong-right-btn" aria-label="Direita">▶</button>
+    </div>
+    <button id="pong-leave-btn">Encerrar Jogo</button>
+</div>
 
-        termsCheckbox.addEventListener('change', () => {
-            if (termsCheckbox.checked) {
-                startBtn.disabled = false;
-                startBtn.classList.add('enabled');
-            } else {
-                startBtn.disabled = true;
-                startBtn.classList.remove('enabled');
-            }
-        });
+<!-- TELA TTT -->
+<div id="ttt-game-container">
+    <div id="ttt-turn">🎲 Aguardando...</div>
+    <div class="ttt-board" id="ttt-board"></div>
+    <button id="ttt-leave-btn">Sair do Jogo</button>
+</div>
 
-        startBtn.addEventListener('click', () => {
-            if (!startBtn.disabled) {
-                localStorage.setItem('atheschat_terms_accepted', 'true');
-                if (Object.keys(audioCache).length === 0) initAudio();
-                startScreen.style.display = 'none';
-                chatContainer.style.display = 'flex';
-                socket.emit('join', { location: myLocation });
+<script>
+'use strict';
+
+// ================= UTIL =================
+const $ = (id) => document.getElementById(id);
+
+// escape para evitar XSS em qualquer innerHTML/textContent
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// localStorage seguro (fallback para modo privado)
+const safeStorage = {
+    get(key) {
+        try { return localStorage.getItem(key); }
+        catch (e) { return this._mem ? this._mem[key] : null; }
+    },
+    set(key, val) {
+        try { localStorage.setItem(key, val); }
+        catch (e) { this._mem = this._mem || {}; this._mem[key] = val; }
+    },
+    remove(key) {
+        try { localStorage.removeItem(key); }
+        catch (e) { if (this._mem) delete this._mem[key]; }
+    }
+};
+
+// ================= SOCKET =================
+if (typeof io === 'undefined') {
+    document.body.innerHTML = '<div style="padding:40px;text-align:center;color:white;font-family:sans-serif;">' +
+        '<h2>⚠️ Falha ao carregar</h2>' +
+        '<p>Não foi possível carregar o cliente do chat. Verifique sua conexão e recarregue a página.</p>' +
+        '</div>';
+    throw new Error('socket.io não carregou');
+}
+const socket = io({
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000
+});
+
+// ================= TERMOS =================
+const termsCheckbox = $('termsCheckbox');
+const startBtn = $('start-btn');
+const startScreen = $('start-screen');
+const termsContainer = $('termsContainer');
+const chatContainer = $('chat-container');
+
+const TERMS_KEY = 'atheschat_terms_accepted';
+if (safeStorage.get(TERMS_KEY) === 'true') {
+    termsContainer.style.display = 'none';
+    startBtn.disabled = false;
+    startBtn.classList.add('enabled');
+}
+
+termsCheckbox.addEventListener('change', () => {
+    const on = termsCheckbox.checked;
+    startBtn.disabled = !on;
+    startBtn.classList.toggle('enabled', on);
+});
+
+startBtn.addEventListener('click', () => {
+    if (startBtn.disabled) return;
+    safeStorage.set(TERMS_KEY, 'true');
+    if (Object.keys(audioCache).length === 0) initAudio();
+    startScreen.style.display = 'none';
+    chatContainer.style.display = 'flex';
+    socket.emit('join', { location: myLocation });
+    setTimeout(() => messageInput.focus(), 100);
+});
+
+// ================= SETTINGS =================
+const defaultSettings = {
+    soundEnabled: true,
+    volume: 70,
+    silentMode: false,
+    fontSize: 16,
+    receivedBg: '#333333',
+    receivedText: '#e0e0e0',
+    showLocation: true
+};
+let settings = { ...defaultSettings };
+try {
+    const saved = JSON.parse(safeStorage.get('atheschat_settings') || '{}');
+    settings = { ...defaultSettings, ...saved };
+} catch (e) { /* usa default */ }
+
+function applySettings() {
+    if (audioCache) {
+        Object.values(audioCache).forEach(a => { try { a.volume = (settings.volume / 100) * 1.2; } catch (e) {} });
+    }
+    const root = document.documentElement.style;
+    root.setProperty('--chat-font-size', settings.fontSize + 'px');
+    root.setProperty('--received-bg', settings.receivedBg);
+    root.setProperty('--received-text', settings.receivedText);
+    root.setProperty('--show-location', settings.showLocation ? 'block' : 'none');
+
+    $('setting-sound').checked = settings.soundEnabled;
+    $('setting-volume').value = settings.volume;
+    $('setting-silent').checked = settings.silentMode;
+    $('setting-font-size').value = settings.fontSize;
+    $('setting-received-bg').value = settings.receivedBg;
+    $('setting-received-text').value = settings.receivedText;
+    $('setting-location').checked = settings.showLocation;
+}
+function saveSettings() {
+    safeStorage.set('atheschat_settings', JSON.stringify(settings));
+    applySettings();
+}
+
+$('setting-sound').addEventListener('change', e => { settings.soundEnabled = e.target.checked; saveSettings(); });
+$('setting-volume').addEventListener('input', e => { settings.volume = Number(e.target.value); saveSettings(); });
+$('setting-font-size').addEventListener('input', e => { settings.fontSize = Number(e.target.value); saveSettings(); });
+$('setting-received-bg').addEventListener('input', e => { settings.receivedBg = e.target.value; saveSettings(); });
+$('setting-received-text').addEventListener('input', e => { settings.receivedText = e.target.value; saveSettings(); });
+$('setting-location').addEventListener('change', e => { settings.showLocation = e.target.checked; saveSettings(); });
+$('setting-silent').addEventListener('change', e => { settings.silentMode = e.target.checked; saveSettings(); });
+
+// ================= ÁUDIO =================
+const audioCache = {};
+const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
+
+function initAudio() {
+    soundsToLoad.forEach(name => {
+        try {
+            const a = new Audio('/' + name + '.mp3');
+            a.preload = 'auto';
+            a.volume = (settings.volume / 100) * 1.2;
+            audioCache[name] = a;
+        } catch (e) {}
+    });
+    applySettings();
+}
+function playSound(name) {
+    if (!settings.soundEnabled || !audioCache[name]) return;
+    if (settings.silentMode && document.hidden) return;
+    try {
+        audioCache[name].currentTime = 0;
+        audioCache[name].play().catch(() => {});
+    } catch (e) {}
+}
+function vibrate(pattern) {
+    if (!settings.soundEnabled) return;
+    if (settings.silentMode && document.hidden) return;
+    if ('vibrate' in navigator) {
+        try { navigator.vibrate(pattern); } catch (e) {}
+    }
+}
+
+// ================= ELEMENTOS =================
+const chatDiv = $('chat');
+const messageInput = $('message');
+const sendBtn = $('send-btn');
+const actionBtn = $('action-btn');
+const onlineCountElement = $('online-count');
+
+const menuBtn = $('menu-btn');
+const sidebar = $('sidebar');
+const playPongBtn = $('play-pong-btn');
+const playTttBtn = $('play-ttt-btn');
+const reportUserBtn = $('report-user-btn');
+const settingsBtn = $('settings-btn');
+
+const pongInviteModal = $('pong-invite-modal');
+const pongAcceptBtn = $('pong-accept');
+const pongDeclineBtn = $('pong-decline');
+const pongGameContainer = $('pong-game-container');
+const pongCanvas = $('pong-canvas');
+const pongCtx = pongCanvas.getContext('2d');
+const pongScoreYouElem = $('pong-score-you');
+const pongScoreOpponentElem = $('pong-score-opponent');
+const pongTimerElem = $('pong-timer');
+const pongLeftBtn = $('pong-left-btn');
+const pongRightBtn = $('pong-right-btn');
+const pongLeaveBtn = $('pong-leave-btn');
+const pongCountdownElem = $('pong-countdown');
+
+const tttInviteModal = $('ttt-invite-modal');
+const tttAcceptBtn = $('ttt-accept');
+const tttDeclineBtn = $('ttt-decline');
+const tttGameContainer = $('ttt-game-container');
+const tttBoardDiv = $('ttt-board');
+const tttTurnElem = $('ttt-turn');
+const tttLeaveBtn = $('ttt-leave-btn');
+
+const marqueeContainer = $('marqueeContainer');
+const marqueeText = $('marqueeText');
+
+const reportModal = $('reportModal');
+const confirmReportBtn = $('confirmReportBtn');
+const cancelReportBtn = $('cancelReportBtn');
+const settingsModal = $('settingsModal');
+const closeSettingsBtn = $('closeSettingsBtn');
+
+const banBanner = $('ban-banner');
+const banReason = $('ban-reason');
+
+// ================= ESTADO =================
+let myLocation = "Desconhecido";
+let isConnected = false;
+let currentPartnerId = null;
+let typingTimeout = null;
+let isTyping = false;
+let replyingTo = null;
+let swipeStartX = null;
+let swipeElement = null;
+const swipeThreshold = 50;
+let palavrasOfensivas = [];
+let isBanned = false;
+
+// Pong
+let pongGameActive = false;
+let pongGameState = null;
+let prevBall = null;
+let pongAnimationId = null;
+const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
+let pongInputState = { left: false, right: false };
+let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
+let clientAnimationLoopId = null;
+let ballTrail = [];
+const TRAIL_LENGTH = 15;
+
+// TTT
+let tttGameActive = false;
+let tttBoardState = Array(9).fill(null);
+let tttMySymbol = null;
+let tttCurrentTurn = null;
+
+// ================= LOCALIZAÇÃO =================
+async function fetchMyLocation() {
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        clearTimeout(timer);
+        const data = await response.json();
+        if (data && typeof data.region === 'string' && data.region) myLocation = data.region;
+    } catch (e) {
+        myLocation = "Desconhecido";
+    }
+}
+
+// ================= PALAVRAS PROIBIDAS =================
+async function carregarListaDePalavras() {
+    try {
+        let response = await fetch('/palavras_proibidas.json');
+        if (!response.ok) response = await fetch('../palavras_proibidas.json');
+        if (!response.ok) throw new Error('Falha');
+        const arr = await response.json();
+        if (Array.isArray(arr)) palavrasOfensivas = arr;
+    } catch (e) { /* segue sem filtro local; servidor filtra mesmo */ }
+}
+function contemPalavraOfensiva(texto) {
+    if (!texto || palavrasOfensivas.length === 0) return false;
+    const t = String(texto).toLowerCase();
+    return palavrasOfensivas.some(palavra => {
+        const escaped = palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp('(?:^|[^a-zà-ú])' + escaped + '(?:$|[^a-zà-ú])', 'i');
+        return regex.test(t);
+    });
+}
+
+// ================= MENSAGENS =================
+function addSystemMessage(msg) {
+    const sys = document.createElement('div');
+    sys.className = 'message system';
+    sys.textContent = msg;
+    chatDiv.appendChild(sys);
+    scrollToBottom();
+}
+
+function addMessage(msg, sender, isMe, replyTo = null, location = null) {
+    const el = document.createElement('div');
+    el.className = 'message ' + (isMe ? 'sent' : 'received');
+    el.dataset.messageId = Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+
+    if (!isMe) {
+        const info = document.createElement('div');
+        info.className = 'sender-info';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'sender-name';
+        nameEl.textContent = sender;
+        const locEl = document.createElement('span');
+        locEl.className = 'sender-location';
+        locEl.textContent = location || 'Desconhecido';
+        info.appendChild(nameEl);
+        info.appendChild(locEl);
+        el.appendChild(info);
+    }
+
+    if (replyTo) {
+        const replyArea = document.createElement('div');
+        replyArea.className = 'reply-area';
+        const txt = document.createElement('div');
+        txt.className = 'reply-text';
+        const senderSpan = document.createElement('span');
+        senderSpan.className = 'reply-sender';
+        senderSpan.textContent = 'Respondendo a ' + (replyTo.sender || 'Anônimo');
+        txt.appendChild(senderSpan);
+        txt.appendChild(document.createTextNode(': ' + String(replyTo.text || '').slice(0, 50) + '...'));
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-reply';
+        closeBtn.textContent = '×';
+        closeBtn.onclick = cancelReply;
+        replyArea.appendChild(txt);
+        replyArea.appendChild(closeBtn);
+        el.appendChild(replyArea);
+    }
+
+    const textEl = document.createElement('div');
+    textEl.textContent = msg; // textContent = seguro contra XSS
+    el.appendChild(textEl);
+
+    chatDiv.appendChild(el);
+    scrollToBottom();
+}
+
+function addOffensiveMessage(msg) {
+    const el = document.createElement('div');
+    el.className = 'message sent offensive';
+    const textNode = document.createElement('div');
+    textNode.textContent = msg;
+    const icon = document.createElement('span');
+    icon.className = 'attention-icon';
+    icon.textContent = '⚠️';
+    const reason = document.createElement('div');
+    reason.className = 'reason';
+    reason.textContent = 'Sua mensagem não foi enviada pois contém linguagem que viola as diretrizes da comunidade.';
+    icon.addEventListener('click', (e) => { e.stopPropagation(); reason.classList.toggle('visible'); });
+    el.appendChild(textNode);
+    el.appendChild(icon);
+    el.appendChild(reason);
+    chatDiv.appendChild(el);
+    scrollToBottom();
+    playSound('error-buzz');
+    vibrate([60, 40, 60]);
+}
+
+function scrollToBottom() { chatDiv.scrollTop = chatDiv.scrollHeight; }
+
+function showActionButton(action) {
+    actionBtn.style.display = 'block';
+    if (action === 'encerrar') {
+        actionBtn.textContent = 'Encerrar conversa';
+        actionBtn.onclick = () => socket.emit('end_chat');
+    } else if (action === 'iniciar') {
+        actionBtn.textContent = 'Iniciar novo chat';
+        actionBtn.onclick = () => {
+            chatDiv.innerHTML = '';
+            addSystemMessage('Buscando um novo parceiro...');
+            socket.emit('join', { location: myLocation });
+            actionBtn.style.display = 'none';
+        };
+    }
+}
+
+function showTypingIndicator() {
+    if (document.querySelector('.typing-indicator')) return;
+    const el = document.createElement('div');
+    el.className = 'typing-indicator';
+    el.innerHTML = 'Anônimo está digitando ' +
+        '<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+    chatDiv.appendChild(el);
+    scrollToBottom();
+}
+function removeTypingIndicator() {
+    const el = document.querySelector('.typing-indicator');
+    if (el) el.remove();
+}
+
+// ================= REPLY / SWIPE =================
+function handleMessageReply(messageElement) {
+    const textEl = messageElement.querySelector('div:not(.sender-info):not(.reply-area)');
+    const sender = messageElement.classList.contains('sent') ? 'Você' : 'Anônimo';
+    replyingTo = {
+        id: messageElement.dataset.messageId,
+        text: textEl ? textEl.textContent : '',
+        sender: sender
+    };
+    updateReplyUI();
+    messageInput.focus();
+    messageElement.classList.add('active');
+    setTimeout(() => messageElement.classList.remove('active'), 300);
+}
+
+function updateReplyUI() {
+    const existing = document.querySelector('#input-area > .reply-area');
+    if (existing) existing.remove();
+    if (replyingTo) {
+        const replyArea = document.createElement('div');
+        replyArea.className = 'reply-area';
+        const txt = document.createElement('div');
+        txt.className = 'reply-text';
+        const s = document.createElement('span');
+        s.className = 'reply-sender';
+        s.textContent = 'Respondendo a ' + replyingTo.sender;
+        txt.appendChild(s);
+        txt.appendChild(document.createTextNode(': ' + String(replyingTo.text).slice(0, 50) + '...'));
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-reply';
+        closeBtn.textContent = '×';
+        closeBtn.onclick = cancelReply;
+        replyArea.appendChild(txt);
+        replyArea.appendChild(closeBtn);
+        messageInput.parentElement.insertBefore(replyArea, messageInput);
+    }
+}
+
+function cancelReply() { replyingTo = null; updateReplyUI(); }
+
+function setupSwipeEvents() {
+    chatDiv.addEventListener('mousedown', onDown);
+    chatDiv.addEventListener('mousemove', onMove);
+    chatDiv.addEventListener('mouseup', onUp);
+    chatDiv.addEventListener('mouseleave', onUp);
+    chatDiv.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        onDown({ target: e.target, clientX: e.touches[0].clientX, button: 0 });
+    }, { passive: true });
+    chatDiv.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 1) return;
+        onMove({ target: e.target, clientX: e.touches[0].clientX });
+    }, { passive: true });
+    chatDiv.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length !== 1) return;
+        onUp({ clientX: e.changedTouches[0].clientX });
+    });
+}
+
+function getSwipeTarget(event) {
+    return event.target && event.target.closest
+        ? event.target.closest('.message:not(.system):not(.offensive):not(.typing-indicator)')
+        : null;
+}
+
+function onDown(e) {
+    const el = getSwipeTarget(e);
+    if (e.button === 0 && el) {
+        swipeStartX = e.clientX;
+        swipeElement = el;
+    }
+}
+function onMove(e) {
+    if (!swipeElement || swipeStartX === null) return;
+    const deltaX = e.clientX - swipeStartX;
+    if (deltaX > 0) {
+        swipeElement.classList.add('swiping');
+        swipeElement.style.transform = 'translateX(' + Math.min(deltaX, 100) + 'px)';
+        swipeElement.classList.toggle('active', deltaX > swipeThreshold);
+    }
+}
+function onUp(e) {
+    if (!swipeElement || swipeStartX === null) return;
+    const deltaX = e.clientX - swipeStartX;
+    if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
+    swipeElement.style.transform = '';
+    swipeElement.classList.remove('swiping', 'active');
+    swipeStartX = null;
+    swipeElement = null;
+}
+
+// ================= ENVIO =================
+function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message) return;
+    if (!isConnected) {
+        addSystemMessage('⚠️ Você precisa de um parceiro para enviar mensagens.');
+        return;
+    }
+    if (contemPalavraOfensiva(message)) {
+        addOffensiveMessage(message);
+        messageInput.value = '';
+        if (replyingTo) cancelReply();
+        return;
+    }
+    const payload = { text: message };
+    if (replyingTo) {
+        payload.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' };
+    }
+    socket.emit('message', payload);
+    addMessage(message, 'Você', true, replyingTo, myLocation);
+    playSound('chat-receive');
+    messageInput.value = '';
+    if (replyingTo) cancelReply();
+    if (isTyping) {
+        isTyping = false;
+        socket.emit('typing', { isTyping: false });
+    }
+    messageInput.focus();
+}
+
+function onPartnerLeft() {
+    isConnected = false;
+    currentPartnerId = null;
+    removeTypingIndicator();
+    if (replyingTo) cancelReply();
+    showActionButton('iniciar');
+    if (pongGameActive) endPongGame('partner_disconnected');
+    if (tttGameActive) { tttGameActive = false; tttGameContainer.classList.remove('visible'); }
+    playSound('error-buzz');
+    vibrate(150);
+}
+
+// ================= LETREIRO =================
+socket.on('admin_broadcast', (data) => {
+    if (!data || typeof data.message !== 'string') return;
+    marqueeText.textContent = data.message;
+    marqueeText.style.color = data.textColor || '#fff';
+    marqueeText.style.fontSize = (Number(data.fontSize) || 16) + 'px';
+    marqueeContainer.style.background = data.bgColor || '#e94560';
+    marqueeContainer.style.display = 'flex';
+
+    const effect = data.effect;
+    const speed = Number(data.speed) || 15;
+    if (effect === 'blink') {
+        marqueeText.style.animation = 'blink 1s infinite';
+        marqueeContainer.style.whiteSpace = 'normal';
+        marqueeContainer.style.justifyContent = 'center';
+    } else if (effect === 'neon') {
+        marqueeText.style.textShadow = '0 0 5px currentColor, 0 0 10px currentColor';
+        marqueeText.style.animation = 'marquee ' + speed + 's linear infinite';
+    } else {
+        marqueeText.style.animation = 'marquee ' + speed + 's linear infinite';
+        marqueeText.style.textShadow = 'none';
+        marqueeContainer.style.whiteSpace = 'nowrap';
+    }
+
+    const duration = (Number(data.duration) || 10) * 1000;
+    clearTimeout(window._marqueeTimer);
+    window._marqueeTimer = setTimeout(() => {
+        marqueeContainer.style.display = 'none';
+        marqueeText.style.animation = '';
+        marqueeText.style.textShadow = '';
+    }, duration);
+});
+
+// ================= DENÚNCIA =================
+reportUserBtn.addEventListener('click', () => {
+    if (!currentPartnerId) { alert('⚠️ Você precisa estar conectado a um parceiro para denunciar.'); return; }
+    reportModal.classList.add('visible');
+    menuBtn.classList.remove('open');
+    sidebar.classList.remove('open');
+});
+confirmReportBtn.addEventListener('click', () => {
+    if (!currentPartnerId) { alert('⚠️ Conecte-se a um parceiro primeiro.'); reportModal.classList.remove('visible'); return; }
+    const reason = $('reportReason').value;
+    socket.emit('report_user', { reportedUserId: currentPartnerId, reportedMessage: '', reason });
+    reportModal.classList.remove('visible');
+    addSystemMessage('✅ Denúncia enviada! Obrigado por ajudar a manter a comunidade segura.');
+    playSound('chat-receive');
+});
+cancelReportBtn.addEventListener('click', () => reportModal.classList.remove('visible'));
+
+// ================= SETTINGS MODAL =================
+settingsBtn.addEventListener('click', () => {
+    settingsModal.classList.add('visible');
+    menuBtn.classList.remove('open');
+    sidebar.classList.remove('open');
+});
+closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('visible'));
+
+// ================= SOCKET EVENTS =================
+socket.on('connect', async () => {
+    isBanned = false;
+    banBanner.classList.remove('visible');
+    await fetchMyLocation();
+    setupSwipeEvents();
+    carregarListaDePalavras();
+});
+
+socket.on('connect_error', () => {
+    // não spamma o usuário; tenta reconectar automaticamente
+});
+
+socket.on('users_online', (count) => {
+    onlineCountElement.textContent = count + ' online';
+});
+
+socket.on('you_are_banned', (data) => {
+    isBanned = true;
+    banBanner.classList.add('visible');
+    banReason.textContent = (data && data.reason) ? ('Motivo: ' + data.reason) : '';
+    messageInput.disabled = true;
+    sendBtn.disabled = true;
+    // esconde chat e jogos
+    chatContainer.style.display = 'none';
+    startScreen.style.display = 'none';
+    pongGameContainer.classList.remove('visible');
+    tttGameContainer.classList.remove('visible');
+});
+
+socket.on('admin_register_failed', (data) => {
+    console.warn('Admin register falhou:', data && data.error);
+});
+
+socket.on('message_blocked', (data) => {
+    addOffensiveMessage('(mensagem bloqueada)');
+    addSystemMessage((data && data.reason) || 'Sua mensagem foi bloqueada pela moderação.');
+    playSound('error-buzz');
+});
+
+socket.on('admin_warning', (data) => {
+    addSystemMessage('⚠️ AVISO DA MODERAÇÃO: ' + ((data && data.message) || 'Você recebeu um aviso.'));
+    playSound('error-buzz');
+    vibrate([100, 50, 100]);
+});
+
+socket.on('report_thanks', (data) => {
+    addSystemMessage((data && data.message) || '✅ Denúncia registrada!');
+});
+
+socket.on('chat_start', (data) => {
+    isConnected = true;
+    currentPartnerId = data && data.partnerId;
+    addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
+    addSystemMessage('💡 Dica: Deslize uma mensagem para a direita para respondê-la!');
+    showActionButton('encerrar');
+    playSound('chat-join');
+    vibrate(40);
+});
+
+socket.on('message', (data) => {
+    if (!data || typeof data.text !== 'string') return;
+    if (data.senderId !== socket.id) {
+        addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
+        playSound('chat-receive');
+        vibrate(40);
+    }
+});
+
+socket.on('partner_disconnected', () => {
+    addSystemMessage('❌ Parceiro desconectado.');
+    onPartnerLeft();
+});
+socket.on('chat_ended', () => {
+    addSystemMessage('❌ O parceiro encerrou a conversa.');
+    onPartnerLeft();
+});
+
+socket.on('system_message', (data) => {
+    const msg = (data && data.message) || '';
+    if (!msg) return;
+    addSystemMessage(msg);
+    if (data && typeof data.remainingSeconds === 'number' && data.remainingSeconds > 0) {
+        // CORREÇÃO: usa remainingSeconds real do servidor
+        messageInput.disabled = true;
+        sendBtn.disabled = true;
+        const original = messageInput.placeholder;
+        let remaining = data.remainingSeconds;
+        messageInput.placeholder = 'Aguarde ' + remaining + 's...';
+        playSound('error-buzz');
+        vibrate([60, 40, 60]);
+        const interval = setInterval(() => {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(interval);
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.placeholder = original;
                 messageInput.focus();
-            }
-        });
-        // ========================================================
-
-        // ================= SISTEMA DE CONFIGURAÇÕES =================
-        const defaultSettings = {
-            soundEnabled: true,
-            volume: 70,
-            silentMode: false,
-            fontSize: 16,
-            receivedBg: '#333333',
-            receivedText: '#e0e0e0',
-            showLocation: true
-        };
-
-        let settings = JSON.parse(localStorage.getItem('atheschat_settings')) || defaultSettings;
-        settings = { ...defaultSettings, ...settings };
-
-        function applySettings() {
-            if(audioCache) {
-                Object.values(audioCache).forEach(audio => audio.volume = (settings.volume / 100) * 1.2);
-            }
-            document.documentElement.style.setProperty('--chat-font-size', settings.fontSize + 'px');
-            document.documentElement.style.setProperty('--received-bg', settings.receivedBg);
-            document.documentElement.style.setProperty('--received-text', settings.receivedText);
-            document.documentElement.style.setProperty('--show-location', settings.showLocation ? 'block' : 'none');
-
-            document.getElementById('setting-sound').checked = settings.soundEnabled;
-            document.getElementById('setting-volume').value = settings.volume;
-            document.getElementById('setting-silent').checked = settings.silentMode;
-            document.getElementById('setting-font-size').value = settings.fontSize;
-            document.getElementById('setting-received-bg').value = settings.receivedBg;
-            document.getElementById('setting-received-text').value = settings.receivedText;
-            document.getElementById('setting-location').checked = settings.showLocation;
-        }
-
-        function saveSettings() {
-            localStorage.setItem('atheschat_settings', JSON.stringify(settings));
-            applySettings();
-        }
-
-        document.getElementById('setting-sound').addEventListener('change', (e) => { settings.soundEnabled = e.target.checked; saveSettings(); });
-        document.getElementById('setting-volume').addEventListener('input', (e) => { settings.volume = e.target.value; saveSettings(); });
-        document.getElementById('setting-font-size').addEventListener('input', (e) => { settings.fontSize = e.target.value; saveSettings(); });
-        document.getElementById('setting-received-bg').addEventListener('input', (e) => { settings.receivedBg = e.target.value; saveSettings(); });
-        document.getElementById('setting-received-text').addEventListener('input', (e) => { settings.receivedText = e.target.value; saveSettings(); });
-        document.getElementById('setting-location').addEventListener('change', (e) => { settings.showLocation = e.target.checked; saveSettings(); });
-        document.getElementById('setting-silent').addEventListener('change', (e) => { settings.silentMode = e.target.checked; saveSettings(); });
-        // ===============================================================
-
-        const audioCache = {};
-        const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
-
-        function initAudio() {
-            soundsToLoad.forEach(name => {
-                const audio = new Audio(`/${name}.mp3`);
-                audio.preload = 'auto';
-                audio.volume = (settings.volume / 100) * 1.2;
-                audioCache[name] = audio;
-            });
-            applySettings();
-        }
-
-        function playSound(name) {
-            if (!settings.soundEnabled || !audioCache[name]) return;
-            if (settings.silentMode && document.hidden) return;
-            try {
-                audioCache[name].currentTime = 0;
-                audioCache[name].play().catch(e => console.log('Áudio bloqueado.'));
-            } catch (error) {}
-        }
-
-        function vibrate(pattern) {
-            if (!settings.soundEnabled) return;
-            if (settings.silentMode && document.hidden) return;
-            if ('vibrate' in navigator) {
-                try { navigator.vibrate(pattern); } catch (e) {}
-            }
-        }
-
-        // Elementos do Chat
-        const chatDiv = document.getElementById('chat');
-        const messageInput = document.getElementById('message');
-        const sendBtn = document.getElementById('send-btn');
-        const chatContainer = document.getElementById('chat-container');
-        const actionBtn = document.getElementById('action-btn');
-        const onlineCountElement = document.getElementById('online-count');
-        
-        // Elementos do Menu
-        const menuBtn = document.getElementById('menu-btn');
-        const sidebar = document.getElementById('sidebar');
-        const playPongBtn = document.getElementById('play-pong-btn');
-        const playTttBtn = document.getElementById('play-ttt-btn');
-        const reportUserBtn = document.getElementById('report-user-btn');
-        const settingsBtn = document.getElementById('settings-btn');
-        
-        // Elementos do Pong
-        const pongInviteModal = document.getElementById('pong-invite-modal');
-        const pongAcceptBtn = document.getElementById('pong-accept');
-        const pongDeclineBtn = document.getElementById('pong-decline');
-        const pongGameContainer = document.getElementById('pong-game-container');
-        const pongCanvas = document.getElementById('pong-canvas');
-        const pongCtx = pongCanvas.getContext('2d');
-        const pongScoreYouElem = document.getElementById('pong-score-you');
-        const pongScoreOpponentElem = document.getElementById('pong-score-opponent');
-        const pongTimerElem = document.getElementById('pong-timer');
-        const pongLeftBtn = document.getElementById('pong-left-btn');
-        const pongRightBtn = document.getElementById('pong-right-btn');
-        const pongLeaveBtn = document.getElementById('pong-leave-btn');
-        const pongCountdownElem = document.getElementById('pong-countdown');
-        
-        // Elementos do Jogo da Velha
-        const tttInviteModal = document.getElementById('ttt-invite-modal');
-        const tttAcceptBtn = document.getElementById('ttt-accept');
-        const tttDeclineBtn = document.getElementById('ttt-decline');
-        const tttGameContainer = document.getElementById('ttt-game-container');
-        const tttBoardDiv = document.getElementById('ttt-board');
-        const tttTurnElem = document.getElementById('ttt-turn');
-        const tttLeaveBtn = document.getElementById('ttt-leave-btn');
-        
-        // Elementos do Letreiro
-        const marqueeContainer = document.getElementById('marqueeContainer');
-        const marqueeText = document.getElementById('marqueeText');
-        
-        // Modal de Denúncia e Configurações
-        const reportModal = document.getElementById('reportModal');
-        const confirmReportBtn = document.getElementById('confirmReportBtn');
-        const cancelReportBtn = document.getElementById('cancelReportBtn');
-        const settingsModal = document.getElementById('settingsModal');
-        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        
-        // Variáveis de Estado do Chat
-        let myLocation = "Desconhecido";
-        let isConnected = false;
-        let currentPartnerId = null;
-        let typingTimeout = null;
-        let isTyping = false;
-        let replyingTo = null;
-        let swipeStartX = null, swipeElement = null;
-        const swipeThreshold = 50;
-        let palavrasOfensivas = [];
-        
-        // Variáveis do Pong
-        let pongGameActive = false;
-        let pongGameState = null;
-        let prevBall = null; 
-        let pongAnimationId = null;
-        const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
-        let pongInputState = { left: false, right: false };
-        let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
-        let clientAnimationLoopId = null;
-        let ball1Trail = [], ball2Trail = [];
-        const TRAIL_LENGTH = 15;
-        
-        // Variáveis do Jogo da Velha
-        let tttGameActive = false;
-        let tttBoardState = Array(9).fill(null);
-        let tttMySymbol = null;
-        let tttCurrentTurn = null;
-
-        // ================= FUNÇÕES DO CHAT =================
-        async function fetchMyLocation() {
-            try {
-                const response = await fetch('https://ipapi.co/json/');
-                const data = await response.json();
-                if (data && data.region) myLocation = data.region;
-            } catch (error) {
-                myLocation = "Desconhecido";
-            }
-        }
-
-        async function carregarListaDePalavras() {
-            try {
-                let response = await fetch('/palavras_proibidas.json');
-                if (!response.ok) response = await fetch('../palavras_proibidas.json');
-                if (!response.ok) throw new Error('Falha');
-                palavrasOfensivas = await response.json();
-            } catch (error) {}
-        }
-        
-        function contemPalavraOfensiva(texto) {
-            if (palavrasOfensivas.length === 0) return false;
-            return palavrasOfensivas.some(palavra => {
-                const regex = new RegExp(`\\b${palavra.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-                return regex.test(texto);
-            });
-        }
-
-        function addSystemMessage(msg) {
-            const sysElement = document.createElement('div');
-            sysElement.className = 'message system';
-            sysElement.textContent = msg;
-            chatDiv.appendChild(sysElement);
-            scrollToBottom();
-        }
-
-        function addMessage(msg, sender, isMe, replyTo = null, location = null) {
-            const msgElement = document.createElement('div');
-            msgElement.className = `message ${isMe ? 'sent' : 'received'}`;
-            msgElement.dataset.messageId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            
-            if (!isMe) {
-                const senderInfoElement = document.createElement('div');
-                senderInfoElement.className = 'sender-info';
-                const nameElement = document.createElement('span');
-                nameElement.className = 'sender-name';
-                nameElement.textContent = sender;
-                const locationElement = document.createElement('span');
-                locationElement.className = 'sender-location';
-                locationElement.textContent = location || 'Desconhecido';
-                senderInfoElement.appendChild(nameElement);
-                senderInfoElement.appendChild(locationElement);
-                msgElement.appendChild(senderInfoElement);
-            }
-            
-            if (replyTo) {
-                const replyArea = document.createElement('div');
-                replyArea.className = 'reply-area';
-                replyArea.innerHTML = `<div class="reply-text"><span class="reply-sender">Respondendo a ${replyTo.sender}</span>: ${replyTo.text.substring(0, 50)}...</div>`;
-                const closeButton = document.createElement('button');
-                closeButton.className = 'close-reply';
-                closeButton.innerHTML = '×';
-                closeButton.onclick = cancelReply;
-                replyArea.appendChild(closeButton);
-                msgElement.appendChild(replyArea);
-            }
-            
-            const textElement = document.createElement('div');
-            textElement.textContent = msg;
-            msgElement.appendChild(textElement);
-            
-            chatDiv.appendChild(msgElement);
-            scrollToBottom();
-        }
-
-        function addOffensiveMessage(msg) {
-            const msgElement = document.createElement('div');
-            msgElement.className = 'message sent offensive';
-            const textNode = document.createElement('div');
-            textNode.textContent = msg;
-            const attentionIcon = document.createElement('span');
-            attentionIcon.className = 'attention-icon';
-            attentionIcon.textContent = '⚠️';
-            const reasonText = document.createElement('div');
-            reasonText.className = 'reason';
-            reasonText.textContent = 'Sua mensagem não foi enviada pois contém linguagem que viola as diretrizes da comunidade.';
-            attentionIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                reasonText.classList.toggle('visible');
-            });
-            msgElement.appendChild(textNode);
-            msgElement.appendChild(attentionIcon);
-            msgElement.appendChild(reasonText);
-            chatDiv.appendChild(msgElement);
-            scrollToBottom();
-            playSound('error-buzz');
-            vibrate([60, 40, 60]);
-        }
-
-        function scrollToBottom() { chatDiv.scrollTop = chatDiv.scrollHeight; }
-        
-        function showActionButton(action) {
-            actionBtn.style.display = 'block';
-            if (action === 'encerrar') {
-                actionBtn.textContent = 'Encerrar conversa';
-                actionBtn.onclick = function() { socket.emit('end_chat'); };
-            } else if (action === 'iniciar') {
-                actionBtn.textContent = 'Iniciar novo chat';
-                actionBtn.onclick = function() {
-                    chatDiv.innerHTML = '';
-                    addSystemMessage('Buscando um novo parceiro...');
-                    socket.emit('join', { location: myLocation });
-                    actionBtn.style.display = 'none';
-                };
-            }
-        }
-        
-        function showTypingIndicator() {
-            if (document.querySelector('.typing-indicator')) return;
-            const typingElement = document.createElement('div');
-            typingElement.className = 'typing-indicator';
-            typingElement.innerHTML = `Anônimo está digitando <div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
-            chatDiv.appendChild(typingElement);
-            scrollToBottom();
-        }
-        
-        function removeTypingIndicator() {
-            const typingElement = document.querySelector('.typing-indicator');
-            if (typingElement) typingElement.remove();
-        }
-        
-        function handleMessageReply(messageElement) {
-            const textElement = messageElement.querySelector('div:not(.sender-info):not(.reply-area)');
-            const sender = messageElement.classList.contains('sent') ? 'Você' : 'Anônimo';
-            replyingTo = { id: messageElement.dataset.messageId, text: textElement ? textElement.textContent : '', sender: sender };
-            updateReplyUI();
-            messageInput.focus();
-            messageElement.classList.add('active');
-            setTimeout(() => { messageElement.classList.remove('active'); }, 300);
-        }
-        
-        function updateReplyUI() {
-            const existingReply = document.querySelector('#input-area > .reply-area');
-            if (existingReply) existingReply.remove();
-            if (replyingTo) {
-                const replyArea = document.createElement('div');
-                replyArea.className = 'reply-area';
-                replyArea.innerHTML = `<div class="reply-text"><span class="reply-sender">Respondendo a ${replyingTo.sender}</span>: ${replyingTo.text.substring(0, 50)}...</div>`;
-                const closeButton = document.createElement('button');
-                closeButton.className = 'close-reply';
-                closeButton.innerHTML = '×';
-                closeButton.onclick = cancelReply;
-                replyArea.appendChild(closeButton);
-                messageInput.parentElement.insertBefore(replyArea, messageInput);
-            }
-        }
-        
-        function cancelReply() { replyingTo = null; updateReplyUI(); }
-        
-        function setupSwipeEvents() {
-            chatDiv.addEventListener('mousedown', handleMouseDown);
-            chatDiv.addEventListener('mousemove', handleMouseMove);
-            chatDiv.addEventListener('mouseup', handleMouseUp);
-            chatDiv.addEventListener('mouseleave', handleMouseUp);
-            chatDiv.addEventListener('touchstart', (e) => handleMouseDown({ target: e.target, clientX: e.touches[0].clientX, button: 0, preventDefault: () => {} }));
-            chatDiv.addEventListener('touchmove', (e) => handleMouseMove({ target: e.target, clientX: e.touches[0].clientX, preventDefault: () => {} }));
-            chatDiv.addEventListener('touchend', (e) => handleMouseUp({ clientX: e.changedTouches[0].clientX }));
-        }
-        
-        function getSwipeTarget(event) { return event.target.closest('.message:not(.system):not(.offensive)'); }
-        
-        function handleMouseDown(e) {
-            const messageElement = getSwipeTarget(e);
-            if (e.button === 0 && messageElement) {
-                e.preventDefault();
-                swipeStartX = e.clientX;
-                swipeElement = messageElement;
-            }
-        }
-        
-        function handleMouseMove(e) {
-            if (swipeElement && swipeStartX !== null) {
-                e.preventDefault();
-                const deltaX = e.clientX - swipeStartX;
-                if (deltaX > 0) {
-                    swipeElement.classList.add('swiping');
-                    swipeElement.style.transform = `translateX(${Math.min(deltaX, 100)}px)`;
-                    if (deltaX > swipeThreshold) swipeElement.classList.add('active');
-                    else swipeElement.classList.remove('active');
-                }
-            }
-        }
-        
-        function handleMouseUp(e) {
-            if (swipeElement && swipeStartX !== null) {
-                const deltaX = e.clientX - swipeStartX;
-                if (deltaX > swipeThreshold) handleMessageReply(swipeElement);
-                swipeElement.style.transform = '';
-                swipeElement.classList.remove('swiping', 'active');
-                swipeStartX = null; swipeElement = null;
-            }
-        }
-
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
-            if (isConnected) {
-                if (contemPalavraOfensiva(message)) {
-                    addOffensiveMessage(message);
-                    messageInput.value = '';
-                    if (replyingTo) cancelReply();
-                    return;
-                }
-                const messageData = { text: message };
-                if (replyingTo) {
-                    messageData.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' };
-                }
-                socket.emit('message', messageData);
-                addMessage(message, 'Você', true, replyingTo, myLocation);
-                playSound('chat-receive');
-                messageInput.value = '';
-                if (replyingTo) cancelReply();
-                if (isTyping) {
-                    isTyping = false;
-                    socket.emit('typing', { isTyping: false });
-                }
             } else {
-                addSystemMessage("⚠️ Você precisa de um parceiro para enviar mensagens.");
+                messageInput.placeholder = 'Aguarde ' + remaining + 's...';
             }
-            messageInput.focus();
+        }, 1000);
+    }
+});
+
+socket.on('waiting', () => addSystemMessage('🔎 Procurando um parceiro...'));
+socket.on('typing', (data) => {
+    if (data && data.isTyping) showTypingIndicator();
+    else removeTypingIndicator();
+});
+
+// ================= MENU =================
+menuBtn.addEventListener('click', () => {
+    menuBtn.classList.toggle('open');
+    sidebar.classList.toggle('open');
+});
+
+playPongBtn.addEventListener('click', () => {
+    if (isConnected) socket.emit('pong_invite');
+    else addSystemMessage('⚠️ Você precisa estar conectado a um parceiro para jogar.');
+    menuBtn.classList.remove('open');
+    sidebar.classList.remove('open');
+});
+playTttBtn.addEventListener('click', () => {
+    if (isConnected) socket.emit('tictactoe_invite');
+    else addSystemMessage('⚠️ Você precisa estar conectado a um parceiro para jogar.');
+    menuBtn.classList.remove('open');
+    sidebar.classList.remove('open');
+});
+
+// ================= PONG =================
+socket.on('pong_invite_received', () => pongInviteModal.classList.add('visible'));
+socket.on('bot_pong_invite', () => {
+    addSystemMessage('O bot te desafiou para jogar Pong!');
+    pongInviteModal.classList.add('visible');
+});
+pongAcceptBtn.addEventListener('click', () => { socket.emit('pong_accept'); pongInviteModal.classList.remove('visible'); });
+pongDeclineBtn.addEventListener('click', () => { socket.emit('pong_decline'); pongInviteModal.classList.remove('visible'); });
+
+socket.on('pong_start', () => {
+    pongGameActive = true;
+    pongGameState = null;
+    prevBall = null;
+    ballTrail = [];
+    pongGameContainer.classList.add('visible');
+    pongTimerElem.textContent = '3:00';
+    if (pongAnimationId) cancelAnimationFrame(pongAnimationId);
+    pongAnimationId = requestAnimationFrame(drawPong);
+    localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
+    pongInputState = { left: false, right: false };
+    if (clientAnimationLoopId) cancelAnimationFrame(clientAnimationLoopId);
+    clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
+});
+
+socket.on('pong_update', (state) => {
+    if (!state) return;
+    pongGameState = state;
+    if (state.you) pongScoreYouElem.textContent = 'Você: ' + state.you.score;
+    if (state.opponent) pongScoreOpponentElem.textContent = 'Anônimo: ' + state.opponent.score;
+
+    // CORREÇÃO: usa !== undefined para não falhar quando x === 0
+    if (state.ball && state.ball.x !== undefined && state.ball.y !== undefined) {
+        if (prevBall) {
+            // vibração em rebote
+            const hitWall = (prevBall.x > PONG_CONFIG.BALL_RADIUS && state.ball.x <= PONG_CONFIG.BALL_RADIUS) ||
+                            (prevBall.x < pongCanvas.width - PONG_CONFIG.BALL_RADIUS && state.ball.x >= pongCanvas.width - PONG_CONFIG.BALL_RADIUS);
+            if (hitWall) vibrate(20);
+            const hitPaddle = prevBall.y < pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS &&
+                state.ball.y >= pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS &&
+                state.ball.x >= localPlayerPaddleX && state.ball.x <= localPlayerPaddleX + PONG_CONFIG.PADDLE_WIDTH;
+            if (hitPaddle) vibrate(40);
         }
+        prevBall = { x: state.ball.x, y: state.ball.y };
+        ballTrail.unshift({ x: state.ball.x, y: state.ball.y });
+        if (ballTrail.length > TRAIL_LENGTH) ballTrail.pop();
+    }
+});
 
-        function onPartnerLeft() {
-            isConnected = false;
-            currentPartnerId = null;
-            removeTypingIndicator();
-            if (replyingTo) cancelReply();
-            showActionButton('iniciar');
-            if (pongGameActive) endPongGame('partner_disconnected');
-            if (tttGameActive) tttGameContainer.style.display = 'none';
-            playSound('error-buzz');
-            vibrate(150);
-        }
+socket.on('pong_countdown_start', () => {
+    pongCountdownElem.style.display = 'block';
+    let count = 3;
+    pongCountdownElem.textContent = count;
+    const interval = setInterval(() => {
+        count--;
+        if (count > 0) pongCountdownElem.textContent = count;
+        else if (count === 0) pongCountdownElem.textContent = 'VAI!';
+        else { pongCountdownElem.style.display = 'none'; clearInterval(interval); }
+    }, 1000);
+});
 
-        // ================= LETREIRO =================
-        socket.on('admin_broadcast', (data) => {
-            marqueeText.textContent = data.message;
-            marqueeText.style.color = data.textColor;
-            marqueeText.style.fontSize = data.fontSize + 'px';
-            marqueeContainer.style.background = data.bgColor;
-            marqueeContainer.style.display = 'flex';
-            
-            if (data.effect === 'blink') {
-                marqueeText.style.animation = 'blink 1s infinite';
-                marqueeContainer.style.whiteSpace = 'normal';
-                marqueeContainer.style.justifyContent = 'center';
-            } else if (data.effect === 'neon') {
-                marqueeText.style.textShadow = '0 0 5px currentColor, 0 0 10px currentColor';
-                marqueeText.style.animation = `marquee ${data.speed}s linear infinite`;
-            } else {
-                marqueeText.style.animation = `marquee ${data.speed}s linear infinite`;
-                marqueeText.style.textShadow = 'none';
-                marqueeContainer.style.whiteSpace = 'nowrap';
-            }
-            
-            setTimeout(() => {
-                marqueeContainer.style.display = 'none';
-                marqueeText.style.animation = '';
-                marqueeText.style.textShadow = '';
-            }, data.duration * 1000);
-        });
+socket.on('pong_time_update', (data) => {
+    const duration = Math.max(0, (data && data.time ? data.time : 0) / 1000);
+    const m = Math.floor(duration / 60);
+    const s = Math.floor(duration % 60);
+    pongTimerElem.textContent = m + ':' + String(s).padStart(2, '0');
+});
 
-        // ================= DENÚNCIA E CONFIGURAÇÕES =================
-        reportUserBtn.addEventListener('click', () => {
-            if (!currentPartnerId) {
-                alert('⚠️ Você precisa estar conectado a um parceiro para denunciar.');
-                return;
-            }
-            reportModal.style.display = 'flex';
-            menuBtn.classList.remove('open');
-            sidebar.classList.remove('open');
-        });
+socket.on('pong_end', (result) => endPongGame(result && result.reason, result));
 
-        confirmReportBtn.addEventListener('click', () => {
-            const reason = document.getElementById('reportReason').value;
-            
-            if (!currentPartnerId) {
-                alert('⚠️ Você precisa estar conectado a um parceiro para denunciar.');
-                reportModal.style.display = 'none';
-                return;
-            }
-            
-            socket.emit('report_user', { 
-                reportedUserId: currentPartnerId, 
-                reportedMessage: '', 
-                reason: reason 
-            });
-            
-            reportModal.style.display = 'none';
-            addSystemMessage('✅ Denúncia enviada! Obrigado por ajudar a manter a comunidade segura.');
-            playSound('chat-receive');
-        });
+function endPongGame(reason, result = null) {
+    if (!pongGameActive) return;
+    pongGameActive = false;
+    cancelAnimationFrame(pongAnimationId);
+    cancelAnimationFrame(clientAnimationLoopId);
+    let message = 'Fim de jogo!';
+    if (reason === 'player_left' || reason === 'partner_disconnected' || reason === 'chat_ended' || reason === 'leave') {
+        message = 'O oponente saiu do jogo.';
+    } else if (result) {
+        message = 'Placar final: Você ' + result.yourScore + ' x ' + result.opponentScore + ' Anônimo.';
+    }
+    addSystemMessage('🏆 ' + message);
+    if (result && result.yourScore > result.opponentScore) {
+        playSound('win-fanfare');
+        vibrate([100, 50, 100]);
+    } else {
+        playSound('error-buzz');
+        vibrate(100);
+    }
+    setTimeout(() => pongGameContainer.classList.remove('visible'), 3000);
+}
 
-        cancelReportBtn.addEventListener('click', () => { reportModal.style.display = 'none'; });
+function drawPong() {
+    if (!pongGameActive) return;
+    pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
 
-        settingsBtn.addEventListener('click', () => {
-            settingsModal.style.display = 'flex';
-            menuBtn.classList.remove('open');
-            sidebar.classList.remove('open');
-        });
+    // linha central
+    pongCtx.strokeStyle = '#333';
+    pongCtx.beginPath();
+    pongCtx.setLineDash([5, 15]);
+    pongCtx.moveTo(0, pongCanvas.height / 2);
+    pongCtx.lineTo(pongCanvas.width, pongCanvas.height / 2);
+    pongCtx.stroke();
+    pongCtx.setLineDash([]);
 
-        closeSettingsBtn.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+    // trail
+    pongCtx.save();
+    ballTrail.forEach((p, i) => {
+        pongCtx.globalAlpha = (1 - (i / ballTrail.length)) * 0.4;
+        pongCtx.fillStyle = '#fff';
+        pongCtx.beginPath();
+        pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+        pongCtx.fill();
+    });
+    pongCtx.restore();
 
-        socket.on('report_thanks', (data) => { addSystemMessage(data.message); });
-
-        // ================= EVENTOS SOCKET =================
-        socket.on('connect', async () => {
-            addSystemMessage('Conectando ao servidor...');
-            await fetchMyLocation();
-            setupSwipeEvents();
-            carregarListaDePalavras();
-        });
-        
-        socket.on('users_online', (count) => { onlineCountElement.textContent = `${count} online`; });
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-        
-        messageInput.addEventListener('input', () => {
-            if (!isTyping && isConnected) {
-                isTyping = true;
-                socket.emit('typing', { isTyping: true });
-            }
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                if (isTyping && isConnected) {
-                    isTyping = false;
-                    socket.emit('typing', { isTyping: false });
-                }
-            }, 1000);
-        });
-        
-        socket.on('chat_start', (data) => {
-            isConnected = true;
-            currentPartnerId = data.partnerId;
-            addSystemMessage('✔️ Você foi conectado a um parceiro anônimo. Comecem a conversar!');
-            addSystemMessage('💡 Dica: Deslize uma mensagem para a direita para respondê-la!');
-            showActionButton('encerrar');
-            playSound('chat-join');
-            vibrate(40);
-        });
-        
-        socket.on('message', (data) => {
-            if (data.senderId !== socket.id) {
-                addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
-                playSound('chat-receive');
-                vibrate(40);
-            }
-        });
-        
-        socket.on('partner_disconnected', () => {
-            addSystemMessage('❌ Parceiro desconectado.');
-            onPartnerLeft();
-        });
-        
-        socket.on('chat_ended', () => {
-            addSystemMessage('❌ O parceiro encerrou a conversa.');
-            onPartnerLeft();
-        });
-        
-        socket.on('system_message', (data) => { 
-            addSystemMessage(data.message); 
-            if (data.message.includes('Calma') || data.message.includes('Espere') || data.message.includes('AVISO DO ADMIN')) {
-                playSound('error-buzz');
-                vibrate([60, 40, 60]);
-                
-                messageInput.disabled = true;
-                sendBtn.disabled = true;
-                messageInput.placeholder = "Aguarde 5 segundos...";
-                
-                setTimeout(() => {
-                    messageInput.disabled = false;
-                    sendBtn.disabled = false;
-                    messageInput.placeholder = "Digite sua mensagem...";
-                    messageInput.focus();
-                }, 5000);
-            }
-        });
-        socket.on('waiting', () => { addSystemMessage('🔎 Procurando um parceiro...'); });
-        socket.on('typing', (data) => { data.isTyping ? showTypingIndicator() : removeTypingIndicator(); });
-
-        // ================= MENU =================
-        menuBtn.addEventListener('click', () => {
-            menuBtn.classList.toggle('open');
-            sidebar.classList.toggle('open');
-        });
-        
-        playPongBtn.addEventListener('click', () => {
-            if (isConnected) socket.emit('pong_invite');
-            else addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
-            menuBtn.classList.remove('open');
-            sidebar.classList.remove('open');
-        });
-        
-        playTttBtn.addEventListener('click', () => {
-            if (isConnected) socket.emit('tictactoe_invite');
-            else addSystemMessage("⚠️ Você precisa estar conectado a um parceiro para jogar.");
-            menuBtn.classList.remove('open');
-            sidebar.classList.remove('open');
-        });
-
-        // ================= JOGO PONG =================
-        socket.on('pong_invite_received', () => { pongInviteModal.style.display = 'flex'; });
-        socket.on('bot_pong_invite', () => { 
-            addSystemMessage("O bot te desafiou para jogar Pong!");
-            pongInviteModal.style.display = 'flex'; 
-        });
-        
-        pongAcceptBtn.addEventListener('click', () => { socket.emit('pong_accept'); pongInviteModal.style.display = 'none'; });
-        pongDeclineBtn.addEventListener('click', () => { socket.emit('pong_decline'); pongInviteModal.style.display = 'none'; });
-
-        socket.on('pong_start', () => {
-            pongGameActive = true;
-            pongGameState = null;
-            prevBall = null;
-            ball1Trail = [];
-            ball2Trail = [];
-            pongGameContainer.style.display = 'flex';
-            pongTimerElem.textContent = '3:00';
-            if (pongAnimationId) cancelAnimationFrame(pongAnimationId);
-            pongAnimationId = requestAnimationFrame(drawPong);
-            localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
-            pongInputState = { left: false, right: false };
-            if (clientAnimationLoopId) cancelAnimationFrame(clientAnimationLoopId);
-            clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
-        });
-
-        socket.on('pong_update', (state) => {
-            pongGameState = state;
-            pongScoreYouElem.textContent = `Você: ${state.you.score}`;
-            pongScoreOpponentElem.textContent = `Anônimo: ${state.opponent.score}`;
-            
-            if (state.ball && state.ball.x) { 
-                if (prevBall) {
-                    if ((prevBall.x > PONG_CONFIG.BALL_RADIUS && state.ball.x <= PONG_CONFIG.BALL_RADIUS) || 
-                        (prevBall.x < pongCanvas.width - PONG_CONFIG.BALL_RADIUS && state.ball.x >= pongCanvas.width - PONG_CONFIG.BALL_RADIUS)) {
-                        vibrate(20);
-                    }
-                    if (prevBall.y < pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS && 
-                        state.ball.y >= pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT - PONG_CONFIG.BALL_RADIUS &&
-                        state.ball.x >= localPlayerPaddleX && state.ball.x <= localPlayerPaddleX + PONG_CONFIG.PADDLE_WIDTH) {
-                        vibrate(40);
-                    }
-                }
-                prevBall = { x: state.ball.x, y: state.ball.y };
-                ball1Trail.unshift({ x: state.ball.x, y: state.ball.y }); 
-                if (ball1Trail.length > TRAIL_LENGTH) ball1Trail.pop(); 
-            }
-            if (state.ball2 && state.ball2.x) { 
-                ball2Trail.unshift({ x: state.ball2.x, y: state.ball2.y }); 
-                if (ball2Trail.length > TRAIL_LENGTH) ball2Trail.pop(); 
-            }
-        });
-        
-        socket.on('pong_countdown_start', () => {
-            pongCountdownElem.style.display = 'block';
-            let count = 3;
-            pongCountdownElem.textContent = count;
-            const countdownInterval = setInterval(() => {
-                count--;
-                if (count > 0) pongCountdownElem.textContent = count;
-                else if (count === 0) pongCountdownElem.textContent = 'VAI!';
-                else { pongCountdownElem.style.display = 'none'; clearInterval(countdownInterval); }
-            }, 1000);
-        });
-
-        socket.on('pong_time_update', (data) => {
-            const duration = Math.max(0, data.time / 1000);
-            const minutes = Math.floor(duration / 60);
-            const seconds = Math.floor(duration % 60);
-            pongTimerElem.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        });
-
-        socket.on('pong_end', (result) => { endPongGame(result.reason, result); });
-        
-        function endPongGame(reason, result = null) {
-            if (!pongGameActive) return;
-            pongGameActive = false;
-            cancelAnimationFrame(pongAnimationId);
-            cancelAnimationFrame(clientAnimationLoopId);
-            let message = "Fim de jogo!";
-            if(reason === 'player_left' || reason === 'partner_disconnected' || reason === 'chat_ended') message = "O oponente saiu do jogo.";
-            else if (result) message = `Placar final: Você ${result.yourScore} x ${result.opponentScore} Anônimo.`;
-            addSystemMessage(`🏆 ${message}`);
-            
-            if (result && result.yourScore > result.opponentScore) {
-                playSound('win-fanfare');
-                vibrate([100, 50, 100]);
-            } else {
-                playSound('error-buzz');
-                vibrate(100);
-            }
-
-            setTimeout(() => { pongGameContainer.style.display = 'none'; }, 3000);
-        }
-        
-        function drawPong() {
-            if (!pongGameActive) return;
-            pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
-            pongCtx.strokeStyle = '#333';
+    if (pongGameState) {
+        if (pongGameState.ball && pongGameState.ball.x !== undefined) {
+            pongCtx.fillStyle = '#fff';
             pongCtx.beginPath();
-            pongCtx.setLineDash([5, 15]);
-            pongCtx.moveTo(0, pongCanvas.height / 2);
-            pongCtx.lineTo(pongCanvas.width, pongCanvas.height / 2);
-            pongCtx.stroke();
-            pongCtx.setLineDash([]);
-            
-            pongCtx.save();
-            ball1Trail.forEach((p, i) => {
-                pongCtx.globalAlpha = (1 - (i / ball1Trail.length)) * 0.4;
-                pongCtx.fillStyle = '#fff';
-                pongCtx.beginPath();
-                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                pongCtx.fill();
-            });
-            ball2Trail.forEach((p, i) => {
-                pongCtx.globalAlpha = (1 - (i / ball2Trail.length)) * 0.4;
-                pongCtx.fillStyle = '#ffae00';
-                pongCtx.beginPath();
-                pongCtx.arc(p.x, p.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                pongCtx.fill();
-            });
-            pongCtx.restore();
-
-            if (pongGameState) {
-                if (pongGameState.ball && pongGameState.ball.x) {
-                    pongCtx.fillStyle = '#fff';
-                    pongCtx.beginPath();
-                    pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                    pongCtx.fill();
-                }
-                if (pongGameState.ball2 && pongGameState.ball2.x) {
-                    pongCtx.fillStyle = '#ffae00';
-                    pongCtx.beginPath();
-                    pongCtx.arc(pongGameState.ball2.x, pongGameState.ball2.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-                    pongCtx.fill();
-                }
-                pongCtx.fillStyle = '#ff4444'; 
-                pongCtx.fillRect(pongGameState.opponent.paddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-            }
-            pongCtx.fillStyle = '#00aaff';
-            pongCtx.fillRect(localPlayerPaddleX, pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-            pongAnimationId = requestAnimationFrame(drawPong);
+            pongCtx.arc(pongGameState.ball.x, pongGameState.ball.y, PONG_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+            pongCtx.fill();
         }
-        
-        function clientPongLoop() {
-            if (!pongGameActive) return;
-            let moved = false;
-            if (pongInputState.left) { localPlayerPaddleX -= 5; moved = true; }
-            if (pongInputState.right) { localPlayerPaddleX += 5; moved = true; }
-            localPlayerPaddleX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX));
-            if(moved) socket.emit('pong_move', { paddleX: localPlayerPaddleX });
-            clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
+        if (pongGameState.opponent && typeof pongGameState.opponent.paddleX === 'number') {
+            pongCtx.fillStyle = '#ff4444';
+            pongCtx.fillRect(pongGameState.opponent.paddleX, 0, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
         }
+    }
+    pongCtx.fillStyle = '#00aaff';
+    pongCtx.fillRect(localPlayerPaddleX, pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
 
-        window.addEventListener('keydown', (e) => {
-            if (!pongGameActive) return;
-            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') { e.preventDefault(); pongInputState.left = true; }
-            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') { e.preventDefault(); pongInputState.right = true; }
-        });
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pongInputState.left = false;
-            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pongInputState.right = false;
-        });
-        
-        const addTouchEvent = (element, startFunc, endFunc) => {
-            element.addEventListener('touchstart', (e) => { e.preventDefault(); startFunc(); }, { passive: false });
-            element.addEventListener('touchend', (e) => { e.preventDefault(); endFunc(); });
-            element.addEventListener('mousedown', startFunc);
-            element.addEventListener('mouseup', endFunc);
-            element.addEventListener('mouseleave', endFunc);
-        };
-        addTouchEvent(pongLeftBtn, () => pongInputState.left = true, () => pongInputState.left = false);
-        addTouchEvent(pongRightBtn, () => pongInputState.right = true, () => pongInputState.right = false);
-        pongLeaveBtn.addEventListener('click', () => { if(pongGameActive) socket.emit('pong_leave'); });
+    pongAnimationId = requestAnimationFrame(drawPong);
+}
 
-        // ================= JOGO DA VELHA =================
-        socket.on('tictactoe_invite_received', () => { tttInviteModal.style.display = 'flex'; });
-        tttAcceptBtn.onclick = () => { socket.emit('tictactoe_accept'); tttInviteModal.style.display = 'none'; };
-        tttDeclineBtn.onclick = () => { socket.emit('tictactoe_decline'); tttInviteModal.style.display = 'none'; };
+function clientPongLoop() {
+    if (!pongGameActive) return;
+    let moved = false;
+    if (pongInputState.left) { localPlayerPaddleX -= 5; moved = true; }
+    if (pongInputState.right) { localPlayerPaddleX += 5; moved = true; }
+    localPlayerPaddleX = Math.max(0, Math.min(pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH, localPlayerPaddleX));
+    if (moved) socket.emit('pong_move', { paddleX: localPlayerPaddleX });
+    clientAnimationLoopId = requestAnimationFrame(clientPongLoop);
+}
 
-        socket.on('tictactoe_start', (data) => {
-            tttGameActive = true;
-            tttMySymbol = data.yourSymbol;
-            tttBoardState = Array(9).fill(null);
-            tttGameContainer.style.display = 'flex';
-            tttTurnElem.innerHTML = data.firstTurn ? `🎯 Sua vez (${tttMySymbol})` : `⏳ Vez do oponente`;
-            renderTttBoard();
-        });
+window.addEventListener('keydown', (e) => {
+    if (!pongGameActive) return;
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') { e.preventDefault(); pongInputState.left = true; }
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') { e.preventDefault(); pongInputState.right = true; }
+});
+window.addEventListener('keyup', (e) => {
+    if (!pongGameActive) return;
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') pongInputState.left = false;
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') pongInputState.right = false;
+});
 
-        socket.on('tictactoe_update', (state) => {
-            tttBoardState = state.board;
-            tttCurrentTurn = state.currentTurnSymbol;
-            tttTurnElem.innerHTML = tttCurrentTurn === tttMySymbol ? '🎯 Sua vez!' : '⏳ Vez do oponente';
-            renderTttBoard();
-        });
+function bindHold(el, onStart, onEnd) {
+    const start = (e) => { e.preventDefault(); onStart(); };
+    const end = (e) => { e.preventDefault(); onEnd(); };
+    el.addEventListener('touchstart', start, { passive: false });
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
+    el.addEventListener('mousedown', start);
+    el.addEventListener('mouseup', end);
+    el.addEventListener('mouseleave', end);
+}
+bindHold(pongLeftBtn, () => pongInputState.left = true, () => pongInputState.left = false);
+bindHold(pongRightBtn, () => pongInputState.right = true, () => pongInputState.right = false);
+pongLeaveBtn.addEventListener('click', () => { if (pongGameActive) socket.emit('pong_leave'); });
 
-        socket.on('tictactoe_game_over', (data) => {
-            tttGameActive = false;
-            if (data.isDraw) {
-                tttTurnElem.innerHTML = '🤝 EMPATE!';
-                playSound('error-buzz');
-                vibrate(100);
-            } else {
-                tttTurnElem.innerHTML = `🏆 Jogador ${data.winnerSymbol} venceu!`;
-                if (data.winnerSymbol === tttMySymbol) {
-                    playSound('win-fanfare');
-                    vibrate([100, 50, 100]);
-                } else {
-                    playSound('error-buzz');
-                    vibrate(100);
-                }
-            }
-            setTimeout(() => { tttGameContainer.style.display = 'none'; }, 3000);
-        });
-
-        socket.on('tictactoe_close', () => { tttGameContainer.style.display = 'none'; });
-        
-        function renderTttBoard() {
-            tttBoardDiv.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'ttt-cell';
-                if (tttBoardState[i] === 'X') { cell.textContent = '✖'; cell.classList.add('X'); }
-                else if (tttBoardState[i] === 'O') { cell.textContent = '◯'; cell.classList.add('O'); }
-                if (tttGameActive && tttCurrentTurn === tttMySymbol && tttBoardState[i] === null) {
-                    cell.style.cursor = 'pointer';
-                    cell.onclick = () => {
-                        socket.emit('tictactoe_move', { position: i });
-                        vibrate(30);
-                    };
-                }
-                tttBoardDiv.appendChild(cell);
-            }
+// ================= JOGO DA VELHA =================
+socket.on('tictactoe_invite_received', () => tttInviteModal.classList.add('visible'));
+socket.on('tictactoe_start', (data) => {
+    tttGameActive = true;
+    tttMySymbol = data && data.yourSymbol;
+    tttBoardState = Array(9).fill(null);
+    tttCurrentTurn = null;
+    tttGameContainer.classList.add('visible');
+    tttTurnElem.textContent = data && data.firstTurn ? ('🎯 Sua vez (' + tttMySymbol + ')') : '⏳ Vez do oponente';
+    renderTttBoard();
+});
+socket.on('tictactoe_update', (state) => {
+    if (!state) return;
+    if (Array.isArray(state.board)) tttBoardState = state.board;
+    tttCurrentTurn = state.currentTurnSymbol;
+    tttTurnElem.textContent = tttCurrentTurn === tttMySymbol ? '🎯 Sua vez!' : '⏳ Vez do oponente';
+    renderTttBoard();
+});
+socket.on('tictactoe_game_over', (data) => {
+    tttGameActive = false;
+    if (data && data.isDraw) {
+        tttTurnElem.textContent = '🤝 EMPATE!';
+        playSound('error-buzz');
+        vibrate(100);
+    } else if (data && data.winnerSymbol) {
+        tttTurnElem.textContent = '🏆 Jogador ' + data.winnerSymbol + ' venceu!';
+        if (data.winnerSymbol === tttMySymbol) {
+            playSound('win-fanfare');
+            vibrate([100, 50, 100]);
+        } else {
+            playSound('error-buzz');
+            vibrate(100);
         }
-        tttLeaveBtn.onclick = () => { socket.emit('tictactoe_leave'); tttGameContainer.style.display = 'none'; };
-    </script>
+    }
+    renderTttBoard();
+    setTimeout(() => tttGameContainer.classList.remove('visible'), 3000);
+});
+socket.on('tictactoe_close', () => {
+    tttGameActive = false;
+    tttGameContainer.classList.remove('visible');
+});
+tttAcceptBtn.onclick = () => { socket.emit('tictactoe_accept'); tttInviteModal.classList.remove('visible'); };
+tttDeclineBtn.onclick = () => { socket.emit('tictactoe_decline'); tttInviteModal.classList.remove('visible'); };
+tttLeaveBtn.onclick = () => { socket.emit('tictactoe_leave'); tttGameActive = false; tttGameContainer.classList.remove('visible'); };
+
+function renderTttBoard() {
+    tttBoardDiv.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'ttt-cell';
+        const v = tttBoardState[i];
+        if (v === 'X') { cell.textContent = '✖'; cell.classList.add('X'); }
+        else if (v === 'O') { cell.textContent = '◯'; cell.classList.add('O'); }
+        if (tttGameActive && tttCurrentTurn === tttMySymbol && v === null) {
+            cell.classList.add('playable');
+            cell.onclick = () => {
+                socket.emit('tictactoe_move', { position: i });
+                vibrate(30);
+            };
+        }
+        tttBoardDiv.appendChild(cell);
+    }
+}
+
+// ================= INPUT EVENTS =================
+sendBtn.addEventListener('click', sendMessage);
+messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
+messageInput.addEventListener('input', () => {
+    if (!isTyping && isConnected) {
+        isTyping = true;
+        socket.emit('typing', { isTyping: true });
+    }
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        if (isTyping && isConnected) {
+            isTyping = false;
+            socket.emit('typing', { isTyping: false });
+        }
+    }, 1000);
+});
+
+// fecha modais clicando fora
+[pongInviteModal, tttInviteModal, reportModal, settingsModal].forEach(m => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('visible'); });
+});
+
+// pausa silencioso
+document.addEventListener('visibilitychange', () => {
+    if (settings.silentMode && document.hidden) {
+        // nada; sons já checam document.hidden
+    }
+});
+
+console.log('✅ AthesChat cliente carregado');
+</script>
 </body>
 </html>
