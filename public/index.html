@@ -411,10 +411,9 @@ startBtn.addEventListener('click', () => {
     if (startBtn.disabled) return;
     safeStorage.set(TERMS_KEY, 'true');
     
-    // Desbloqueia áudio no celular
-    unlockAudio();
+    // Inicializa e desbloqueia o áudio no clique do usuário
+    initAudio();
 
-    if (Object.keys(audioCache).length === 0) initAudio();
     startScreen.style.display = 'none';
     chatContainer.style.display = 'flex';
     socket.emit('join', { location: myLocation });
@@ -438,9 +437,6 @@ try {
 } catch (e) { /* usa default */ }
 
 function applySettings() {
-    if (audioCache) {
-        Object.values(audioCache).forEach(a => { try { a.volume = (settings.volume / 100) * 1.2; } catch (e) {} });
-    }
     const root = document.documentElement.style;
     root.setProperty('--chat-font-size', settings.fontSize + 'px');
     root.setProperty('--received-bg', settings.receivedBg);
@@ -468,45 +464,89 @@ $('setting-received-text').addEventListener('input', e => { settings.receivedTex
 $('setting-location').addEventListener('change', e => { settings.showLocation = e.target.checked; saveSettings(); });
 $('setting-silent').addEventListener('change', e => { settings.silentMode = e.target.checked; saveSettings(); });
 
-// ================= ÁUDIO =================
+// ================= ÁUDIO (SISTEMA BLINDADO) =================
 const audioCache = {};
+let audioCtx = null;
 const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
 
 function initAudio() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) {
+            console.warn("Web Audio API não suportada. Tentando fallback HTML5.");
+            fallbackAudioInit();
+            return;
+        }
+        
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+        
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        // Toca um buffer silencioso para "desbloquear" o áudio no iOS
+        const buffer = audioCtx.createBuffer(1, 1, 22050);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.start(0);
+
+        // Carrega os arquivos mp3
+        soundsToLoad.forEach(name => {
+            fetch('/' + name + '.mp3')
+                .then(res => {
+                    if(!res.ok) throw new Error('Arquivo não encontrado');
+                    return res.arrayBuffer();
+                })
+                .then(buf => audioCtx.decodeAudioData(buf))
+                .then(decoded => { audioCache[name] = decoded; })
+                .catch(e => console.warn('Falha ao carregar som: ' + name, e));
+        });
+    } catch (e) {
+        console.warn('Erro ao iniciar Web Audio:', e);
+        fallbackAudioInit();
+    }
+}
+
+function playSound(name) {
+    if (!settings.soundEnabled) return;
+    if (settings.silentMode && document.hidden) return;
+
+    if (audioCtx && audioCache[name]) {
+        // Método 1: Web Audio API (Mais rápido e confiável)
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioCache[name];
+            const gain = audioCtx.createGain();
+            gain.gain.value = (settings.volume / 100) * 1.2;
+            source.connect(gain);
+            gain.connect(audioCtx.destination);
+            source.start(0);
+            return;
+        } catch(e) {}
+    }
+    
+    // Método 2: Fallback clássico
+    if (audioCache[name] instanceof Audio) {
+        try {
+            audioCache[name].currentTime = 0;
+            audioCache[name].volume = (settings.volume / 100) * 1.2;
+            audioCache[name].play().catch(() => {});
+        } catch(e) {}
+    }
+}
+
+function fallbackAudioInit() {
     soundsToLoad.forEach(name => {
         try {
             const a = new Audio('/' + name + '.mp3');
             a.preload = 'auto';
-            a.volume = (settings.volume / 100) * 1.2;
             audioCache[name] = a;
-        } catch (e) {}
-    });
-    applySettings();
-}
-
-function unlockAudio() {
-    // Toca todos os áudios com volume 0 para desbloquear a permissão
-    soundsToLoad.forEach(name => {
-        try {
-            const a = new Audio('/' + name + '.mp3');
-            a.volume = 0;
-            a.play().then(() => {
-                a.pause();
-                a.currentTime = 0;
-            }).catch(() => {});
         } catch(e) {}
     });
-}
-
-function playSound(name) {
-    if (!settings.soundEnabled || !audioCache[name]) return;
-    if (settings.silentMode && document.hidden) return;
-    try {
-        audioCache[name].currentTime = 0;
-        audioCache[name].play().catch((e) => {
-            console.warn('Áudio bloqueado pelo navegador:', e);
-        });
-    } catch (e) {}
 }
 
 function vibrate(pattern) {
