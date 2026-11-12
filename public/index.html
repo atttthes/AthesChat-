@@ -19,6 +19,7 @@
     --special-accent: #8a2be2;
     --success-color: #4CAF50;
     --error-color: #ff4d4d;
+    --vip-gold: #ffd700;
     --chat-font-size: 16px;
     --received-bg: #333333;
     --received-text: #e0e0e0;
@@ -73,6 +74,39 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
 .reason { display: none; margin-top: 8px; padding: 8px; background-color: #ffdddd; border-radius: 6px; font-size: 12px; color: #d8000c; user-select: text; text-align: left; }
 .reason.visible { display: block; }
 
+/* NOME VIP COM BRILHO */
+.sender-name.vip-name {
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 8px currentColor, 0 0 16px currentColor, 0 0 24px currentColor;
+    animation: vip-glow 1.8s ease-in-out infinite alternate;
+}
+@keyframes vip-glow {
+    from { filter: brightness(1); }
+    to { filter: brightness(1.4); }
+}
+
+/* BANNER DE ANÚNCIO */
+#ad-banner {
+    background: #1a1a1a;
+    border-top: 1px solid #333;
+    padding: 8px 15px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: none;
+    flex-shrink: 0;
+    min-height: 60px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+}
+#ad-banner.visible { display: flex; }
+#ad-banner .ad-label { font-size: 9px; text-transform: uppercase; color: #555; letter-spacing: 1px; }
+#ad-banner .ad-content { color: #888; font-weight: bold; }
+#ad-banner iframe, #ad-banner ins { max-width: 100%; }
+
 #input-area { display: flex; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); background: var(--tertiary-bg); border-top: 1px solid #333; position: relative; flex-wrap: wrap; flex-shrink: 0; }
 #message { flex-grow: 1; padding: 12px 15px; border: 1px solid #444; border-radius: 25px; outline: none; font-size: 16px; background-color: #333; color: var(--text-color); min-width: 0; }
 #message:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -107,11 +141,32 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
 #menu-btn.open .bar2 { opacity: 0; }
 #menu-btn.open .bar3 { transform: rotate(-45deg) translate(7px, -7px); }
 
-#sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100vh; height: 100dvh; background: var(--tertiary-bg); z-index: 1100; transition: left 0.3s ease-in-out; padding-top: calc(80px + env(safe-area-inset-top)); overflow-y: auto; }
+#sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; height: 100dvh; background: var(--tertiary-bg); z-index: 1100; transition: left 0.3s ease-in-out; padding-top: calc(80px + env(safe-area-inset-top)); overflow-y: auto; }
 #sidebar.open { left: 0; }
 #sidebar ul { list-style: none; padding: 0; }
 #sidebar ul li { padding: 15px 20px; color: var(--text-color); cursor: pointer; border-bottom: 1px solid #444; display: flex; align-items: center; gap: 10px; }
 #sidebar ul li:hover { background: #444; }
+#sidebar ul li.vip-btn {
+    background: linear-gradient(90deg, #8a2be2, #e94560, #ffd700, #e94560, #8a2be2);
+    background-size: 400% 100%;
+    animation: vip-shimmer 3s linear infinite;
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0,0,0,0.5);
+    border-bottom: 2px solid #ffd700;
+}
+#sidebar ul li.vip-btn.is-vip {
+    background: linear-gradient(90deg, #ffd700, #ffed4e, #ffd700);
+    color: #121212;
+    text-shadow: none;
+}
+@keyframes vip-shimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 400% 50%; }
+}
+
+.game-btn.locked { opacity: 0.5; position: relative; }
+.game-btn.locked::after { content: ' 🔒'; }
 
 /* MODAIS */
 .modal-overlay { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1200; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
@@ -133,6 +188,23 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
 .settings-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; }
 .settings-link { color: var(--accent-color); text-decoration: none; font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 10px; }
 .settings-link:hover { text-decoration: underline; }
+
+/* VIP MODAL ESPECÍFICO */
+#vipModal .modal-content { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid var(--vip-gold); box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
+#vipModal h3 { color: var(--vip-gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); font-size: 24px; }
+.vip-progress-bar { width: 100%; height: 24px; background: #0f0f1a; border-radius: 12px; overflow: hidden; margin: 15px 0; position: relative; border: 1px solid #333; }
+.vip-progress-fill { height: 100%; background: linear-gradient(90deg, #8a2be2, #ffd700); transition: width 0.5s; border-radius: 12px; }
+.vip-progress-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black; }
+.vip-ad-slot { background: #0f0f1a; border: 2px dashed #444; border-radius: 10px; padding: 30px 20px; margin: 15px 0; min-height: 120px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic; }
+.vip-ad-slot.has-ad { border: none; padding: 0; min-height: 250px; }
+.vip-watch-btn { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #121212; border: none; padding: 14px 30px; font-size: 16px; font-weight: bold; border-radius: 25px; cursor: pointer; width: 100%; margin-top: 10px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4); }
+.vip-watch-btn:hover:not(:disabled) { transform: scale(1.03); }
+.vip-watch-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.vip-status-active { color: var(--vip-gold); font-size: 18px; font-weight: bold; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); margin: 10px 0; }
+.vip-color-picker { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 15px 0; }
+.vip-color-option { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.2s; }
+.vip-color-option:hover { transform: scale(1.1); }
+.vip-color-option.selected { border-color: white; box-shadow: 0 0 15px currentColor; }
 
 /* PONG */
 #pong-game-container, #ttt-game-container { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; background: var(--primary-bg); z-index: 1050; display: none; flex-direction: column; justify-content: center; align-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow-y: auto; }
@@ -195,8 +267,9 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
     <div id="sidebar" role="navigation">
         <ul>
             <li id="report-user-btn">🚨 Denunciar Usuário</li>
-            <li id="play-pong-btn">🏓 Jogar Pong</li>
-            <li id="play-ttt-btn">⭕ Jogo da Velha</li>
+            <li id="play-pong-btn" class="game-btn">🏓 Jogar Pong</li>
+            <li id="play-ttt-btn" class="game-btn">⭕ Jogo da Velha</li>
+            <li id="vip-btn" class="vip-btn">⭐ Torne-se VIP</li>
             <li id="settings-btn" style="border-top: 1px solid #555; margin-top: 10px;">⚙️ Configurações</li>
         </ul>
     </div>
@@ -217,6 +290,13 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
     </div>
 
     <div id="chat" role="log" aria-live="polite"></div>
+
+    <!-- BANNER DE ANÚNCIO (só para não-VIP) -->
+    <div id="ad-banner">
+        <div class="ad-label">Publicidade</div>
+        <div class="ad-content" id="ad-content">Espaço Publicitário (Em breve)</div>
+        <div id="ad-slot"></div>
+    </div>
 
     <div id="input-area">
         <button id="action-btn" style="display: none;"></button>
@@ -244,6 +324,42 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
     </div>
 </div>
 
+<!-- MODAL VIP -->
+<div id="vipModal" class="modal-overlay">
+    <div class="modal-content" style="width: min(400px, 92vw);">
+        <h3>👑 Torne-se VIP</h3>
+        <p id="vipSubtitle" style="color: #ccc; font-size: 14px; margin-bottom: 15px;">Assista <strong id="vipTargetCount">15</strong> anúncios e fique <strong id="vipDurationText">24h</strong> sem anúncios no chat!</p>
+
+        <!-- Estado: Não VIP -->
+        <div id="vipNotActiveState">
+            <div class="vip-progress-bar">
+                <div class="vip-progress-fill" id="vipProgressFill" style="width: 0%;"></div>
+                <div class="vip-progress-text" id="vipProgressText">0 / 15</div>
+            </div>
+
+            <div class="vip-ad-slot" id="vipAdSlot">
+                <div id="vipAdPlaceholder">Espaço Publicitário<br><small>(Em breve)</small></div>
+                <div id="vipAdContainer" style="display:none;"></div>
+            </div>
+
+            <button id="vipWatchBtn" class="vip-watch-btn" disabled>⏳ Anúncios em breve</button>
+        </div>
+
+        <!-- Estado: VIP Ativo -->
+        <div id="vipActiveState" style="display: none;">
+            <div class="vip-status-active">✅ Você é VIP!</div>
+            <p style="font-size: 13px; color: #aaa; margin: 10px 0;">Tempo restante: <strong id="vipTimeRemaining">--:--</strong></p>
+
+            <p style="font-size: 14px; color: #ccc; margin: 20px 0 10px;">Escolha a cor do seu nome VIP:</p>
+            <div class="vip-color-picker" id="vipColorPicker"></div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button id="vipCloseBtn" class="decline-btn" style="width: 100%;">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL CONFIGURAÇÕES -->
 <div id="settingsModal" class="modal-overlay">
     <div class="modal-content" style="width: min(360px, 92vw);">
@@ -257,7 +373,6 @@ body { height: 100vh; height: 100dvh; background-color: var(--primary-bg); color
             </div>
             <div class="settings-item">
                 <label for="setting-volume">Volume dos Sons</label>
-                <!-- Aumentado para ir até 200% -->
                 <input type="range" id="setting-volume" min="0" max="200" value="100">
             </div>
             <div class="settings-item">
@@ -411,10 +526,7 @@ termsCheckbox.addEventListener('change', () => {
 startBtn.addEventListener('click', () => {
     if (startBtn.disabled) return;
     safeStorage.set(TERMS_KEY, 'true');
-    
-    // Inicializa e desbloqueia o áudio no clique do usuário
     initAudio();
-
     startScreen.style.display = 'none';
     chatContainer.style.display = 'flex';
     socket.emit('join', { location: myLocation });
@@ -424,7 +536,7 @@ startBtn.addEventListener('click', () => {
 // ================= SETTINGS =================
 const defaultSettings = {
     soundEnabled: true,
-    volume: 100, // Aumentado padrão para 100%
+    volume: 100,
     silentMode: false,
     fontSize: 16,
     receivedBg: '#333333',
@@ -465,7 +577,7 @@ $('setting-received-text').addEventListener('input', e => { settings.receivedTex
 $('setting-location').addEventListener('change', e => { settings.showLocation = e.target.checked; saveSettings(); });
 $('setting-silent').addEventListener('change', e => { settings.silentMode = e.target.checked; saveSettings(); });
 
-// ================= ÁUDIO (SISTEMA BLINDADO COM GANHO ALTO) =================
+// ================= ÁUDIO =================
 const audioCache = {};
 let audioCtx = null;
 const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
@@ -473,72 +585,45 @@ const soundsToLoad = ['chat-receive', 'chat-join', 'error-buzz', 'win-fanfare'];
 function initAudio() {
     try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) {
-            console.warn("Web Audio API não suportada. Tentando fallback HTML5.");
-            fallbackAudioInit();
-            return;
-        }
-        
-        if (!audioCtx) {
-            audioCtx = new AudioContext();
-        }
-        
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (!AudioContext) { fallbackAudioInit(); return; }
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
 
-        // Toca um buffer silencioso para "desbloquear" o áudio no iOS
         const buffer = audioCtx.createBuffer(1, 1, 22050);
         const source = audioCtx.createBufferSource();
         source.buffer = buffer;
         source.connect(audioCtx.destination);
         source.start(0);
 
-        // Carrega os arquivos mp3
         soundsToLoad.forEach(name => {
             fetch('/' + name + '.mp3')
-                .then(res => {
-                    if(!res.ok) throw new Error('Arquivo não encontrado');
-                    return res.arrayBuffer();
-                })
+                .then(res => { if(!res.ok) throw new Error('404'); return res.arrayBuffer(); })
                 .then(buf => audioCtx.decodeAudioData(buf))
                 .then(decoded => { audioCache[name] = decoded; })
-                .catch(e => console.warn('Falha ao carregar som: ' + name, e));
+                .catch(e => console.warn('Falha som:', name));
         });
-    } catch (e) {
-        console.warn('Erro ao iniciar Web Audio:', e);
-        fallbackAudioInit();
-    }
+    } catch (e) { fallbackAudioInit(); }
 }
 
 function playSound(name) {
     if (!settings.soundEnabled) return;
     if (settings.silentMode && document.hidden) return;
-
     if (audioCtx && audioCache[name]) {
-        // Método 1: Web Audio API (Mais rápido e confiável)
         try {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const source = audioCtx.createBufferSource();
             source.buffer = audioCache[name];
             const gain = audioCtx.createGain();
-            
-            // Multiplicador de 2.2x para garantir som alto
-            // settings.volume agora vai de 0 a 200 (mas o limite seguro é aplicar 2.2)
-            gain.gain.value = (settings.volume / 100) * 2.2; 
-            
+            gain.gain.value = (settings.volume / 100) * 2.2;
             source.connect(gain);
             gain.connect(audioCtx.destination);
             source.start(0);
             return;
         } catch(e) {}
     }
-    
-    // Método 2: Fallback clássico
     if (audioCache[name] instanceof Audio) {
         try {
             audioCache[name].currentTime = 0;
-            // Fallback não permite passar de 1.0 (100%) sem distorcer, então limitamos
             audioCache[name].volume = Math.min((settings.volume / 100) * 2.2, 1.0);
             audioCache[name].play().catch(() => {});
         } catch(e) {}
@@ -558,12 +643,10 @@ function fallbackAudioInit() {
 function vibrate(pattern) {
     if (!settings.soundEnabled) return;
     if (settings.silentMode && document.hidden) return;
-    if ('vibrate' in navigator) {
-        try { navigator.vibrate(pattern); } catch (e) {}
-    }
+    if ('vibrate' in navigator) { try { navigator.vibrate(pattern); } catch (e) {} }
 }
 
-// ================= ELEMENTOS =================
+// ================= ESTADO GLOBAL =================
 const chatDiv = $('chat');
 const messageInput = $('message');
 const sendBtn = $('send-btn');
@@ -576,6 +659,7 @@ const playPongBtn = $('play-pong-btn');
 const playTttBtn = $('play-ttt-btn');
 const reportUserBtn = $('report-user-btn');
 const settingsBtn = $('settings-btn');
+const vipBtn = $('vip-btn');
 
 const pongInviteModal = $('pong-invite-modal');
 const pongAcceptBtn = $('pong-accept');
@@ -611,6 +695,28 @@ const closeSettingsBtn = $('closeSettingsBtn');
 const banBanner = $('ban-banner');
 const banReason = $('ban-reason');
 
+// BANNER DE ANÚNCIO
+const adBanner = $('ad-banner');
+const adContent = $('ad-content');
+const adSlot = $('ad-slot');
+
+// VIP MODAL
+const vipModal = $('vipModal');
+const vipCloseBtn = $('vipCloseBtn');
+const vipSubtitle = $('vipSubtitle');
+const vipTargetCount = $('vipTargetCount');
+const vipDurationText = $('vipDurationText');
+const vipNotActiveState = $('vipNotActiveState');
+const vipActiveState = $('vipActiveState');
+const vipProgressFill = $('vipProgressFill');
+const vipProgressText = $('vipProgressText');
+const vipAdSlot = $('vipAdSlot');
+const vipAdPlaceholder = $('vipAdPlaceholder');
+const vipAdContainer = $('vipAdContainer');
+const vipWatchBtn = $('vipWatchBtn');
+const vipTimeRemaining = $('vipTimeRemaining');
+const vipColorPicker = $('vipColorPicker');
+
 // ================= ESTADO =================
 let myLocation = "Desconhecido";
 let isConnected = false;
@@ -624,23 +730,50 @@ const swipeThreshold = 50;
 let palavrasOfensivas = [];
 let isBanned = false;
 
-// Pong
-let pongGameActive = false;
-let pongGameState = null;
-let prevBall = null;
-let pongAnimationId = null;
-const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
-let pongInputState = { left: false, right: false };
-let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
-let clientAnimationLoopId = null;
-let ballTrail = [];
-const TRAIL_LENGTH = 15;
+// Configs do servidor
+let gamesConfig = {
+    pong: { active: false, message: "Em breve", returnAt: null },
+    tictactoe: { active: false, message: "Em breve", returnAt: null }
+};
+let adsConfig = {
+    adsEnabled: false,
+    adsenseCode: "",
+    adsPerVip: 15,
+    vipDurationHours: 24,
+    vipDefaultColor: "#ffd700"
+};
 
-// TTT
-let tttGameActive = false;
-let tttBoardState = Array(9).fill(null);
-let tttMySymbol = null;
-let tttCurrentTurn = null;
+// VIP do usuário (localStorage)
+const VIP_KEY = 'atheschat_vip';
+let vipState = {
+    vipUntil: 0,          // timestamp (ms)
+    adsWatched: 0,        // progresso atual
+    color: '#ffd700'      // cor escolhida
+};
+try {
+    const saved = JSON.parse(safeStorage.get(VIP_KEY) || '{}');
+    vipState = { ...vipState, ...saved };
+} catch (e) {}
+
+function saveVipState() {
+    safeStorage.set(VIP_KEY, JSON.stringify(vipState));
+}
+
+function isVipActive() {
+    return vipState.vipUntil > Date.now();
+}
+
+function getVipColor() {
+    return vipState.color || adsConfig.vipDefaultColor || '#ffd700';
+}
+
+function formatTimeRemaining(ms) {
+    if (ms <= 0) return '0s';
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    if (h > 0) return h + 'h ' + m + 'min';
+    return m + 'min';
+}
 
 // ================= LOCALIZAÇÃO =================
 async function fetchMyLocation() {
@@ -664,7 +797,7 @@ async function carregarListaDePalavras() {
         if (!response.ok) throw new Error('Falha');
         const arr = await response.json();
         if (Array.isArray(arr)) palavrasOfensivas = arr;
-    } catch (e) { /* segue sem filtro local; servidor filtra mesmo */ }
+    } catch (e) {}
 }
 function contemPalavraOfensiva(texto) {
     if (!texto || palavrasOfensivas.length === 0) return false;
@@ -685,7 +818,7 @@ function addSystemMessage(msg) {
     scrollToBottom();
 }
 
-function addMessage(msg, sender, isMe, replyTo = null, location = null) {
+function addMessage(msg, sender, isMe, replyTo = null, location = null, isVip = false, vipColor = null) {
     const el = document.createElement('div');
     el.className = 'message ' + (isMe ? 'sent' : 'received');
     el.dataset.messageId = Date.now() + '-' + Math.random().toString(36).slice(2, 9);
@@ -695,12 +828,28 @@ function addMessage(msg, sender, isMe, replyTo = null, location = null) {
         info.className = 'sender-info';
         const nameEl = document.createElement('span');
         nameEl.className = 'sender-name';
-        nameEl.textContent = sender;
+        if (isVip) {
+            nameEl.classList.add('vip-name');
+            nameEl.style.color = vipColor || '#ffd700';
+            nameEl.textContent = '👑 Anônimo VIP';
+        } else {
+            nameEl.textContent = sender;
+        }
         const locEl = document.createElement('span');
         locEl.className = 'sender-location';
         locEl.textContent = location || 'Desconhecido';
         info.appendChild(nameEl);
         info.appendChild(locEl);
+        el.appendChild(info);
+    } else if (isVipActive()) {
+        // mostra seu próprio status VIP
+        const info = document.createElement('div');
+        info.className = 'sender-info';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'sender-name vip-name';
+        nameEl.style.color = getVipColor();
+        nameEl.textContent = '👑 Você (VIP)';
+        info.appendChild(nameEl);
         el.appendChild(info);
     }
 
@@ -851,10 +1000,7 @@ function getSwipeTarget(event) {
 
 function onDown(e) {
     const el = getSwipeTarget(e);
-    if (e.button === 0 && el) {
-        swipeStartX = e.clientX;
-        swipeElement = el;
-    }
+    if (e.button === 0 && el) { swipeStartX = e.clientX; swipeElement = el; }
 }
 function onMove(e) {
     if (!swipeElement || swipeStartX === null) return;
@@ -879,10 +1025,7 @@ function onUp(e) {
 function sendMessage() {
     const message = messageInput.value.trim();
     if (!message) return;
-    if (!isConnected) {
-        addSystemMessage('⚠️ Você precisa de um parceiro para enviar mensagens.');
-        return;
-    }
+    if (!isConnected) { addSystemMessage('⚠️ Você precisa de um parceiro para enviar mensagens.'); return; }
     if (contemPalavraOfensiva(message)) {
         addOffensiveMessage(message);
         messageInput.value = '';
@@ -893,8 +1036,11 @@ function sendMessage() {
     if (replyingTo) {
         payload.replyTo = { id: replyingTo.id, text: replyingTo.text, sender: 'Anônimo' };
     }
+    // Envia status VIP junto
+    payload.isVip = isVipActive();
+    payload.vipColor = getVipColor();
     socket.emit('message', payload);
-    addMessage(message, 'Você', true, replyingTo, myLocation);
+    addMessage(message, 'Você', true, replyingTo, myLocation, isVipActive(), getVipColor());
     playSound('chat-receive');
     messageInput.value = '';
     if (replyingTo) cancelReply();
@@ -917,37 +1063,186 @@ function onPartnerLeft() {
     vibrate(150);
 }
 
-// ================= LETREIRO =================
-socket.on('admin_broadcast', (data) => {
-    if (!data || typeof data.message !== 'string') return;
-    marqueeText.textContent = data.message;
-    marqueeText.style.color = data.textColor || '#fff';
-    marqueeText.style.fontSize = (Number(data.fontSize) || 16) + 'px';
-    marqueeContainer.style.background = data.bgColor || '#e94560';
-    marqueeContainer.style.display = 'flex';
-
-    const effect = data.effect;
-    const speed = Number(data.speed) || 15;
-    if (effect === 'blink') {
-        marqueeText.style.animation = 'blink 1s infinite';
-        marqueeContainer.style.whiteSpace = 'normal';
-        marqueeContainer.style.justifyContent = 'center';
-    } else if (effect === 'neon') {
-        marqueeText.style.textShadow = '0 0 5px currentColor, 0 0 10px currentColor';
-        marqueeText.style.animation = 'marquee ' + speed + 's linear infinite';
+// ================= CONFIG DE JOGOS =================
+function atualizarBotoesJogos() {
+    if (gamesConfig.pong && gamesConfig.pong.active) {
+        playPongBtn.classList.remove('locked');
     } else {
-        marqueeText.style.animation = 'marquee ' + speed + 's linear infinite';
-        marqueeText.style.textShadow = 'none';
-        marqueeContainer.style.whiteSpace = 'nowrap';
+        playPongBtn.classList.add('locked');
     }
+    if (gamesConfig.tictactoe && gamesConfig.tictactoe.active) {
+        playTttBtn.classList.remove('locked');
+    } else {
+        playTttBtn.classList.add('locked');
+    }
+}
 
-    const duration = (Number(data.duration) || 10) * 1000;
-    clearTimeout(window._marqueeTimer);
-    window._marqueeTimer = setTimeout(() => {
-        marqueeContainer.style.display = 'none';
-        marqueeText.style.animation = '';
-        marqueeText.style.textShadow = '';
-    }, duration);
+function mostrarAvisoJogoIndisponivel(config, gameName) {
+    let msg = (config && config.message) ? config.message : 'Em breve';
+    if (config && config.returnAt) {
+        const ms = new Date(config.returnAt).getTime() - Date.now();
+        if (ms > 0) {
+            const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+            msg = msg + ' (Volta em ' + days + ' dia' + (days > 1 ? 's' : '') + ')';
+        }
+    }
+    addSystemMessage('🚫 ' + gameName + ': ' + msg);
+}
+
+// ================= CONFIG DE ADS =================
+function atualizarBannerAnuncio() {
+    const isVip = isVipActive();
+    if (adsConfig.adsEnabled && !isVip) {
+        adBanner.classList.add('visible');
+        if (adsConfig.adsenseCode) {
+            adContent.style.display = 'none';
+            adSlot.innerHTML = '';
+            // Insere o código AdSense
+            try {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = adsConfig.adsenseCode;
+                const ins = wrapper.querySelector('ins');
+                if (ins) {
+                    adSlot.appendChild(ins);
+                    // Tenta inicializar o AdSense
+                    if (window.adsbygoogle) {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                }
+            } catch (e) { console.warn('Erro AdSense:', e); }
+        } else {
+            adContent.style.display = 'block';
+            adContent.textContent = 'Espaço Publicitário (Em breve)';
+            adSlot.innerHTML = '';
+        }
+    } else {
+        adBanner.classList.remove('visible');
+    }
+}
+
+function atualizarBotaoVip() {
+    if (isVipActive()) {
+        vipBtn.classList.add('is-vip');
+        vipBtn.textContent = '👑 Você é VIP!';
+    } else {
+        vipBtn.classList.remove('is-vip');
+        const remaining = adsConfig.adsPerVip - vipState.adsWatched;
+        if (adsConfig.adsEnabled) {
+            vipBtn.textContent = '⭐ Torne-se VIP (' + remaining + '/' + adsConfig.adsPerVip + ')';
+        } else {
+            vipBtn.textContent = '⭐ Torne-se VIP';
+        }
+    }
+}
+
+// ================= VIP MODAL =================
+const VIP_COLORS = ['#ffd700', '#e94560', '#8a2be2', '#00e5ff', '#4CAF50', '#ff6b6b', '#ffed4e', '#ff6ec7'];
+
+function renderVipColorPicker() {
+    vipColorPicker.innerHTML = '';
+    VIP_COLORS.forEach(color => {
+        const div = document.createElement('div');
+        div.className = 'vip-color-option' + (color === vipState.color ? ' selected' : '');
+        div.style.background = color;
+        div.style.color = color;
+        div.addEventListener('click', () => {
+            vipState.color = color;
+            saveVipState();
+            renderVipColorPicker();
+        });
+        vipColorPicker.appendChild(div);
+    });
+}
+
+function atualizarVipModal() {
+    vipTargetCount.textContent = adsConfig.adsPerVip;
+    vipDurationText.textContent = adsConfig.vipDurationHours + 'h';
+
+    if (isVipActive()) {
+        vipNotActiveState.style.display = 'none';
+        vipActiveState.style.display = 'block';
+        atualizarTempoVipModal();
+        renderVipColorPicker();
+    } else {
+        vipNotActiveState.style.display = 'block';
+        vipActiveState.style.display = 'none';
+        const pct = Math.min(100, (vipState.adsWatched / adsConfig.adsPerVip) * 100);
+        vipProgressFill.style.width = pct + '%';
+        vipProgressText.textContent = vipState.adsWatched + ' / ' + adsConfig.adsPerVip;
+
+        // Configura o anúncio dentro do modal VIP
+        if (adsConfig.adsEnabled && adsConfig.adsenseCode) {
+            vipAdPlaceholder.style.display = 'none';
+            vipAdContainer.style.display = 'block';
+            vipAdContainer.innerHTML = adsConfig.adsenseCode;
+            try {
+                if (window.adsbygoogle) {
+                    (window.adsbygoogle = window.adsbygoogle || []).push({});
+                }
+            } catch (e) {}
+            vipWatchBtn.disabled = false;
+            vipWatchBtn.textContent = '📺 Assistir Anúncio (' + (adsConfig.adsPerVip - vipState.adsWatched) + ' restantes)';
+        } else {
+            vipAdPlaceholder.style.display = 'block';
+            vipAdContainer.style.display = 'none';
+            vipWatchBtn.disabled = true;
+            vipWatchBtn.textContent = '⏳ Anúncios em breve';
+        }
+    }
+}
+
+let vipTimerInterval = null;
+function atualizarTempoVipModal() {
+    if (vipTimerInterval) clearInterval(vipTimerInterval);
+    const update = () => {
+        const ms = vipState.vipUntil - Date.now();
+        if (ms <= 0) {
+            clearInterval(vipTimerInterval);
+            vipState.vipUntil = 0;
+            saveVipState();
+            atualizarVipModal();
+            atualizarBotaoVip();
+            atualizarBannerAnuncio();
+            return;
+        }
+        vipTimeRemaining.textContent = formatTimeRemaining(ms);
+    };
+    update();
+    vipTimerInterval = setInterval(update, 1000);
+}
+
+vipWatchBtn.addEventListener('click', () => {
+    if (vipWatchBtn.disabled) return;
+    // Simula "assistir" = incrementa (em produção real, o AdSense confirmaria)
+    // Aqui, como o admin ativou e colou o código, consideramos que ele assistiu
+    vipState.adsWatched++;
+    saveVipState();
+    if (vipState.adsWatched >= adsConfig.adsPerVip) {
+        // Virou VIP
+        vipState.vipUntil = Date.now() + (adsConfig.vipDurationHours * 60 * 60 * 1000);
+        vipState.adsWatched = 0;
+        saveVipState();
+        playSound('win-fanfare');
+        vibrate([100, 50, 100]);
+        addSystemMessage('👑 Você virou VIP! Fique ' + adsConfig.vipDurationHours + 'h sem anúncios.');
+    } else {
+        playSound('chat-receive');
+    }
+    atualizarVipModal();
+    atualizarBotaoVip();
+    atualizarBannerAnuncio();
+});
+
+vipBtn.addEventListener('click', () => {
+    vipModal.classList.add('visible');
+    atualizarVipModal();
+    menuBtn.classList.remove('open');
+    sidebar.classList.remove('open');
+});
+
+vipCloseBtn.addEventListener('click', () => {
+    vipModal.classList.remove('visible');
+    if (vipTimerInterval) clearInterval(vipTimerInterval);
 });
 
 // ================= DENÚNCIA =================
@@ -984,12 +1279,31 @@ socket.on('connect', async () => {
     carregarListaDePalavras();
 });
 
-socket.on('connect_error', () => {
-    // não spamma o usuário; tenta reconectar automaticamente
-});
-
 socket.on('users_online', (count) => {
     onlineCountElement.textContent = count + ' online';
+});
+
+// Recebe configs de jogos e anúncios do servidor
+socket.on('games_config_update', (config) => {
+    if (!config) return;
+    gamesConfig = config;
+    atualizarBotoesJogos();
+});
+
+socket.on('ads_config_update', (config) => {
+    if (!config) return;
+    adsConfig = config;
+    atualizarBannerAnuncio();
+    atualizarBotaoVip();
+    // Se o modal VIP estiver aberto, atualiza
+    if (vipModal.classList.contains('visible')) atualizarVipModal();
+});
+
+// Jogo indisponível
+socket.on('game_unavailable', (data) => {
+    if (!data) return;
+    const gameName = data.game === 'pong' ? 'Pong' : (data.game === 'tictactoe' ? 'Jogo da Velha' : 'Jogo');
+    mostrarAvisoJogoIndisponivel(data, gameName);
 });
 
 socket.on('you_are_banned', (data) => {
@@ -998,15 +1312,10 @@ socket.on('you_are_banned', (data) => {
     banReason.textContent = (data && data.reason) ? ('Motivo: ' + data.reason) : '';
     messageInput.disabled = true;
     sendBtn.disabled = true;
-    // esconde chat e jogos
     chatContainer.style.display = 'none';
     startScreen.style.display = 'none';
     pongGameContainer.classList.remove('visible');
     tttGameContainer.classList.remove('visible');
-});
-
-socket.on('admin_register_failed', (data) => {
-    console.warn('Admin register falhou:', data && data.error);
 });
 
 socket.on('message_blocked', (data) => {
@@ -1038,7 +1347,7 @@ socket.on('chat_start', (data) => {
 socket.on('message', (data) => {
     if (!data || typeof data.text !== 'string') return;
     if (data.senderId !== socket.id) {
-        addMessage(data.text, 'Anônimo', false, data.replyTo, data.location);
+        addMessage(data.text, 'Anônimo', false, data.replyTo, data.location, data.isVip, data.vipColor);
         playSound('chat-receive');
         vibrate(40);
     }
@@ -1093,14 +1402,23 @@ menuBtn.addEventListener('click', () => {
 });
 
 playPongBtn.addEventListener('click', () => {
-    if (isConnected) socket.emit('pong_invite');
-    else addSystemMessage('⚠️ Você precisa estar conectado a um parceiro para jogar.');
+    if (!isConnected) { addSystemMessage('⚠️ Você precisa estar conectado a um parceiro para jogar.'); }
+    else if (!gamesConfig.pong.active) {
+        mostrarAvisoJogoIndisponivel(gamesConfig.pong, 'Pong');
+    } else {
+        socket.emit('pong_invite');
+    }
     menuBtn.classList.remove('open');
     sidebar.classList.remove('open');
 });
+
 playTttBtn.addEventListener('click', () => {
-    if (isConnected) socket.emit('tictactoe_invite');
-    else addSystemMessage('⚠️ Você precisa estar conectado a um parceiro para jogar.');
+    if (!isConnected) { addSystemMessage('⚠️ Você precisa estar conectado a um parceiro para jogar.'); }
+    else if (!gamesConfig.tictactoe.active) {
+        mostrarAvisoJogoIndisponivel(gamesConfig.tictactoe, 'Jogo da Velha');
+    } else {
+        socket.emit('tictactoe_invite');
+    }
     menuBtn.classList.remove('open');
     sidebar.classList.remove('open');
 });
@@ -1113,6 +1431,17 @@ socket.on('bot_pong_invite', () => {
 });
 pongAcceptBtn.addEventListener('click', () => { socket.emit('pong_accept'); pongInviteModal.classList.remove('visible'); });
 pongDeclineBtn.addEventListener('click', () => { socket.emit('pong_decline'); pongInviteModal.classList.remove('visible'); });
+
+let pongGameActive = false;
+let pongGameState = null;
+let prevBall = null;
+let pongAnimationId = null;
+const PONG_CONFIG = { PADDLE_WIDTH: 60, PADDLE_HEIGHT: 10, BALL_RADIUS: 5 };
+let pongInputState = { left: false, right: false };
+let localPlayerPaddleX = (pongCanvas.width - PONG_CONFIG.PADDLE_WIDTH) / 2;
+let clientAnimationLoopId = null;
+let ballTrail = [];
+const TRAIL_LENGTH = 15;
 
 socket.on('pong_start', () => {
     pongGameActive = true;
@@ -1197,7 +1526,6 @@ function endPongGame(reason, result = null) {
 function drawPong() {
     if (!pongGameActive) return;
     pongCtx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
-
     pongCtx.strokeStyle = '#333';
     pongCtx.beginPath();
     pongCtx.setLineDash([5, 15]);
@@ -1230,7 +1558,6 @@ function drawPong() {
     }
     pongCtx.fillStyle = '#00aaff';
     pongCtx.fillRect(localPlayerPaddleX, pongCanvas.height - PONG_CONFIG.PADDLE_HEIGHT, PONG_CONFIG.PADDLE_WIDTH, PONG_CONFIG.PADDLE_HEIGHT);
-
     pongAnimationId = requestAnimationFrame(drawPong);
 }
 
@@ -1270,6 +1597,11 @@ bindHold(pongRightBtn, () => pongInputState.right = true, () => pongInputState.r
 pongLeaveBtn.addEventListener('click', () => { if (pongGameActive) socket.emit('pong_leave'); });
 
 // ================= JOGO DA VELHA =================
+let tttGameActive = false;
+let tttBoardState = Array(9).fill(null);
+let tttMySymbol = null;
+let tttCurrentTurn = null;
+
 socket.on('tictactoe_invite_received', () => tttInviteModal.classList.add('visible'));
 socket.on('tictactoe_start', (data) => {
     tttGameActive = true;
@@ -1350,10 +1682,26 @@ messageInput.addEventListener('input', () => {
     }, 1000);
 });
 
-// fecha modais clicando fora
-[pongInviteModal, tttInviteModal, reportModal, settingsModal].forEach(m => {
-    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('visible'); });
+[pongInviteModal, tttInviteModal, reportModal, settingsModal, vipModal].forEach(m => {
+    m.addEventListener('click', (e) => { if (e.target === m) { m.classList.remove('visible'); if (m === vipModal && vipTimerInterval) clearInterval(vipTimerInterval); } });
 });
+
+// ================= INICIALIZAÇÃO =================
+applySettings();
+atualizarBotoesJogos();
+atualizarBotaoVip();
+atualizarBannerAnuncio();
+
+// Verifica VIP expirado periodicamente
+setInterval(() => {
+    if (vipState.vipUntil > 0 && !isVipActive()) {
+        vipState.vipUntil = 0;
+        saveVipState();
+        atualizarBotaoVip();
+        atualizarBannerAnuncio();
+        addSystemMessage('⏰ Seu VIP expirou. Assista anúncios novamente para renovar!');
+    }
+}, 60000);
 
 console.log('✅ AthesChat cliente carregado');
 </script>
