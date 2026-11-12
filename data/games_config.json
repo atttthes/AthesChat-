@@ -1,0 +1,12 @@
+{
+  "pong": {
+    "active": false,
+    "message": "Em breve",
+    "daysRemaining": null
+  },
+  "tictactoe": {
+    "active": false,
+    "message": "Em breve",
+    "daysRemaining": null
+  }
+}
