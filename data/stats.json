@@ -1,12 +1,9 @@
 {
-  "totalMensagens": 0,
-  "totalDenuncias": 0,
-  "totalBans": 0,
-  "mensagensPorDia": {},
-  "picoMaximoUsuarios": 0,
-  "totalPartidas": {
+  "totalMessages": 0,
+  "dailyMessages": {},
+  "peakUsers": 0,
+  "gamesPlayed": {
     "pong": 0,
-    "velha": 0,
-    "desenho": 0
+    "tictactoe": 0
   }
 }
