@@ -133,7 +133,6 @@ class Bot {
         this.socket.emit('chat_start', { partnerId: this.id });
         setTimeout(() => this.sendMsg(botLogic.greetings[Math.floor(Math.random() * botLogic.greetings.length)]), 1500);
         
-        // 30% de chance de convidar para jogar após 20 a 60 segundos
         if (Math.random() < 0.3) {
             this.playInviteTimeout = setTimeout(() => {
                 if (!this.inGame) {
@@ -160,21 +159,19 @@ class Bot {
     sendMsg(text) { this.socket.emit('typing', { isTyping: false }); this.socket.emit('message', { text, senderId: this.id, location: this.location }); }
     disconnect() { clearTimeout(this.playInviteTimeout); setTimeout(() => { const u = connectedUsers.get(this.userId); if (u && u.partnerId === this.id) { this.socket.emit('chat_ended'); u.partnerId = null; } activeBots.delete(this.id); }, 1000); }
     
-    // Lógica do Bot no Pong (Nível Médio)
     updatePong(paddleX, ballX, ballY) {
         if (!this.inGame) return;
         this.paddleX = paddleX;
-        // O bot move a raquete em direção à bola, mas com "erro" e "atraso"
-        if (ballY < 200) { // Bola subindo em direção ao bot
-            if (Math.random() > 0.2) { // 80% de chance de tentar acertar
-                this.targetX = ballX - 30 + (Math.random() * 40 - 20); // Erro de 20px para mais ou menos
+        if (ballY < 200) {
+            if (Math.random() > 0.2) {
+                this.targetX = ballX - 30 + (Math.random() * 40 - 20);
             }
         }
         let diff = this.targetX - this.paddleX;
-        let speed = 4; // Mais lento que um humano (5)
+        let speed = 4;
         if (Math.abs(diff) > speed) this.paddleX += Math.sign(diff) * speed;
         else this.paddleX = this.targetX;
-        this.paddleX = Math.max(0, Math.min(300 - 60, this.paddleX)); // 300 é a largura
+        this.paddleX = Math.max(0, Math.min(300 - 60, this.paddleX));
     }
 }
 
