@@ -1,49 +1,90 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidade - AthesChat</title>
-    <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; max-width: 800px; margin: 0 auto; }
-        h1, h2 { color: #0062cc; }
-        a { color: #4CAF50; text-decoration: none; font-weight: bold; }
-        .back-btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #0062cc; color: white; border-radius: 5px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidade - AthesChat</title>
+<style>
+    body { background-color: #121212; color: #e0e0e0; font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; max-width: 800px; margin: 0 auto; }
+    h1, h2 { color: #0062cc; }
+    h1 { margin-bottom: 8px; }
+    .updated { color: #888; font-size: 14px; margin-bottom: 25px; }
+    a { color: #4CAF50; text-decoration: none; font-weight: bold; }
+    a:hover { text-decoration: underline; }
+    ul { padding-left: 25px; margin-bottom: 15px; }
+    li { margin-bottom: 8px; }
+    .back-btn { display: inline-block; margin-top: 30px; padding: 12px 24px; background: #0062cc; color: white; border-radius: 8px; }
+    .back-btn:hover { background: #0052b3; }
+    code { background: #1e1e1e; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+</style>
 </head>
 <body>
     <h1>Política de Privacidade do AthesChat</h1>
-    <p><strong>Última atualização:</strong> Novembro de 2026</p>
+    <p class="updated"><strong>Última atualização:</strong> Novembro de 2026</p>
 
     <h2>1. Quais dados nós coletamos?</h2>
-    <p>O AthesChat preza pelo anonimato. Não pedimos e-mail, senha ou nome para você usar o chat. No entanto, para garantir a segurança, coletamos:</p>
+    <p>O AthesChat preza pelo anonimato. Não pedimos e-mail, senha ou nome para você usar o chat. No entanto, para garantir a segurança e o funcionamento, coletamos:</p>
     <ul>
-        <li><strong>Endereço IP:</strong> Coletado automaticamente para possibilitar banimentos (em caso de violação dos Termos de Uso).</li>
-        <li><strong>Localização Aproximada:</strong> Estimada via API (baseada no IP) para mostrar o Estado (ex: SP, RJ) ao seu parceiro de conversa. Você pode desativar isso nas Configurações.</li>
-        <li><strong>Mensagens:</strong> As mensagens <strong>não são salvas permanentemente</strong>. Elas são transmitidas em tempo real (via WebSockets) e desaparecem quando a conversa termina.</li>
+        <li><strong>Endereço IP:</strong> Coletado automaticamente para possibilitar banimentos (em caso de violação dos Termos de Uso) e limitar spam. Não é exibido a outros usuários.</li>
+        <li><strong>Localização Aproximada:</strong> Estimada via API externa (ipapi.co) a partir do IP, para mostrar apenas o Estado (ex: SP, RJ) ao seu parceiro de conversa. <strong>Você pode desativar isso nas Configurações do chat.</strong></li>
+        <li><strong>Mensagens:</strong> As mensagens <strong>não são salvas permanentemente</strong>. Elas são transmitidas em tempo real (via WebSockets) e desaparecem quando a conversa termina. A única exceção são mensagens anexadas a uma denúncia feita por outro usuário.</li>
+        <li><strong>Denúncias:</strong> Quando um usuário denuncia outro, armazenamos o IP do denunciado, o motivo, o texto da mensagem (se anexado) e a data. Esses dados ficam retidos por até <strong>90 dias</strong> para análise da moderação e depois são removidos.</li>
+        <li><strong>Estatísticas agregadas:</strong> Contamos mensagens totais e usuários online de forma anônima e agregada. Não é possível identificar usuários individuais a partir dessas estatísticas.</li>
     </ul>
 
     <h2>2. Como usamos seus dados?</h2>
-    <p>Usamos o IP para proteção contra bots, spam e para aplicar banimentos. As denúncias (com o texto da mensagem e o IP) ficam salvas temporariamente para nossa equipe de moderação avaliar e tomar providências.</p>
+    <p>Usamos o IP para proteção contra bots, spam, abuso e para aplicar banimentos. As denúncias ficam salvas temporariamente para nossa equipe de moderação avaliar e tomar providências. Não usamos seus dados para publicidade comportamental.</p>
 
     <h2>3. Armazenamento no Dispositivo (Cookies e LocalStorage)</h2>
-    <p>Salvamos dados no seu navegador para melhorar sua experiência. Isso inclui:</p>
+    <p>Salvamos dados no seu navegador via <code>localStorage</code> para melhorar sua experiência. Isso inclui:</p>
     <ul>
-        <li>Preferências de visualização (cor das mensagens, tamanho da fonte).</li>
-        <li>Volume dos sons e configurações.</li>
-        <li>O seu consentimento de que já aceitou os termos.</li>
-        <li>Anúncios futuros (Google AdSense) poderão usar cookies para personalização.</li>
+        <li>Preferências de visualização (cor das mensagens, tamanho da fonte, fundo).</li>
+        <li>Volume dos sons e configurações de silêncio.</li>
+        <li>O seu consentimento de que já aceitou os termos (chave <code>atheschat_terms_accepted</code>).</li>
+        <li>Token de sessão do painel administrativo (apenas para moderadores).</li>
     </ul>
+    <p>Não usamos cookies de rastreamento de terceiros. Anúncios futuros (ex: Google AdSense), se implementados, poderão usar cookies próprios — você será notificado quando isso ocorrer.</p>
 
     <h2>4. Compartilhamento de Dados</h2>
-    <p>Nós não vendemos nem alugamos seus dados. Utilizamos serviços de terceiros (como a API <em>ipapi.co</em> para pegar a localização e a hospedagem Render para rodar o código) que possuem suas próprias políticas de segurança.</p>
+    <p>Nós não vendemos nem alugamos seus dados. Utilizamos serviços de terceiros que possuem suas próprias políticas de segurança:</p>
+    <ul>
+        <li><strong>ipapi.co</strong> — para estimar localização a partir do IP.</li>
+        <li><strong>Provedor de hospedagem</strong> (ex: Render, Railway, VPS) — para executar o servidor.</li>
+        <li><strong>CDN do Socket.io</strong> — para carregar a biblioteca de tempo real no navegador.</li>
+    </ul>
 
-    <h2>5. Seus Direitos (LGPD)</h2>
-    <p>Como os dados são anônimos e temporários, não conseguimos identificar quem é você. No entanto, se você tiver dúvidas sobre seus dados ou quiser solicitar a remoção de algum registro (como uma denúncia ou banimento), entre em contato pelo e-mail: <strong>suporte@atheschat.com.br</strong>.</p>
+    <h2>5. Seus Direitos (LGPD — Lei 13.709/2018)</h2>
+    <p>Como os dados são anônimos e temporários, não conseguimos identificar quem é você individualmente. No entanto, se você tiver dúvidas sobre seus dados ou quiser solicitar a remoção de algum registro (como uma denúncia ou banimento vinculado a um IP específico), entre em contato pelo e-mail: <strong>suporte@atheschat.com.br</strong>.</p>
+    <p>Você tem direito a:</p>
+    <ul>
+        <li>Confirmação da existência de tratamento de dados.</li>
+        <li>Acesso aos dados (quando identificáveis).</li>
+        <li>Correção de dados incompletos ou desatualizados.</li>
+        <li>Eliminação de dados tratados com consentimento.</li>
+        <li>Informação sobre compartilhamento com terceiros.</li>
+    </ul>
 
-    <h2>6. Segurança</h2>
-    <p>Implementamos medidas como filtros de palavras, limite de mensagens (anti-spam) e servidores seguros. Contudo, lembramos que <strong>nenhum sistema é 100% invulnerável</strong>.</p>
+    <h2>6. Retenção de Dados</h2>
+    <ul>
+        <li><strong>Mensagens:</strong> não armazenadas (exceto em denúncias).</li>
+        <li><strong>Denúncias:</strong> até 90 dias.</li>
+        <li><strong>Banimentos:</strong> permanentes ou até a expiração definida pelo moderador.</li>
+        <li><strong>Logs administrativos:</strong> últimas 200 ações, mantidos para auditoria.</li>
+        <li><strong>Estatísticas agregadas:</strong> mantidas indefinidamente (sem dados pessoais).</li>
+    </ul>
 
-    <a href="/" class="back-btn">Voltar ao Chat</a>
+    <h2>7. Segurança</h2>
+    <p>Implementamos medidas como filtros de palavras, limite de mensagens (anti-spam), tokens JWT assinados para o painel administrativo e servidores seguros. Contudo, lembramos que <strong>nenhum sistema é 100% invulnerável</strong>.</p>
+
+    <h2>8. Menores de Idade</h2>
+    <p>O AthesChat é destinado exclusivamente a maiores de 18 anos. Não coletamos intencionalmente dados de menores. Se identificarmos uso por menor, a conta e o IP serão banidos.</p>
+
+    <h2>9. Alterações nesta Política</h2>
+    <p>Esta política pode ser atualizada a qualquer momento. A data de "Última atualização" no topo indica a versão vigente. Alterações significativas serão comunicadas via letreiro no chat.</p>
+
+    <h2>10. Contato</h2>
+    <p>Para exercer seus direitos ou tirar dúvidas: <strong>suporte@atheschat.com.br</strong>.</p>
+
+    <a href="/" class="back-btn">← Voltar ao Chat</a>
 </body>
 </html>
